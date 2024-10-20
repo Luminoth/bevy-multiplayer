@@ -1,3 +1,8 @@
+mod game;
+mod main_menu;
+mod server;
+mod ui;
+
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
@@ -6,6 +11,28 @@ const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
 
 #[cfg(feature = "server")]
 const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States)]
+pub enum AppState {
+    #[cfg(not(feature = "server"))]
+    #[default]
+    MainMenu,
+
+    #[cfg(feature = "server")]
+    #[default]
+    WaitingForPlacement,
+
+    InGame,
+}
+
+pub fn cleanup_state<T>(mut commands: Commands, query: Query<Entity, With<T>>)
+where
+    T: Component,
+{
+    for e in &query {
+        commands.entity(e).despawn_recursive();
+    }
+}
 
 #[cfg(not(feature = "server"))]
 fn init_app(app: &mut App) {
@@ -28,8 +55,17 @@ fn init_app(app: &mut App) {
                 ..default()
             }),
         bevy_inspector_egui::quick::WorldInspectorPlugin::new(),
+        bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
-    ));
+    ))
+    .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
+    .add_systems(
+        OnExit(AppState::MainMenu),
+        (
+            cleanup_state::<main_menu::OnMainMenu>,
+            cleanup_state::<Node>,
+        ),
+    );
 }
 
 #[cfg(feature = "server")]
@@ -40,41 +76,27 @@ fn init_app(app: &mut App) {
         MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
             bevy::utils::Duration::from_secs_f64(SERVER_TICK_RATE),
         )),
-    ));
-}
-
-fn setup(mut commands: Commands) {
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-            ..Default::default()
-        },
-        Name::new("Main Camera"),
-    ));
-
-    // ground
-    commands.spawn((
-        Collider::cuboid(100.0, 0.1, 100.0),
-        TransformBundle::from(Transform::from_xyz(0.0, -2.0, 0.0)),
-        Name::new("Ground"),
-    ));
-
-    // bouncing ball
-    commands.spawn((
-        RigidBody::Dynamic,
-        Collider::ball(0.5),
-        Restitution::coefficient(0.7),
-        TransformBundle::from(Transform::from_xyz(0.0, 4.0, 0.0)),
-        Name::new("Ball"),
-    ));
+    ))
+    .add_systems(
+        Update,
+        server::wait_for_placement.run_if(in_state(AppState::WaitingForPlacement)),
+    );
 }
 
 fn main() {
     let mut app = App::new();
     init_app(&mut app);
 
-    app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_systems(Startup, setup);
+    app.add_plugins((
+        RapierPhysicsPlugin::<NoUserData>::default(),
+        bevy_mod_reqwest::ReqwestPlugin::default(),
+    ))
+    .init_state::<AppState>()
+    .add_systems(OnEnter(AppState::InGame), game::enter)
+    .add_systems(
+        OnExit(AppState::InGame),
+        (cleanup_state::<game::OnInGame>, cleanup_state::<Node>),
+    );
 
     info!("running ...");
     app.run();
