@@ -1,0 +1,50 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+agones = { version = "1.34", optional = true }
+bevy = "0.14"
+bevy-inspector-egui = { version = "0.27", optional = true }
+bevy_rapier3d = { version = "0.27", default-features = false, features = [
+    "dim3",
+    #"async-collider",
+    "simd-stable",
+] }
+naia-bevy-client = { version = "0.23", features = [
+    "transport_udp",
+], optional = true }
+naia-bevy-server = { version = "0.23", features = [
+    "transport_udp",
+], optional = true }
+naia-bevy-shared = "0.23"
+tokio = { version = "1.40", features = ["full"], optional = true }
+
+common = { path = "../common" }
+
+[features]
+default = [
+    "client",
+    #"server",
+]
+client = [
+    "dep:bevy-inspector-egui",
+    "bevy_rapier3d/async-collider",
+    "bevy_rapier3d/debug-render-3d",
+    #"dep:naia-bevy-client"
+]
+server = [
+    "bevy_rapier3d/headless",
+    #"dep:naia-bevy-server",
+    "dep:agones",
+    "dep:tokio",
+]
+
+# Enable a small amount of optimization in the dev profile.
+[profile.dev]
+opt-level = 1
+
+# Enable a large amount of optimization in the dev profile for dependencies.
+[profile.dev.package."*"]
+opt-level = 3
