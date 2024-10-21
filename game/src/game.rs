@@ -19,7 +19,6 @@ pub fn load_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut game_state: ResMut<NextState<AppState>>,
 ) {
     info!("loading assets ...");
 
@@ -35,12 +34,16 @@ pub fn load_assets(
         ball_mesh,
         ball_material,
     });
+}
 
+pub fn wait_for_assets(mut game_state: ResMut<NextState<AppState>>) {
     game_state.set(AppState::InGame);
 }
 
 pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("entering game ...");
+
+    commands.insert_resource(ClearColor(Color::BLACK));
 
     commands.spawn((
         Camera3dBundle {
@@ -89,7 +92,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     // bouncing ball
     commands.spawn((
         MaterialMeshBundle {
-            transform: Transform::from_xyz(0.0, 5.0, 0.0),
+            transform: Transform::from_xyz(0.0, 10.0, 0.0),
             mesh: assets.ball_mesh.clone(),
             material: assets.ball_material.clone(),
             ..default()
@@ -105,6 +108,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
 pub fn exit(mut commands: Commands) {
     info!("exiting game ...");
 
+    commands.remove_resource::<ClearColor>();
     commands.remove_resource::<AmbientLight>();
     commands.remove_resource::<GameAssetState>();
 }

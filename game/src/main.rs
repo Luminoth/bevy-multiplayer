@@ -1,3 +1,4 @@
+mod debug;
 mod game;
 mod main_menu;
 mod server;
@@ -12,7 +13,7 @@ const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
 #[cfg(feature = "server")]
 const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
 pub enum AppState {
     #[cfg(not(feature = "server"))]
     #[default]
@@ -55,18 +56,26 @@ fn init_app(app: &mut App) {
                     .to_string(),
                 ..default()
             }),
-        bevy_inspector_egui::quick::WorldInspectorPlugin::new(),
+        bevy_egui::EguiPlugin,
         bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
+        debug::DebugPlugin,
     ))
+    .add_systems(Update, ui::update_button)
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
     .add_systems(
         OnExit(AppState::MainMenu),
         (
+            main_menu::exit,
             cleanup_state::<main_menu::OnMainMenu>,
             cleanup_state::<Node>,
         ),
     );
+
+    /*app.insert_resource(bevy_egui::EguiSettings {
+        scale_factor: 0.75,
+        ..Default::default()
+    });*/
 }
 
 #[cfg(feature = "server")]
@@ -94,6 +103,10 @@ fn main() {
     ))
     .init_state::<AppState>()
     .add_systems(OnEnter(AppState::LoadAssets), game::load_assets)
+    .add_systems(
+        Update,
+        game::wait_for_assets.run_if(in_state(AppState::LoadAssets)),
+    )
     .add_systems(OnEnter(AppState::InGame), game::enter)
     .add_systems(
         OnExit(AppState::InGame),
