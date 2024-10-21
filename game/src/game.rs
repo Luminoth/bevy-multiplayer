@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
 
 use crate::AppState;
@@ -23,11 +23,11 @@ pub fn load_assets(
 ) {
     info!("loading assets ...");
 
-    let floor_mesh = meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(100.0)));
-    let floor_material = materials.add(Color::srgb(0.0, 0.5, 0.0));
+    let floor_mesh = meshes.add(Plane3d::default().mesh().size(100.0, 100.0));
+    let floor_material = materials.add(Color::from(GREEN));
 
     let ball_mesh = meshes.add(Sphere::new(0.5));
-    let ball_material = materials.add(Color::srgb(0.0, 0.5, 0.5));
+    let ball_material = materials.add(Color::from(FUCHSIA));
 
     commands.insert_resource(GameAssetState {
         floor_mesh,
@@ -45,9 +45,31 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-            ..Default::default()
+            ..default()
         },
         Name::new("Main Camera"),
+        OnInGame,
+    ));
+
+    commands.insert_resource(AmbientLight {
+        color: GRAY.into(),
+        brightness: 0.02,
+    });
+
+    commands.spawn((
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                color: ORANGE_RED.into(),
+                shadows_enabled: true,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(0.0, 5.0, 0.0),
+                rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
+                ..default()
+            },
+            ..default()
+        },
         OnInGame,
     ));
 
@@ -83,5 +105,6 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
 pub fn exit(mut commands: Commands) {
     info!("exiting game ...");
 
+    commands.remove_resource::<AmbientLight>();
     commands.remove_resource::<GameAssetState>();
 }
