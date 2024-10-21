@@ -1,0 +1,69 @@
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = [
+    # LLD linker
+    #
+    # You may need to install it:
+    #
+    # - Ubuntu: `sudo apt-get install lld clang`
+    # - Fedora: `sudo dnf install lld clang`
+    # - Arch: `sudo pacman -S lld clang`
+    "-Clink-arg=-fuse-ld=lld",
+
+    # Mold linker
+    #
+    # You may need to install it:
+    #
+    # - Ubuntu: `sudo apt-get install mold clang`
+    # - Fedora: `sudo dnf install mold clang`
+    # - Arch: `sudo pacman -S mold clang`
+    # "-Clink-arg=-fuse-ld=mold",
+]
+# Some systems may experience linker performance issues when running doc tests.
+# See https://github.com/bevyengine/bevy/issues/12207 for details.
+rustdocflags = [
+    # LLD linker
+    "-Clink-arg=-fuse-ld=lld",
+
+    # Mold linker
+    # "-Clink-arg=-fuse-ld=mold",
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+    # LLD linker
+    #
+    # The default ld64 linker is faster, you should continue using it instead.
+    #
+    # You may need to install it:
+    #
+    # Brew: `brew install llvm`
+    # Manually: <https://lld.llvm.org/MachO/index.html>
+    # "-Clink-arg=-fuse-ld=/usr/local/opt/llvm/bin/ld64.lld",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+    # LLD linker
+    #
+    # The default ld64 linker is faster, you should continue using it instead.
+    #
+    # You may need to install it:
+    #
+    # Brew: `brew install llvm`
+    # Manually: <https://lld.llvm.org/MachO/index.html>
+    # "-Clink-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld",
+]
+
+[target.x86_64-pc-windows-msvc]
+# LLD linker
+#
+# You may need to install it:
+#
+# ```
+# cargo install -f cargo-binutils
+# rustup component add llvm-tools
+# ```
+linker = "rust-lld.exe"
+rustdocflags = ["-Clinker=rust-lld.exe"]
+rustflags = []
