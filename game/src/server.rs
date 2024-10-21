@@ -2,4 +2,8 @@
 
 use bevy::prelude::*;
 
-pub fn wait_for_placement(mut _commands: Commands) {}
+use crate::AppState;
+
+pub fn wait_for_placement(mut game_state: ResMut<NextState<AppState>>) {
+    game_state.set(AppState::LoadAssets);
+}
