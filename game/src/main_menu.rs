@@ -70,7 +70,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     ) {
                                         return;
                                     }
-                                    game_state.set(AppState::InGame);
+                                    game_state.set(AppState::LoadAssets);
                                 },
                             ),
                             Name::new("Start Game"),

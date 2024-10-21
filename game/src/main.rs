@@ -22,6 +22,7 @@ pub enum AppState {
     #[default]
     WaitingForPlacement,
 
+    LoadAssets,
     InGame,
 }
 
@@ -92,10 +93,15 @@ fn main() {
         bevy_mod_reqwest::ReqwestPlugin::default(),
     ))
     .init_state::<AppState>()
+    .add_systems(OnEnter(AppState::LoadAssets), game::load_assets)
     .add_systems(OnEnter(AppState::InGame), game::enter)
     .add_systems(
         OnExit(AppState::InGame),
-        (cleanup_state::<game::OnInGame>, cleanup_state::<Node>),
+        (
+            game::exit,
+            cleanup_state::<game::OnInGame>,
+            cleanup_state::<Node>,
+        ),
     );
 
     info!("running ...");
