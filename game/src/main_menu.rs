@@ -9,6 +9,8 @@ use crate::{ui, AppState};
 pub struct OnMainMenu;
 
 pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
+    info!("entering main menu ...");
+
     commands.insert_resource(ClearColor(Color::BLACK));
 
     commands.spawn((Camera2dBundle::default(), IsDefaultUiCamera, OnMainMenu));

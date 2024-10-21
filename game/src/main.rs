@@ -86,6 +86,14 @@ fn init_app(app: &mut App) {
         MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
             bevy::utils::Duration::from_secs_f64(SERVER_TICK_RATE),
         )),
+        bevy::app::PanicHandlerPlugin,
+        bevy::log::LogPlugin::default(),
+        bevy::transform::TransformPlugin,
+        bevy::hierarchy::HierarchyPlugin,
+        bevy::diagnostic::DiagnosticsPlugin,
+        bevy::asset::AssetPlugin::default(),
+        bevy::scene::ScenePlugin,
+        bevy::state::app::StatesPlugin,
     ))
     .add_systems(
         Update,

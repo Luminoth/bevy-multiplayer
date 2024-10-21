@@ -12,7 +12,6 @@ bevy_mod_picking = { version = "0.20", optional = true }
 bevy_mod_reqwest = "0.16"
 bevy_rapier3d = { version = "0.27", default-features = false, features = [
     "dim3",
-    #"async-collider",
     "simd-stable",
 ] }
 naia-bevy-client = { version = "0.23", features = [
