@@ -14,6 +14,8 @@ pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
     floor_material: Handle<StandardMaterial>,
 
+    wall_material: Handle<StandardMaterial>,
+
     ball_mesh: Handle<Mesh>,
     ball_material: Handle<StandardMaterial>,
 }
@@ -25,10 +27,14 @@ pub fn load_assets(
 ) {
     info!("loading assets ...");
 
-    let floor_mesh = meshes.add(Plane3d::default().mesh().size(100.0, 100.0));
+    let floor_mesh = meshes.add(Plane3d::default().mesh().size(50.0, 50.0));
     let floor_material = materials
         .as_mut()
         .and_then(|materials| Some(materials.add(Color::from(GREEN))));
+
+    let wall_material = materials
+        .as_mut()
+        .and_then(|materials| Some(materials.add(Color::from(NAVY))));
 
     let ball_mesh = meshes.add(Sphere::new(0.5));
     let ball_material = materials
@@ -38,6 +44,7 @@ pub fn load_assets(
     commands.insert_resource(GameAssetState {
         floor_mesh,
         floor_material: floor_material.unwrap_or_default(),
+        wall_material: wall_material.unwrap_or_default(),
         ball_mesh,
         ball_material: ball_material.unwrap_or_default(),
     });
@@ -54,7 +61,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
 
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(0.0, 2.0, 15.0),
             ..default()
         },
         Name::new("Main Camera"),
@@ -62,8 +69,8 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     ));
 
     commands.insert_resource(AmbientLight {
-        color: GRAY.into(),
-        brightness: 0.02,
+        color: WHITE.into(),
+        brightness: 80.0,
     });
 
     commands.spawn((
@@ -80,26 +87,112 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
             },
             ..default()
         },
+        Name::new("Sun"),
         OnInGame,
     ));
 
     // floor
     commands.spawn((
         MaterialMeshBundle {
-            transform: Transform::from_xyz(0.0, -2.0, 0.0),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
             mesh: assets.floor_mesh.clone(),
             material: assets.floor_material.clone(),
             ..default()
         },
-        Collider::cuboid(100.0, 0.1, 100.0),
+        Collider::cuboid(25.0, 0.1, 25.0),
         Name::new("Ground"),
+        OnInGame,
+    ));
+
+    // ceiling
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, 50.0, 0.0),
+                rotation: Quat::from_rotation_z(180.0f32.to_radians()),
+                ..default()
+            },
+            mesh: assets.floor_mesh.clone(),
+            material: assets.floor_material.clone(),
+            ..default()
+        },
+        Collider::cuboid(25.0, 0.1, 25.0),
+        Name::new("Ceiling"),
+        OnInGame,
+    ));
+
+    // left wall
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform {
+                translation: Vec3::new(-25.0, 25.0, 0.0),
+                rotation: Quat::from_rotation_z(-90.0f32.to_radians()),
+                ..default()
+            },
+            mesh: assets.floor_mesh.clone(),
+            material: assets.wall_material.clone(),
+            ..default()
+        },
+        Collider::cuboid(25.0, 0.1, 25.0),
+        Name::new("Left Wall"),
+        OnInGame,
+    ));
+
+    // right wall
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform {
+                translation: Vec3::new(25.0, 25.0, 0.0),
+                rotation: Quat::from_rotation_z(90.0f32.to_radians()),
+                ..default()
+            },
+            mesh: assets.floor_mesh.clone(),
+            material: assets.wall_material.clone(),
+            ..default()
+        },
+        Collider::cuboid(25.0, 0.1, 25.0),
+        Name::new("Right Wall"),
+        OnInGame,
+    ));
+
+    // forward wall
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, 25.0, -25.0),
+                rotation: Quat::from_rotation_x(90.0f32.to_radians()),
+                ..default()
+            },
+            mesh: assets.floor_mesh.clone(),
+            material: assets.wall_material.clone(),
+            ..default()
+        },
+        Collider::cuboid(25.0, 0.1, 25.0),
+        Name::new("Forward Wall"),
+        OnInGame,
+    ));
+
+    // reard wall
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, 25.0, 25.0),
+                rotation: Quat::from_rotation_x(-90.0f32.to_radians()),
+                ..default()
+            },
+            mesh: assets.floor_mesh.clone(),
+            material: assets.wall_material.clone(),
+            ..default()
+        },
+        Collider::cuboid(25.0, 0.1, 25.0),
+        Name::new("Rear Wall"),
         OnInGame,
     ));
 
     // bouncing ball
     commands.spawn((
         MaterialMeshBundle {
-            transform: Transform::from_xyz(0.0, 10.0, 0.0),
+            transform: Transform::from_xyz(0.0, 25.0, 0.0),
             mesh: assets.ball_mesh.clone(),
             material: assets.ball_material.clone(),
             ..default()
