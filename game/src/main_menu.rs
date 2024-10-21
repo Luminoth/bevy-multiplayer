@@ -52,7 +52,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ButtonBundle {
                                 style: Style {
                                     width: Val::Px(150.0),
-                                    height: Val::Px(65.0),
+                                    height: Val::Px(50.0),
                                     border: UiRect::all(Val::Px(5.0)),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
@@ -85,7 +85,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     "Start Game",
                                     TextStyle {
                                         font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                        font_size: 40.0,
+                                        font_size: 32.0,
                                         color: Color::srgb(0.9, 0.9, 0.9),
                                     },
                                 ),
@@ -98,7 +98,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ButtonBundle {
                                 style: Style {
                                     width: Val::Px(150.0),
-                                    height: Val::Px(65.0),
+                                    height: Val::Px(50.0),
                                     border: UiRect::all(Val::Px(5.0)),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
@@ -131,7 +131,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     "Exit",
                                     TextStyle {
                                         font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                        font_size: 40.0,
+                                        font_size: 32.0,
                                         color: Color::srgb(0.9, 0.9, 0.9),
                                     },
                                 ),
