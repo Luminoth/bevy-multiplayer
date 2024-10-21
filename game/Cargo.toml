@@ -10,11 +10,7 @@ bevy_egui = { version = "0.30", optional = true }
 bevy-inspector-egui = { version = "0.27", optional = true }
 bevy_mod_picking = { version = "0.20", optional = true }
 bevy_mod_reqwest = "0.16"
-bevy_rapier3d = { version = "0.27", default-features = false, features = [
-    "dim3",
-    "async-collider",
-    "simd-stable",
-] }
+bevy_rapier3d = "0.27"
 naia-bevy-client = { version = "0.23", features = [
     "transport_udp",
 ], optional = true }
@@ -35,11 +31,9 @@ client = [
     "dep:bevy_egui",
     "dep:bevy-inspector-egui",
     "dep:bevy_mod_picking",
-    "bevy_rapier3d/debug-render-3d",
     #"dep:naia-bevy-client"
 ]
 server = [
-    "bevy_rapier3d/headless",
     #"dep:naia-bevy-server",
     "dep:agones",
     "dep:tokio",

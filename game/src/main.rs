@@ -85,9 +85,7 @@ fn init_app(app: &mut App) {
     app.add_plugins((
         // TODO: replace with HeadlessPlugins in 0.15
         // (it includes all the plugins that Minimal is missing)
-        // (this may not work tho if it still doesn't load the renderer stuff
-        // that really *should not be required but whatever*)
-        /*MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
+        MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
             bevy::utils::Duration::from_secs_f64(SERVER_TICK_RATE),
         )),
         bevy::app::PanicHandlerPlugin,
@@ -98,21 +96,11 @@ fn init_app(app: &mut App) {
         bevy::asset::AssetPlugin::default(),
         bevy::scene::ScenePlugin,
         bevy::animation::AnimationPlugin,
-        bevy::state::app::StatesPlugin,*/
-        // TODO: doing this just because headless plugins
-        // don't load the renderer resources that everything
-        // in a game relies on :rolleyes:
-        DefaultPlugins
-            // no window
-            .set(WindowPlugin {
-                primary_window: None,
-                exit_condition: bevy::window::ExitCondition::DontExit,
-                close_when_requested: false,
-            }),
-        bevy::app::ScheduleRunnerPlugin::run_loop(bevy::utils::Duration::from_secs_f64(
-            SERVER_TICK_RATE,
-        )),
+        bevy::state::app::StatesPlugin,
     ))
+    // rapier makes use of Mesh assets
+    // and this is missing without rendering
+    .init_asset::<Mesh>()
     .add_systems(
         Update,
         server::wait_for_placement.run_if(in_state(AppState::WaitingForPlacement)),
@@ -134,6 +122,7 @@ fn main() {
         game::wait_for_assets.run_if(in_state(AppState::LoadAssets)),
     )
     .add_systems(OnEnter(AppState::InGame), game::enter)
+    .add_systems(Update, game::update.run_if(in_state(AppState::InGame)))
     .add_systems(
         OnExit(AppState::InGame),
         (

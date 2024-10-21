@@ -5333,7 +5333,6 @@ dependencies = [
  "rustc-hash 2.0.0",
  "simba",
  "thiserror",
- "vec_map",
 ]
 
 [[package]]

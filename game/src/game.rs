@@ -6,6 +6,9 @@ use crate::AppState;
 #[derive(Debug, Component)]
 pub struct OnInGame;
 
+#[derive(Debug, Component)]
+pub struct Ball;
+
 #[derive(Debug, Resource)]
 pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
@@ -18,21 +21,25 @@ pub struct GameAssetState {
 pub fn load_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: Option<ResMut<Assets<StandardMaterial>>>,
 ) {
     info!("loading assets ...");
 
     let floor_mesh = meshes.add(Plane3d::default().mesh().size(100.0, 100.0));
-    let floor_material = materials.add(Color::from(GREEN));
+    let floor_material = materials
+        .as_mut()
+        .and_then(|materials| Some(materials.add(Color::from(GREEN))));
 
     let ball_mesh = meshes.add(Sphere::new(0.5));
-    let ball_material = materials.add(Color::from(FUCHSIA));
+    let ball_material = materials
+        .as_mut()
+        .and_then(|materials| Some(materials.add(Color::from(FUCHSIA))));
 
     commands.insert_resource(GameAssetState {
         floor_mesh,
-        floor_material,
+        floor_material: floor_material.unwrap_or_default(),
         ball_mesh,
-        ball_material,
+        ball_material: ball_material.unwrap_or_default(),
     });
 }
 
@@ -101,8 +108,15 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         Collider::ball(0.5),
         Restitution::coefficient(0.7),
         Name::new("Ball"),
+        Ball,
         OnInGame,
     ));
+}
+
+pub fn update(_ball_query: Query<&Transform, With<Ball>>) {
+    /*for ball in &_ball_query {
+        info!("ball position: {}", ball.translation);
+    }*/
 }
 
 pub fn exit(mut commands: Commands) {
