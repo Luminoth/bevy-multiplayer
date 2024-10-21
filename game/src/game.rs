@@ -9,6 +9,9 @@ pub struct OnInGame;
 #[derive(Debug, Component)]
 pub struct Ball;
 
+#[derive(Debug, Component)]
+pub struct Player;
+
 #[derive(Debug, Resource)]
 pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
@@ -18,6 +21,9 @@ pub struct GameAssetState {
 
     ball_mesh: Handle<Mesh>,
     ball_material: Handle<StandardMaterial>,
+
+    player_mesh: Handle<Mesh>,
+    player_material: Handle<StandardMaterial>,
 }
 
 pub fn load_assets(
@@ -41,12 +47,19 @@ pub fn load_assets(
         .as_mut()
         .and_then(|materials| Some(materials.add(Color::from(FUCHSIA))));
 
+    let player_mesh = meshes.add(Capsule3d::new(1.0, 2.0));
+    let player_material = materials
+        .as_mut()
+        .and_then(|materials| Some(materials.add(Color::from(LIGHT_YELLOW))));
+
     commands.insert_resource(GameAssetState {
         floor_mesh,
         floor_material: floor_material.unwrap_or_default(),
         wall_material: wall_material.unwrap_or_default(),
         ball_mesh,
         ball_material: ball_material.unwrap_or_default(),
+        player_mesh,
+        player_material: player_material.unwrap_or_default(),
     });
 }
 
@@ -62,6 +75,11 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 2.0, 15.0),
+            projection: PerspectiveProjection {
+                fov: 90.0_f32.to_radians(),
+                ..default()
+            }
+            .into(),
             ..default()
         },
         Name::new("Main Camera"),
@@ -172,7 +190,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         OnInGame,
     ));
 
-    // reard wall
+    // rear wall
     commands.spawn((
         MaterialMeshBundle {
             transform: Transform {
@@ -192,7 +210,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     // bouncing ball
     commands.spawn((
         MaterialMeshBundle {
-            transform: Transform::from_xyz(0.0, 25.0, 0.0),
+            transform: Transform::from_xyz(0.0, 20.0, 0.0),
             mesh: assets.ball_mesh.clone(),
             material: assets.ball_material.clone(),
             ..default()
@@ -202,6 +220,22 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         Restitution::coefficient(0.7),
         Name::new("Ball"),
         Ball,
+        OnInGame,
+    ));
+
+    // player
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform::from_xyz(-5.0, 2.0, 5.0),
+            mesh: assets.player_mesh.clone(),
+            material: assets.player_material.clone(),
+            ..default()
+        },
+        RigidBody::KinematicPositionBased,
+        Collider::capsule_y(1.0, 1.0),
+        KinematicCharacterController::default(),
+        Name::new("Player"),
+        Player,
         OnInGame,
     ));
 }
