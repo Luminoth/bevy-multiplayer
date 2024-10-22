@@ -5,7 +5,10 @@ mod main_menu;
 mod server;
 mod ui;
 
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    winit::{UpdateMode::Continuous, WinitSettings},
+};
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
@@ -64,6 +67,11 @@ fn init_app(app: &mut App) {
         RapierDebugRenderPlugin::default(),
         debug::DebugPlugin,
     ))
+    // update continuously even while unfocused (for networking)
+    .insert_resource(WinitSettings {
+        focused_mode: Continuous,
+        unfocused_mode: Continuous,
+    })
     .add_systems(Update, ui::update_button)
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
     .add_systems(
@@ -139,6 +147,10 @@ fn main() {
             cleanup_state::<Node>,
         ),
     );
+
+    // replication
+    app.replicate_group::<(Transform, game::Ball)>()
+        .replicate_group::<(Transform, game::Player)>();
 
     info!("running ...");
     app.run();

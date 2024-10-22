@@ -1,6 +1,7 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::AppState;
 
@@ -10,10 +11,10 @@ pub struct OnInGame;
 #[derive(Debug, Component)]
 pub struct MainCamera;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Ball;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Player;
 
 #[derive(Debug, Resource)]
@@ -226,7 +227,6 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         Restitution::coefficient(0.7),
         Name::new("Ball"),
         Ball,
-        Replicated,
         OnInGame,
     ));
 
@@ -246,7 +246,6 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         KinematicCharacterController::default(),
         Name::new("Player"),
         Player,
-        Replicated,
         OnInGame,
     ));
 }
