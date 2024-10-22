@@ -8,7 +8,10 @@ mod ui;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::RepliconRenetPlugins;
+use bevy_replicon_renet::{
+    renet::{ConnectionConfig, RenetServer},
+    RepliconRenetPlugins,
+};
 
 #[cfg(not(feature = "server"))]
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
@@ -25,6 +28,9 @@ pub enum AppState {
     #[cfg(feature = "server")]
     #[default]
     WaitingForPlacement,
+
+    #[cfg(feature = "server")]
+    InitServer,
 
     LoadAssets,
     InGame,
@@ -108,10 +114,20 @@ fn init_app(app: &mut App) {
     // rapier makes use of Mesh assets
     // and this is missing without rendering
     .init_asset::<Mesh>()
+    .insert_resource(RenetServer::new(ConnectionConfig::default()))
     .add_systems(
         Update,
         server::wait_for_placement.run_if(in_state(AppState::WaitingForPlacement)),
-    );
+    )
+    .add_systems(
+        Update,
+        server::init_network.run_if(in_state(AppState::InitServer)),
+    )
+    .add_systems(
+        Update,
+        server::handle_network_events.run_if(in_state(AppState::InGame)),
+    )
+    .add_systems(OnExit(AppState::InGame), server::shutdown_network);
 }
 
 fn main() {
@@ -132,8 +148,7 @@ fn main() {
     )
     .add_systems(OnEnter(AppState::InGame), game::enter)
     .add_systems(
-        Update,
-        // TODO: this needs to be on the physics update
+        FixedUpdate,
         game::update_player_physics.run_if(in_state(AppState::InGame)),
     )
     .add_systems(
