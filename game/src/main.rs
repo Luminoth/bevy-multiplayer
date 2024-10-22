@@ -5,10 +5,7 @@ mod main_menu;
 mod server;
 mod ui;
 
-use bevy::{
-    prelude::*,
-    winit::{UpdateMode::Continuous, WinitSettings},
-};
+use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
@@ -68,9 +65,9 @@ fn init_app(app: &mut App) {
         debug::DebugPlugin,
     ))
     // update continuously even while unfocused (for networking)
-    .insert_resource(WinitSettings {
-        focused_mode: Continuous,
-        unfocused_mode: Continuous,
+    .insert_resource(bevy::winit::WinitSettings {
+        focused_mode: bevy::winit::UpdateMode::Continuous,
+        unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
     .add_systems(Update, ui::update_button)
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
