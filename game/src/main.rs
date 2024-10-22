@@ -106,6 +106,8 @@ fn init_app(app: &mut App) {
         Update,
         (input::handle_gamepad_events, input::poll_gamepad).run_if(in_state(AppState::InGame)),
     );
+
+    app.register_type::<game::PlayerPhysics>();
 }
 
 #[cfg(feature = "server")]
@@ -168,7 +170,12 @@ fn main() {
     .add_systems(OnEnter(AppState::InGame), game::enter)
     .add_systems(
         FixedUpdate,
-        game::update_player_physics.run_if(in_state(AppState::InGame)),
+        ((
+            game::update_player_physics,
+            game::read_player_physics_result,
+        )
+            .chain(),)
+            .run_if(in_state(AppState::InGame)),
     )
     .add_systems(
         OnExit(AppState::InGame),

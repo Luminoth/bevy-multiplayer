@@ -1,9 +1,8 @@
 #![cfg(not(feature = "server"))]
 
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
-use bevy_rapier3d::prelude::*;
 
-use crate::game::MainCamera;
+use crate::game::{MainCamera, Player, PlayerPhysics};
 
 const INVERT_LOOK: bool = true;
 
@@ -11,15 +10,13 @@ pub fn poll_gamepad(
     axes: Res<Axis<GamepadAxis>>,
     time: Res<Time>,
     mut camera_query: Query<&mut Transform, With<MainCamera>>,
-    mut player_query: Query<
-        (&mut KinematicCharacterController, &mut Velocity),
-        With<crate::game::Player>,
-    >,
+    mut player_query: Query<(&GlobalTransform, &mut PlayerPhysics), With<Player>>,
 ) {
-    let mut camera = camera_query.single_mut();
+    let mut camera_transform = camera_query.single_mut();
 
     let gamepad = Gamepad { id: 0 };
-    let (mut character_controller, _) = player_query.single_mut();
+    let (player_transform, mut player_physics) = player_query.single_mut();
+    let player_transform = player_transform.compute_transform();
 
     // left stick (move)
     let axis_lx = GamepadAxis {
@@ -31,16 +28,16 @@ pub fn poll_gamepad(
         axis_type: GamepadAxisType::LeftStickY,
     };
 
-    {
-        let translation = character_controller
-            .translation
-            .get_or_insert(Vec3::default());
+    player_physics.velocity.x = 0.0;
+    player_physics.velocity.z = 0.0;
+
+    if player_physics.is_grounded() {
         if let (Some(x), Some(y)) = (axes.get(axis_lx), axes.get(axis_ly)) {
-            translation.x = x * time.delta_seconds() * 5.0;
-            translation.z = -y * time.delta_seconds() * 5.0;
-        } else {
-            translation.x = 0.0;
-            translation.z = 0.0;
+            let direction = player_transform.rotation * Vec3::new(x, 0.0, -y);
+            if direction.length_squared() > 0.0 {
+                player_physics.velocity.x = direction.x * 5.0;
+                player_physics.velocity.z = direction.z * 5.0;
+            }
         }
     }
 
@@ -58,14 +55,14 @@ pub fn poll_gamepad(
         let delta_yaw = -x * 4.0 * time.delta_seconds();
         let delta_pitch = if INVERT_LOOK { -1.0 } else { 1.0 } * y * 4.0 * time.delta_seconds();
 
-        let (yaw, pitch, roll) = camera.rotation.to_euler(EulerRot::YXZ);
+        let (yaw, pitch, roll) = camera_transform.rotation.to_euler(EulerRot::YXZ);
         let yaw = yaw + delta_yaw;
         let pitch = (pitch + delta_pitch).clamp(
             -(std::f32::consts::FRAC_PI_2 - 0.01),
             std::f32::consts::FRAC_PI_2 - 0.01,
         );
 
-        camera.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+        camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
 }
 

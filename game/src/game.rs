@@ -16,6 +16,26 @@ pub struct Ball;
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Player;
 
+#[derive(Debug, Default, Component, Reflect)]
+pub struct PlayerPhysics {
+    pub velocity: Vec3,
+    is_grounded: bool,
+}
+
+impl PlayerPhysics {
+    #[inline]
+    pub fn is_grounded(&self) -> bool {
+        self.is_grounded
+    }
+
+    pub fn update_grounded(&mut self, grounded: bool) {
+        self.is_grounded = grounded;
+        if self.is_grounded {
+            self.velocity.y = 0.0;
+        }
+    }
+}
+
 #[derive(Debug, Resource)]
 pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
@@ -238,7 +258,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
             ..default()
         },
         RigidBody::KinematicPositionBased,
-        Velocity::default(),
+        PlayerPhysics::default(),
         GravityScale(1.0),
         Collider::capsule_y(1.0, 1.0),
         ColliderMassProperties::Mass(100.0),
@@ -259,21 +279,36 @@ pub fn exit(mut commands: Commands) {
 
 pub fn update_player_physics(
     physics_config: Res<RapierConfiguration>,
-    time: Res<Time>,
+    time: Res<Time<Fixed>>,
     mut player_query: Query<
         (
             &mut KinematicCharacterController,
-            &mut Velocity,
+            &mut PlayerPhysics,
             &GravityScale,
         ),
         With<crate::game::Player>,
     >,
 ) {
-    let (mut character_controller, mut velocity, gravity_scale) = player_query.single_mut();
-    velocity.linvel = Vec3::new(0.0, physics_config.gravity.y * gravity_scale.0, 0.0);
+    let (mut character_controller, mut player_physics, gravity_scale) = player_query.single_mut();
+
+    player_physics.velocity.y += physics_config.gravity.y * gravity_scale.0;
+    player_physics.velocity.y = player_physics.velocity.y.clamp(-50.0, 50.0);
 
     let translation = character_controller
         .translation
         .get_or_insert(Vec3::default());
-    *translation += velocity.linvel * time.delta_seconds();
+    *translation += player_physics.velocity * time.delta_seconds();
+}
+
+pub fn read_player_physics_result(
+    mut player_query: Query<
+        (&KinematicCharacterControllerOutput, &mut PlayerPhysics),
+        With<crate::game::Player>,
+    >,
+) {
+    let Ok((output, mut player_physics)) = player_query.get_single_mut() else {
+        return;
+    };
+
+    player_physics.update_grounded(output.grounded);
 }

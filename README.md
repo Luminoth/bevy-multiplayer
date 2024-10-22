@@ -11,3 +11,5 @@ Playing around with a mix of Bevy, Agones, and hopefully OpenMatch
   * [Character controller](https://rapier.rs/docs/user_guides/bevy_plugin/character_controller/)
 * [bevy_replicon](https://crates.io/crates/bevy_replicon) and [bevy_replicon_renet](https://crates.io/crates/bevy_replicon_renet) for multiplayer networking
 * Potentially look at [SpaceEditor](https://crates.io/crates/space_editor) again for an editor
+* [bevy-ui-navigation](https://crates.io/crates/bevy-ui-navigation/) for UI navigation
+  * TODO:
