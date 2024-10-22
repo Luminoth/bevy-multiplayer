@@ -74,7 +74,8 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     ) {
                                         return;
                                     }
-                                    game_state.set(AppState::ConnectToServer);
+                                    //game_state.set(AppState::ConnectToServer);
+                                    game_state.set(AppState::LoadAssets);
                                 },
                             ),
                             Name::new("Join Game"),
