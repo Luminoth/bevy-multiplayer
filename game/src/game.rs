@@ -1,5 +1,6 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
+use bevy_replicon::prelude::*;
 
 use crate::AppState;
 
@@ -220,6 +221,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         Restitution::coefficient(0.7),
         Name::new("Ball"),
         Ball,
+        Replicated,
         OnInGame,
     ));
 
@@ -236,6 +238,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         KinematicCharacterController::default(),
         Name::new("Player"),
         Player,
+        Replicated,
         OnInGame,
     ));
 }

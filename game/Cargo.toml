@@ -11,13 +11,15 @@ bevy-inspector-egui = { version = "0.27", optional = true }
 bevy_mod_picking = { version = "0.20", optional = true }
 bevy_mod_reqwest = "0.16"
 bevy_rapier3d = "0.27"
-naia-bevy-client = { version = "0.23", features = [
-    "transport_udp",
-], optional = true }
-naia-bevy-server = { version = "0.23", features = [
-    "transport_udp",
-], optional = true }
-naia-bevy-shared = "0.23"
+bevy_replicon = { version = "0.28", default-features = false, features = [
+    "scene",
+    "parent_sync",
+] }
+bevy_replicon_renet = { version = "0.5", default-features = false, features = [
+    "renet_serde",
+    "renet_transport",
+] }
+serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.40", features = ["full"], optional = true }
 
 common = { path = "../common" }
@@ -31,12 +33,14 @@ client = [
     "dep:bevy_egui",
     "dep:bevy-inspector-egui",
     "dep:bevy_mod_picking",
-    #"dep:naia-bevy-client"
+    "bevy_replicon/client",
+    "bevy_replicon_renet/client",
 ]
 server = [
-    #"dep:naia-bevy-server",
     "dep:agones",
     "dep:tokio",
+    "bevy_replicon/server",
+    "bevy_replicon_renet/server",
 ]
 
 # Enable a small amount of optimization in the dev profile.

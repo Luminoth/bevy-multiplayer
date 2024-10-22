@@ -6,6 +6,8 @@ mod ui;
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use bevy_replicon::prelude::*;
+use bevy_replicon_renet::RepliconRenetPlugins;
 
 #[cfg(not(feature = "server"))]
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
@@ -113,6 +115,8 @@ fn main() {
 
     app.add_plugins((
         RapierPhysicsPlugin::<NoUserData>::default(),
+        RepliconPlugins,
+        RepliconRenetPlugins,
         bevy_mod_reqwest::ReqwestPlugin::default(),
     ))
     .init_state::<AppState>()
