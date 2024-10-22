@@ -24,8 +24,6 @@ pub fn poll_gamepad(
         axis_type: GamepadAxisType::LeftStickY,
     };
 
-    // TODO: don't update the controller, update the velocity
-    // then we want a step that adds in gravity and calculates the translation from the velocity
     {
         let translation = character_controller
             .translation
