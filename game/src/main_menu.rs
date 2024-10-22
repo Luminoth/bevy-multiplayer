@@ -74,15 +74,15 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     ) {
                                         return;
                                     }
-                                    game_state.set(AppState::LoadAssets);
+                                    game_state.set(AppState::ConnectToServer);
                                 },
                             ),
-                            Name::new("Start Game"),
+                            Name::new("Join Game"),
                         ))
                         .with_children(|parent| {
                             parent.spawn((
                                 TextBundle::from_section(
-                                    "Start Game",
+                                    "Join Game",
                                     TextStyle {
                                         font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                                         font_size: 32.0,

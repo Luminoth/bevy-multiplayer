@@ -1,3 +1,4 @@
+mod client;
 mod debug;
 mod game;
 mod input;
@@ -8,10 +9,7 @@ mod ui;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::{
-    renet::{ConnectionConfig, RenetServer},
-    RepliconRenetPlugins,
-};
+use bevy_replicon_renet::RepliconRenetPlugins;
 
 #[cfg(not(feature = "server"))]
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
@@ -19,15 +17,23 @@ const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
 #[cfg(feature = "server")]
 const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
 
+pub const PROTOCOL_ID: u64 = 0;
+
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
 pub enum AppState {
     #[cfg(not(feature = "server"))]
     #[default]
     MainMenu,
 
+    #[cfg(not(feature = "server"))]
+    ConnectToServer,
+
+    #[cfg(not(feature = "server"))]
+    WaitForConnect,
+
     #[cfg(feature = "server")]
     #[default]
-    WaitingForPlacement,
+    WaitForPlacement,
 
     #[cfg(feature = "server")]
     InitServer,
@@ -75,7 +81,10 @@ fn init_app(app: &mut App) {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
-    .add_systems(Update, ui::update_button)
+    .insert_resource(bevy_replicon_renet::renet::RenetClient::new(
+        bevy_replicon_renet::renet::ConnectionConfig::default(),
+    ))
+    .add_systems(Update, (client::panic_on_network_error, ui::update_button))
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
     .add_systems(
         OnExit(AppState::MainMenu),
@@ -85,6 +94,11 @@ fn init_app(app: &mut App) {
             cleanup_state::<Node>,
         ),
     )
+    .add_systems(
+        OnEnter(AppState::ConnectToServer),
+        client::connect_to_server,
+    )
+    .add_systems(Update, client::connected.run_if(client_just_connected))
     .add_systems(
         Update,
         (input::handle_gamepad_events, input::poll_gamepad).run_if(in_state(AppState::InGame)),
@@ -114,10 +128,12 @@ fn init_app(app: &mut App) {
     // rapier makes use of Mesh assets
     // and this is missing without rendering
     .init_asset::<Mesh>()
-    .insert_resource(RenetServer::new(ConnectionConfig::default()))
+    .insert_resource(bevy_replicon_renet::renet::RenetServer::new(
+        bevy_replicon_renet::renet::ConnectionConfig::default(),
+    ))
     .add_systems(
         Update,
-        server::wait_for_placement.run_if(in_state(AppState::WaitingForPlacement)),
+        server::wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
     )
     .add_systems(
         Update,

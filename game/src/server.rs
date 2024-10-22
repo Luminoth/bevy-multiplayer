@@ -19,14 +19,16 @@ pub fn wait_for_placement(mut game_state: ResMut<NextState<AppState>>) {
 pub fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<AppState>>) {
     info!("init network ...");
 
+    // TODO: this should bind a specific address
     let server_addr = "0.0.0.0:5576".parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
+    let current_time = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
     let server_config = ServerConfig {
-        current_time: SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap(),
+        current_time,
         max_clients: 3,
-        protocol_id: 0,
+        protocol_id: crate::PROTOCOL_ID,
         public_addresses: vec![server_addr],
         authentication: ServerAuthentication::Unsecure,
     };
