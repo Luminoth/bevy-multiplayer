@@ -1,5 +1,6 @@
 mod debug;
 mod game;
+mod input;
 mod main_menu;
 mod server;
 mod ui;
@@ -72,12 +73,11 @@ fn init_app(app: &mut App) {
             cleanup_state::<main_menu::OnMainMenu>,
             cleanup_state::<Node>,
         ),
+    )
+    .add_systems(
+        Update,
+        (input::handle_gamepad_events, input::poll_gamepad).run_if(in_state(AppState::InGame)),
     );
-
-    /*app.insert_resource(bevy_egui::EguiSettings {
-        scale_factor: 0.75,
-        ..Default::default()
-    });*/
 }
 
 #[cfg(feature = "server")]
@@ -126,7 +126,11 @@ fn main() {
         game::wait_for_assets.run_if(in_state(AppState::LoadAssets)),
     )
     .add_systems(OnEnter(AppState::InGame), game::enter)
-    .add_systems(Update, game::update.run_if(in_state(AppState::InGame)))
+    .add_systems(
+        Update,
+        // TODO: this needs to be on the physics update
+        game::update_player_physics.run_if(in_state(AppState::InGame)),
+    )
     .add_systems(
         OnExit(AppState::InGame),
         (

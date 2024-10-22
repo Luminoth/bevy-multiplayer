@@ -8,6 +8,9 @@ use crate::AppState;
 pub struct OnInGame;
 
 #[derive(Debug, Component)]
+pub struct MainCamera;
+
+#[derive(Debug, Component)]
 pub struct Ball;
 
 #[derive(Debug, Component)]
@@ -37,21 +40,21 @@ pub fn load_assets(
     let floor_mesh = meshes.add(Plane3d::default().mesh().size(50.0, 50.0));
     let floor_material = materials
         .as_mut()
-        .and_then(|materials| Some(materials.add(Color::from(GREEN))));
+        .map(|materials| materials.add(Color::from(GREEN)));
 
     let wall_material = materials
         .as_mut()
-        .and_then(|materials| Some(materials.add(Color::from(NAVY))));
+        .map(|materials| materials.add(Color::from(NAVY)));
 
     let ball_mesh = meshes.add(Sphere::new(0.5));
     let ball_material = materials
         .as_mut()
-        .and_then(|materials| Some(materials.add(Color::from(FUCHSIA))));
+        .map(|materials| materials.add(Color::from(FUCHSIA)));
 
     let player_mesh = meshes.add(Capsule3d::new(1.0, 2.0));
     let player_material = materials
         .as_mut()
-        .and_then(|materials| Some(materials.add(Color::from(LIGHT_YELLOW))));
+        .map(|materials| materials.add(Color::from(LIGHT_YELLOW)));
 
     commands.insert_resource(GameAssetState {
         floor_mesh,
@@ -84,6 +87,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
             ..default()
         },
         Name::new("Main Camera"),
+        MainCamera,
         OnInGame,
     ));
 
@@ -218,6 +222,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         },
         RigidBody::Dynamic,
         Collider::ball(0.5),
+        ColliderMassProperties::Mass(0.5),
         Restitution::coefficient(0.7),
         Name::new("Ball"),
         Ball,
@@ -228,13 +233,16 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     // player
     commands.spawn((
         MaterialMeshBundle {
-            transform: Transform::from_xyz(-5.0, 2.0, 5.0),
+            transform: Transform::from_xyz(-5.0, 12.0, 5.0),
             mesh: assets.player_mesh.clone(),
             material: assets.player_material.clone(),
             ..default()
         },
         RigidBody::KinematicPositionBased,
+        Velocity::default(),
+        GravityScale(1.0),
         Collider::capsule_y(1.0, 1.0),
+        ColliderMassProperties::Mass(100.0),
         KinematicCharacterController::default(),
         Name::new("Player"),
         Player,
@@ -243,16 +251,31 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     ));
 }
 
-pub fn update(_ball_query: Query<&Transform, With<Ball>>) {
-    /*for ball in &_ball_query {
-        info!("ball position: {}", ball.translation);
-    }*/
-}
-
 pub fn exit(mut commands: Commands) {
     info!("exiting game ...");
 
     commands.remove_resource::<ClearColor>();
     commands.remove_resource::<AmbientLight>();
     commands.remove_resource::<GameAssetState>();
+}
+
+pub fn update_player_physics(
+    physics_config: Res<RapierConfiguration>,
+    time: Res<Time>,
+    mut player_query: Query<
+        (
+            &mut KinematicCharacterController,
+            &mut Velocity,
+            &GravityScale,
+        ),
+        With<crate::game::Player>,
+    >,
+) {
+    let (mut character_controller, mut velocity, gravity_scale) = player_query.single_mut();
+    velocity.linvel = Vec3::new(0.0, physics_config.gravity.y * gravity_scale.0, 0.0);
+
+    let translation = character_controller
+        .translation
+        .get_or_insert(Vec3::default());
+    *translation += velocity.linvel * time.delta_seconds();
 }
