@@ -14,6 +14,9 @@ use bevy_replicon_renet::RepliconRenetPlugins;
 #[cfg(not(feature = "server"))]
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
 
+// TODO: this sets the server "frame rate"
+// bevy FixedUpdate tho runs at 64hz
+// and that might need to be adjusted as well?
 #[cfg(feature = "server")]
 const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
 
