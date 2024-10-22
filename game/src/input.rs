@@ -3,14 +3,21 @@
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 use bevy_rapier3d::prelude::*;
 
+use crate::game::MainCamera;
+
+const INVERT_LOOK: bool = true;
+
 pub fn poll_gamepad(
     axes: Res<Axis<GamepadAxis>>,
     time: Res<Time>,
+    mut camera_query: Query<&mut Transform, With<MainCamera>>,
     mut player_query: Query<
         (&mut KinematicCharacterController, &mut Velocity),
         With<crate::game::Player>,
     >,
 ) {
+    let mut camera = camera_query.single_mut();
+
     let gamepad = Gamepad { id: 0 };
     let (mut character_controller, _) = player_query.single_mut();
 
@@ -47,8 +54,18 @@ pub fn poll_gamepad(
         axis_type: GamepadAxisType::RightStickY,
     };
 
-    if let (Some(_x), Some(_y)) = (axes.get(axis_rx), axes.get(axis_ry)) {
-        // TODO: move look around
+    if let (Some(x), Some(y)) = (axes.get(axis_rx), axes.get(axis_ry)) {
+        let delta_yaw = -x * 4.0 * time.delta_seconds();
+        let delta_pitch = if INVERT_LOOK { -1.0 } else { 1.0 } * y * 4.0 * time.delta_seconds();
+
+        let (yaw, pitch, roll) = camera.rotation.to_euler(EulerRot::YXZ);
+        let yaw = yaw + delta_yaw;
+        let pitch = (pitch + delta_pitch).clamp(
+            -(std::f32::consts::FRAC_PI_2 - 0.01),
+            std::f32::consts::FRAC_PI_2 - 0.01,
+        );
+
+        camera.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
 }
 
