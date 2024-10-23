@@ -2,12 +2,12 @@
 
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
+use crate::player::JumpEvent;
+
 #[derive(Debug, Default, Resource, Reflect)]
 pub struct InputState {
     look: Vec2,
     r#move: Vec2,
-
-    jump: bool,
 }
 
 impl InputState {
@@ -20,13 +20,6 @@ impl InputState {
     pub fn r#move(&self) -> Vec2 {
         self.r#move
     }
-
-    #[inline]
-    pub fn consume_jump(&mut self) -> bool {
-        let v = self.jump;
-        self.jump = false;
-        v
-    }
 }
 
 const INVERT_LOOK: bool = true;
@@ -35,6 +28,7 @@ pub fn update_gamepad(
     axes: Res<Axis<GamepadAxis>>,
     buttons: Res<ButtonInput<GamepadButton>>,
     mut input_state: ResMut<InputState>,
+    mut ev_jump: EventWriter<JumpEvent>,
 ) {
     let gamepad = Gamepad { id: 0 };
 
@@ -75,7 +69,9 @@ pub fn update_gamepad(
         button_type: GamepadButtonType::South,
     };
 
-    input_state.jump = buttons.just_pressed(south_button);
+    if buttons.just_pressed(south_button) {
+        ev_jump.send(JumpEvent);
+    }
 }
 
 pub fn handle_gamepad_events(mut evr_gamepad: EventReader<GamepadEvent>) {

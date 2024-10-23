@@ -90,6 +90,7 @@ fn init_app(app: &mut App) {
         bevy_replicon_renet::renet::ConnectionConfig::default(),
     ))
     .init_resource::<input::InputState>()
+    .add_event::<player::JumpEvent>()
     .add_systems(Update, (client::panic_on_network_error, ui::update_button))
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
     .add_systems(

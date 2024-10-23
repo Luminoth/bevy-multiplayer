@@ -7,6 +7,9 @@ use crate::input::InputState;
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Player;
 
+#[derive(Debug, Event)]
+pub struct JumpEvent;
+
 #[derive(Debug, Default, Component, Reflect)]
 pub struct PlayerPhysics {
     pub velocity: Vec3,
@@ -35,10 +38,12 @@ impl PlayerPhysics {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn update_player_physics(
     physics_config: Res<RapierConfiguration>,
     time: Res<Time<Fixed>>,
-    mut input_state: ResMut<InputState>,
+    input_state: Res<InputState>,
+    mut ev_jump: EventReader<JumpEvent>,
     mut player_query: Query<
         (
             &mut KinematicCharacterController,
@@ -75,9 +80,11 @@ pub fn update_player_physics(
             player_physics.velocity.z = 0.0;
         }
 
-        if input_state.consume_jump() {
+        if !ev_jump.is_empty() {
             player_physics.velocity.y += 10.0;
             player_physics.clear_grounded();
+
+            ev_jump.clear();
         }
     }
 

@@ -10,6 +10,7 @@ use bevy_replicon_renet::renet::transport::{
 
 use crate::AppState;
 
+#[allow(clippy::never_loop)]
 pub fn panic_on_network_error(mut evt_error: EventReader<NetcodeTransportError>) {
     for evt in evt_error.read() {
         panic!("{}", evt);

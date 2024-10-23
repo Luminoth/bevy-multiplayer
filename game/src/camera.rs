@@ -7,6 +7,7 @@ use crate::{input::InputState, player::Player};
 #[derive(Debug, Component)]
 pub struct MainCamera;
 
+#[allow(clippy::type_complexity)]
 pub fn update_camera(
     time: Res<Time>,
     input_state: Res<InputState>,
