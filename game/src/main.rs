@@ -1,3 +1,4 @@
+mod ball;
 mod camera;
 mod client;
 mod debug;
@@ -160,30 +161,16 @@ fn main() {
         RepliconPlugins,
         RepliconRenetPlugins,
         bevy_mod_reqwest::ReqwestPlugin::default(),
+        game::GamePlugin,
     ))
     .init_state::<AppState>()
-    .add_systems(OnEnter(AppState::LoadAssets), game::load_assets)
-    .add_systems(
-        Update,
-        game::wait_for_assets.run_if(in_state(AppState::LoadAssets)),
-    )
-    .add_systems(OnEnter(AppState::InGame), game::enter)
     .add_systems(
         FixedUpdate,
         player::update_player_physics.run_if(in_state(AppState::InGame)),
-    )
-    .add_systems(
-        OnExit(AppState::InGame),
-        (
-            game::exit,
-            cleanup_state::<game::OnInGame>,
-            cleanup_state::<Node>,
-        ),
     );
 
     // replication
-    app.replicate_group::<(Transform, game::Ball)>()
-        .replicate_group::<(Transform, player::LocalPlayer)>();
+    app.replicate_group::<(Transform, player::LocalPlayer)>();
 
     info!("running ...");
     app.run();

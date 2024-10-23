@@ -1,21 +1,19 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
-use serde::{Deserialize, Serialize};
 
 use crate::{
+    ball::{Ball, BallPlugin},
     camera::PlayerCamera,
+    cleanup_state,
     player::{LocalPlayer, PlayerPhysics},
     AppState,
 };
 
 #[derive(Debug, Component)]
-pub struct OnInGame;
-
-#[derive(Debug, Component, Serialize, Deserialize)]
-pub struct Ball;
+struct OnInGame;
 
 #[derive(Debug, Resource)]
-pub struct GameAssetState {
+struct GameAssetState {
     floor_mesh: Handle<Mesh>,
     floor_material: Handle<StandardMaterial>,
 
@@ -28,7 +26,26 @@ pub struct GameAssetState {
     player_material: Handle<StandardMaterial>,
 }
 
-pub fn load_assets(
+#[derive(Debug)]
+pub struct GamePlugin;
+
+impl Plugin for GamePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(BallPlugin)
+            .add_systems(OnEnter(AppState::LoadAssets), load_assets)
+            .add_systems(
+                Update,
+                wait_for_assets.run_if(in_state(AppState::LoadAssets)),
+            )
+            .add_systems(OnEnter(AppState::InGame), enter)
+            .add_systems(
+                OnExit(AppState::InGame),
+                (exit, cleanup_state::<OnInGame>, cleanup_state::<Node>),
+            );
+    }
+}
+
+fn load_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: Option<ResMut<Assets<StandardMaterial>>>,
@@ -65,11 +82,11 @@ pub fn load_assets(
     });
 }
 
-pub fn wait_for_assets(mut game_state: ResMut<NextState<AppState>>) {
+fn wait_for_assets(mut game_state: ResMut<NextState<AppState>>) {
     game_state.set(AppState::InGame);
 }
 
-pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
+fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("entering game ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
@@ -247,7 +264,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     ));
 }
 
-pub fn exit(mut commands: Commands) {
+fn exit(mut commands: Commands) {
     info!("exiting game ...");
 
     commands.remove_resource::<ClearColor>();
