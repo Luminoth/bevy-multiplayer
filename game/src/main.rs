@@ -10,7 +10,6 @@ mod server;
 mod ui;
 
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 
 #[cfg(not(feature = "server"))]
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
@@ -80,7 +79,7 @@ fn run() {
         // third-party plugins
         bevy_egui::EguiPlugin,
         bevy_mod_picking::DefaultPickingPlugins,
-        RapierDebugRenderPlugin::default(),
+        bevy_rapier3d::render::RapierDebugRenderPlugin::default(),
         bevy_mod_reqwest::ReqwestPlugin::default(),
         // game plugins
         client::ClientPlugin,

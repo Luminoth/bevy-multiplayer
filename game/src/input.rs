@@ -2,26 +2,7 @@
 
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
-use crate::{player::JumpEvent, AppState};
-
-// TODO: should this be split into separate resources?
-#[derive(Debug, Default, Resource, Reflect)]
-pub struct InputState {
-    look: Vec2,
-    r#move: Vec2,
-}
-
-impl InputState {
-    #[inline]
-    pub fn look(&self) -> Vec2 {
-        self.look
-    }
-
-    #[inline]
-    pub fn r#move(&self) -> Vec2 {
-        self.r#move
-    }
-}
+use crate::{game::InputState, player::JumpEvent, AppState};
 
 // TODO: move to a settings resource
 const INVERT_LOOK: bool = true;
@@ -31,12 +12,10 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<InputState>().add_systems(
+        app.add_systems(
             Update,
             ((handle_gamepad_events, update_gamepad).chain()).run_if(in_state(AppState::InGame)),
         );
-
-        app.register_type::<InputState>();
     }
 }
 

@@ -2,10 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::{input::InputState, player::LocalPlayer};
-
-#[derive(Debug, Component)]
-pub struct PlayerCamera;
+use crate::{game::InputState, game::PlayerCamera, player::LocalPlayer};
 
 const LOOK_SENSITIVITY: f32 = 4.0; // TODO: move to a settings resource
 const PITCH_MAX: f32 = std::f32::consts::FRAC_PI_2 - 0.01;
@@ -28,8 +25,8 @@ fn update_fps_camera(
         Query<&mut Transform, With<LocalPlayer>>,
     )>,
 ) {
-    let delta_yaw = -input_state.look().x * LOOK_SENSITIVITY * time.delta_seconds();
-    let delta_pitch = input_state.look().y * LOOK_SENSITIVITY * time.delta_seconds();
+    let delta_yaw = -input_state.look.x * LOOK_SENSITIVITY * time.delta_seconds();
+    let delta_pitch = input_state.look.y * LOOK_SENSITIVITY * time.delta_seconds();
 
     // TODO: does this belong in a player method?
     let mut player_query = transforms_query.p1();

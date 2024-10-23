@@ -5,7 +5,6 @@ use bevy_replicon_renet::RepliconRenetPlugins;
 
 use crate::{
     ball::{Ball, BallPlugin},
-    camera::PlayerCamera,
     cleanup_state,
     player::{LocalPlayer, PlayerPhysics, PlayerPlugin},
     AppState,
@@ -13,6 +12,16 @@ use crate::{
 
 #[derive(Debug, Component)]
 struct OnInGame;
+
+#[derive(Debug, Component)]
+pub struct PlayerCamera;
+
+// TODO: should this be split into separate resources?
+#[derive(Debug, Default, Resource, Reflect)]
+pub struct InputState {
+    pub look: Vec2,
+    pub r#move: Vec2,
+}
 
 #[derive(Debug, Resource)]
 pub struct GameAssetState {
@@ -42,6 +51,7 @@ impl Plugin for GamePlugin {
             PlayerPlugin,
             BallPlugin,
         ))
+        .init_resource::<InputState>()
         .add_systems(OnEnter(AppState::LoadAssets), load_assets)
         .add_systems(
             Update,
@@ -52,6 +62,8 @@ impl Plugin for GamePlugin {
             OnExit(AppState::InGame),
             (exit, cleanup_state::<OnInGame>, cleanup_state::<Node>),
         );
+
+        app.register_type::<InputState>();
     }
 }
 

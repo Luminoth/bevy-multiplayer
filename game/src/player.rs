@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::input::InputState;
+use crate::game::InputState;
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
@@ -76,8 +76,8 @@ fn update_player_physics(
 
     // handle move input
     if player_physics.is_grounded() {
-        let direction = player_transform.rotation
-            * Vec3::new(input_state.r#move().x, 0.0, -input_state.r#move().y);
+        let direction =
+            player_transform.rotation * Vec3::new(input_state.r#move.x, 0.0, -input_state.r#move.y);
         if direction.length_squared() > 0.0 {
             player_physics.velocity.x = direction.x * 5.0;
             player_physics.velocity.z = direction.z * 5.0;
