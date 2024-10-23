@@ -2,8 +2,7 @@ use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
 use game::{player::JumpEvent, GameState, InputState};
 
-// TODO: move to a settings resource
-const INVERT_LOOK: bool = true;
+use crate::Settings;
 
 #[derive(Debug)]
 pub struct InputPlugin;
@@ -26,6 +25,7 @@ fn handle_gamepad_events(mut evr_gamepad: EventReader<GamepadEvent>) {
 fn update_gamepad(
     axes: Res<Axis<GamepadAxis>>,
     buttons: Res<ButtonInput<GamepadButton>>,
+    settings: Res<Settings>,
     mut input_state: ResMut<InputState>,
     mut ev_jump: EventWriter<JumpEvent>,
 ) {
@@ -58,7 +58,7 @@ fn update_gamepad(
     };
 
     if let (Some(x), Some(y)) = (axes.get(axis_rx), axes.get(axis_ry)) {
-        input_state.look = Vec2::new(x, if INVERT_LOOK { -1.0 } else { 1.0 } * y);
+        input_state.look = Vec2::new(x, if settings.invert_look { -1.0 } else { 1.0 } * y);
     } else {
         input_state.look = Vec2::default();
     }

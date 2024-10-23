@@ -3,12 +3,15 @@ mod client;
 mod debug;
 mod input;
 mod main_menu;
+mod settings;
 mod ui;
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
+
+use settings::Settings;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
 pub enum AppState {

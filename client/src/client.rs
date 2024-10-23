@@ -9,7 +9,7 @@ use bevy_replicon_renet::renet::transport::{
 
 use game::{GameState, PROTOCOL_ID};
 
-use crate::AppState;
+use crate::{AppState, Settings};
 
 #[derive(Debug)]
 pub struct ClientPlugin;
@@ -19,6 +19,7 @@ impl Plugin for ClientPlugin {
         app.insert_resource(bevy_replicon_renet::renet::RenetClient::new(
             bevy_replicon_renet::renet::ConnectionConfig::default(),
         ))
+        .init_resource::<Settings>()
         .add_systems(
             Update,
             (
