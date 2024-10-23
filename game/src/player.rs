@@ -13,27 +13,19 @@ pub struct JumpEvent;
 #[derive(Debug, Default, Component, Reflect)]
 pub struct PlayerPhysics {
     pub velocity: Vec3,
-    grounded_timer: f32,
+    grounded: bool,
 }
 
 impl PlayerPhysics {
     #[inline]
     pub fn is_grounded(&self) -> bool {
-        self.grounded_timer > 0.0
+        self.grounded
     }
 
-    pub fn clear_grounded(&mut self) {
-        self.grounded_timer = 0.0;
-    }
-
-    pub fn update_grounded(&mut self, grounded: bool, delta: f32) {
-        if grounded {
-            self.grounded_timer = 0.5;
+    pub fn update_grounded(&mut self, grounded: bool) {
+        self.grounded = grounded;
+        if self.grounded {
             self.velocity.y = 0.0;
-        }
-
-        if self.is_grounded() {
-            self.grounded_timer -= delta;
         }
     }
 }
@@ -61,7 +53,7 @@ pub fn update_player_physics(
 
     // update grounded
     let grounded = output.map(|output| output.grounded).unwrap_or_default();
-    player_physics.update_grounded(grounded, time.delta_seconds());
+    player_physics.update_grounded(grounded);
 
     // handle move input
     if player_physics.is_grounded() {
@@ -77,8 +69,6 @@ pub fn update_player_physics(
 
         if !ev_jump.is_empty() {
             player_physics.velocity.y += 10.0;
-            player_physics.clear_grounded();
-
             ev_jump.clear();
         }
     }
