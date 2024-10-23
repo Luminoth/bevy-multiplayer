@@ -34,6 +34,10 @@ impl PlayerPhysics {
 #[derive(Debug, Event)]
 pub struct JumpEvent;
 
+const MOVE_SPEED: f32 = 5.0;
+const JUMP_SPEED: f32 = 10.0;
+const TERMINAL_VELOCITY: f32 = 50.0;
+
 #[derive(Debug)]
 pub struct PlayerPlugin;
 
@@ -82,22 +86,25 @@ fn update_player_physics(
         let direction =
             player_transform.rotation * Vec3::new(input_state.r#move.x, 0.0, -input_state.r#move.y);
         if direction.length_squared() > 0.0 {
-            player_physics.velocity.x = direction.x * 5.0;
-            player_physics.velocity.z = direction.z * 5.0;
+            player_physics.velocity.x = direction.x * MOVE_SPEED;
+            player_physics.velocity.z = direction.z * MOVE_SPEED;
         } else {
             player_physics.velocity.x = 0.0;
             player_physics.velocity.z = 0.0;
         }
 
         if !ev_jump.is_empty() {
-            player_physics.velocity.y += 10.0;
+            player_physics.velocity.y += JUMP_SPEED;
             ev_jump.clear();
         }
     }
 
     // apply gravity
     player_physics.velocity.y += physics_config.gravity.y * gravity_scale.0 * time.delta_seconds();
-    player_physics.velocity.y = player_physics.velocity.y.max(-50.0);
+    player_physics.velocity.y = player_physics
+        .velocity
+        .y
+        .clamp(-TERMINAL_VELOCITY, TERMINAL_VELOCITY);
 
     // move
     let translation = character_controller

@@ -104,7 +104,7 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 2.0, 15.0),
             projection: PerspectiveProjection {
-                fov: 90.0_f32.to_radians(),
+                fov: 90.0_f32.to_radians(), // TODO: this should move to settings
                 ..default()
             }
             .into(),
