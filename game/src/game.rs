@@ -3,8 +3,8 @@ use bevy_rapier3d::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    camera::MainCamera,
-    player::{Player, PlayerPhysics},
+    camera::PlayerCamera,
+    player::{LocalPlayer, PlayerPhysics},
     AppState,
 };
 
@@ -84,8 +84,8 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
             .into(),
             ..default()
         },
-        Name::new("Main Camera"),
-        MainCamera,
+        Name::new("Player Camera"),
+        PlayerCamera,
         OnInGame,
     ));
 
@@ -242,7 +242,7 @@ pub fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         ColliderMassProperties::Mass(75.0),
         KinematicCharacterController::default(),
         Name::new("Player"),
-        Player,
+        LocalPlayer,
         OnInGame,
     ));
 }

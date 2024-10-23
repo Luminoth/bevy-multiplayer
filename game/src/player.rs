@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::input::InputState;
 
 #[derive(Debug, Component, Serialize, Deserialize)]
-pub struct Player;
+pub struct LocalPlayer;
 
 #[derive(Debug, Event)]
 pub struct JumpEvent;
@@ -44,7 +44,7 @@ pub fn update_player_physics(
             &mut PlayerPhysics,
             &GravityScale,
         ),
-        With<Player>,
+        With<LocalPlayer>,
     >,
 ) {
     let (mut character_controller, output, player_transform, mut player_physics, gravity_scale) =

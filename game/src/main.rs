@@ -79,6 +79,7 @@ fn init_app(app: &mut App) {
         bevy_egui::EguiPlugin,
         bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
+        camera::FpsCameraPlugin,
         debug::DebugPlugin,
     ))
     // update continuously even while unfocused (for networking)
@@ -108,13 +109,8 @@ fn init_app(app: &mut App) {
     .add_systems(Update, client::connected.run_if(client_just_connected))
     .add_systems(
         Update,
-        ((
-            input::handle_gamepad_events,
-            input::update_gamepad,
-            camera::update_camera,
-        )
-            .chain())
-        .run_if(in_state(AppState::InGame)),
+        ((input::handle_gamepad_events, input::update_gamepad).chain())
+            .run_if(in_state(AppState::InGame)),
     );
 
     app.register_type::<input::InputState>()
@@ -194,7 +190,7 @@ fn main() {
 
     // replication
     app.replicate_group::<(Transform, game::Ball)>()
-        .replicate_group::<(Transform, player::Player)>();
+        .replicate_group::<(Transform, player::LocalPlayer)>();
 
     info!("running ...");
     app.run();
