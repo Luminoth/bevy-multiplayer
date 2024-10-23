@@ -1,14 +1,12 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::input::InputState;
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
-
-#[derive(Debug, Event)]
-pub struct JumpEvent;
 
 #[derive(Debug, Default, Component, Reflect)]
 pub struct PlayerPhysics {
@@ -30,8 +28,25 @@ impl PlayerPhysics {
     }
 }
 
+#[derive(Debug, Event)]
+pub struct JumpEvent;
+
+#[derive(Debug)]
+pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<JumpEvent>()
+            .add_systems(FixedUpdate, update_player_physics);
+
+        app.register_type::<PlayerPhysics>();
+
+        app.replicate_group::<(Transform, LocalPlayer)>();
+    }
+}
+
 #[allow(clippy::type_complexity)]
-pub fn update_player_physics(
+fn update_player_physics(
     physics_config: Res<RapierConfiguration>,
     time: Res<Time<Fixed>>,
     input_state: Res<InputState>,
@@ -47,8 +62,12 @@ pub fn update_player_physics(
         With<LocalPlayer>,
     >,
 ) {
-    let (mut character_controller, output, player_transform, mut player_physics, gravity_scale) =
-        player_query.single_mut();
+    let Ok((mut character_controller, output, player_transform, mut player_physics, gravity_scale)) =
+        player_query.get_single_mut()
+    else {
+        return;
+    };
+
     let player_transform = player_transform.compute_transform();
 
     // update grounded

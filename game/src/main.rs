@@ -11,8 +11,6 @@ mod ui;
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
-use bevy_replicon::prelude::*;
-use bevy_replicon_renet::RepliconRenetPlugins;
 
 #[cfg(not(feature = "server"))]
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
@@ -58,10 +56,12 @@ where
 }
 
 #[cfg(not(feature = "server"))]
-fn init_app(app: &mut App) {
+fn run() {
     println!("initializing client ...");
 
+    let mut app = App::new();
     app.add_plugins((
+        // bevy plugins
         DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window {
@@ -77,13 +77,17 @@ fn init_app(app: &mut App) {
                     .to_string(),
                 ..default()
             }),
+        // third-party plugins
         bevy_egui::EguiPlugin,
         bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
+        bevy_mod_reqwest::ReqwestPlugin::default(),
+        // game plugins
         client::ClientPlugin,
         main_menu::MainMenuPlugin,
         camera::FpsCameraPlugin,
         input::InputPlugin,
+        game::GamePlugin,
         debug::DebugPlugin,
     ))
     // update continuously even while unfocused (for networking)
@@ -91,16 +95,18 @@ fn init_app(app: &mut App) {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
-    .add_event::<player::JumpEvent>()
+    .init_state::<AppState>()
     .add_systems(Update, ui::update_button);
 
-    app.register_type::<player::PlayerPhysics>();
+    info!("running client ...");
+    app.run();
 }
 
 #[cfg(feature = "server")]
-fn init_app(app: &mut App) {
+fn run() {
     println!("initializing server ...");
 
+    let mut app = App::new();
     app.add_plugins((
         // TODO: replace with HeadlessPlugins in 0.15
         // (it includes all the plugins that Minimal is missing)
@@ -116,7 +122,12 @@ fn init_app(app: &mut App) {
         bevy::scene::ScenePlugin,
         bevy::animation::AnimationPlugin,
         bevy::state::app::StatesPlugin,
+        // third-party plugins
+        bevy_mod_reqwest::ReqwestPlugin::default(),
+        // game plugins
+        game::GamePlugin,
     ))
+    .init_state::<AppState>()
     // rapier makes use of Mesh assets
     // and this is missing without rendering
     .init_asset::<Mesh>()
@@ -136,28 +147,11 @@ fn init_app(app: &mut App) {
         server::handle_network_events.run_if(in_state(AppState::InGame)),
     )
     .add_systems(OnExit(AppState::InGame), server::shutdown_network);
+
+    info!("running server ...");
+    app.run();
 }
 
 fn main() {
-    let mut app = App::new();
-    init_app(&mut app);
-
-    app.add_plugins((
-        RapierPhysicsPlugin::<NoUserData>::default(),
-        RepliconPlugins,
-        RepliconRenetPlugins,
-        bevy_mod_reqwest::ReqwestPlugin::default(),
-        game::GamePlugin,
-    ))
-    .init_state::<AppState>()
-    .add_systems(
-        FixedUpdate,
-        player::update_player_physics.run_if(in_state(AppState::InGame)),
-    );
-
-    // replication
-    app.replicate_group::<(Transform, player::LocalPlayer)>();
-
-    info!("running ...");
-    app.run();
+    run();
 }
