@@ -55,11 +55,6 @@ pub fn update_player_physics(
         With<Player>,
     >,
 ) {
-    // TODO: https://github.com/dimforge/bevy_rapier/blob/master/bevy_rapier3d/examples/character_controller3.rs
-
-    // TODO: basically the input method just needs to read and store input
-    // and then in here we jam it all together with physics
-
     let (mut character_controller, output, player_transform, mut player_physics, gravity_scale) =
         player_query.single_mut();
     let player_transform = player_transform.compute_transform();
