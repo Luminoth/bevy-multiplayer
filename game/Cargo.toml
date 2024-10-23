@@ -5,21 +5,15 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.14"
-bevy_rapier3d = "0.27"
+bevy_rapier3d = { version = "0.27", default-features = false, features = [
+    "dim3",
+    "async-collider",
+    "simd-stable",
+] }
 bevy_replicon = { version = "0.28", default-features = false, features = [
     "scene",
     "parent_sync",
 ] }
-bevy_replicon_renet = { version = "0.5", default-features = false, features = [
-    "renet_serde",
-    "renet_transport",
-] }
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.40", features = ["full"], optional = true }
 
 common = { path = "../common" }
-
-[features]
-default = []
-client = ["bevy_replicon/client", "bevy_replicon_renet/client"]
-server = ["bevy_replicon/server", "bevy_replicon_renet/server"]

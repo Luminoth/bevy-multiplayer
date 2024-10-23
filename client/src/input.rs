@@ -1,6 +1,6 @@
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
-use game::{player::JumpEvent, AppState, InputState};
+use game::{player::JumpEvent, GameState, InputState};
 
 // TODO: move to a settings resource
 const INVERT_LOOK: bool = true;
@@ -12,7 +12,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            ((handle_gamepad_events, update_gamepad).chain()).run_if(in_state(AppState::InGame)),
+            ((handle_gamepad_events, update_gamepad).chain()).run_if(in_state(GameState::InGame)),
         );
     }
 }

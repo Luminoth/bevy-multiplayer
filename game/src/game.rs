@@ -1,13 +1,11 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
-use bevy_replicon::prelude::*;
-use bevy_replicon_renet::RepliconRenetPlugins;
 
 use crate::{
     ball::{Ball, BallPlugin},
     cleanup_state,
     player::{LocalPlayer, PlayerCamera, PlayerPhysics, PlayerPlugin},
-    AppState, InputState,
+    GameState, InputState,
 };
 
 #[derive(Debug, Component)]
@@ -35,21 +33,20 @@ impl Plugin for GamePlugin {
         app.add_plugins((
             // third-party plugins
             RapierPhysicsPlugin::<NoUserData>::default(),
-            RepliconPlugins,
-            RepliconRenetPlugins,
             // game plugins
             PlayerPlugin,
             BallPlugin,
         ))
+        .init_state::<GameState>()
         .init_resource::<InputState>()
-        .add_systems(OnEnter(AppState::LoadAssets), load_assets)
+        .add_systems(OnEnter(GameState::LoadAssets), load_assets)
         .add_systems(
             Update,
-            wait_for_assets.run_if(in_state(AppState::LoadAssets)),
+            wait_for_assets.run_if(in_state(GameState::LoadAssets)),
         )
-        .add_systems(OnEnter(AppState::InGame), enter)
+        .add_systems(OnEnter(GameState::InGame), enter)
         .add_systems(
-            OnExit(AppState::InGame),
+            OnExit(GameState::InGame),
             (exit, cleanup_state::<OnInGame>, cleanup_state::<Node>),
         );
 
@@ -94,8 +91,8 @@ fn load_assets(
     });
 }
 
-fn wait_for_assets(mut game_state: ResMut<NextState<AppState>>) {
-    game_state.set(AppState::InGame);
+fn wait_for_assets(mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::InGame);
 }
 
 fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
@@ -259,7 +256,7 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     // player
     commands.spawn((
         MaterialMeshBundle {
-            transform: Transform::from_xyz(-5.0, 12.0, 5.0),
+            transform: Transform::from_xyz(-5.0, 2.1, 5.0),
             mesh: assets.player_mesh.clone(),
             material: assets.player_material.clone(),
             ..default()

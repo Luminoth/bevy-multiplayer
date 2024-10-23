@@ -8,7 +8,9 @@ use bevy::{
 };
 use bevy_egui::{egui, EguiContexts};
 
-use game::AppState;
+use game::GameState;
+
+use crate::AppState;
 
 #[derive(Debug, Default, Reflect, Resource)]
 pub struct DebugSettings {
@@ -46,6 +48,8 @@ impl Plugin for DebugPlugin {
             bevy_inspector_egui::quick::WorldInspectorPlugin::default()
                 .run_if(show_world_inspector),
             bevy_inspector_egui::quick::StateInspectorPlugin::<AppState>::default()
+                .run_if(show_state_inspector),
+            bevy_inspector_egui::quick::StateInspectorPlugin::<GameState>::default()
                 .run_if(show_state_inspector),
         ));
 

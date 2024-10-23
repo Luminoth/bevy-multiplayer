@@ -7,7 +7,9 @@ use bevy_replicon_renet::renet::transport::{
     ClientAuthentication, NetcodeClientTransport, NetcodeTransportError,
 };
 
-use game::{AppState, PROTOCOL_ID};
+use game::{GameState, PROTOCOL_ID};
+
+use crate::AppState;
 
 #[derive(Debug)]
 pub struct ClientPlugin;
@@ -35,7 +37,7 @@ fn panic_on_network_error(mut evt_error: EventReader<NetcodeTransportError>) {
     }
 }
 
-fn connect_to_server(mut commands: Commands, mut game_state: ResMut<NextState<AppState>>) {
+fn connect_to_server(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
     info!("connect to server ...");
 
     let server_addr = "127.0.0.1:5576".parse().unwrap();
@@ -57,11 +59,15 @@ fn connect_to_server(mut commands: Commands, mut game_state: ResMut<NextState<Ap
 
     commands.insert_resource(transport);
 
-    game_state.set(AppState::WaitForConnect);
+    app_state.set(AppState::WaitForConnect);
 }
 
-fn connected(mut game_state: ResMut<NextState<AppState>>) {
+fn connected(
+    mut app_state: ResMut<NextState<AppState>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
     info!("connected!");
 
-    game_state.set(AppState::LoadAssets);
+    app_state.set(AppState::InGame);
+    game_state.set(GameState::LoadAssets);
 }

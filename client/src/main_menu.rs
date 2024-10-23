@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use game::{cleanup_state, AppState};
+use game::{cleanup_state, GameState};
 
-use crate::ui;
+use crate::{ui, AppState};
 
 #[derive(Debug, Component)]
 struct OnMainMenu;
@@ -21,7 +21,11 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn on_join_game(event: Listener<Pointer<Click>>, mut game_state: ResMut<NextState<AppState>>) {
+fn on_join_game(
+    event: Listener<Pointer<Click>>,
+    mut app_state: ResMut<NextState<AppState>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
     if !ui::check_click_event(
         event.listener(),
         event.target,
@@ -31,8 +35,9 @@ fn on_join_game(event: Listener<Pointer<Click>>, mut game_state: ResMut<NextStat
         return;
     }
 
-    //game_state.set(AppState::ConnectToServer);
-    game_state.set(AppState::LoadAssets);
+    //app_state.set(AppState::ConnectToServer);
+    app_state.set(AppState::InGame);
+    game_state.set(GameState::LoadAssets);
 }
 
 fn on_exit_game(event: Listener<Pointer<Click>>, mut exit: EventWriter<AppExit>) {

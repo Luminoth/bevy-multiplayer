@@ -7,7 +7,9 @@ use bevy_replicon_renet::renet::transport::{
 };
 use bevy_replicon_renet::renet::ServerEvent;
 
-use game::{AppState, PROTOCOL_ID};
+use game::{GameState, PROTOCOL_ID};
+
+use crate::AppState;
 
 #[derive(Debug)]
 pub struct ServerPlugin;
@@ -25,19 +27,24 @@ impl Plugin for ServerPlugin {
             (
                 wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
                 init_network.run_if(in_state(AppState::InitServer)),
-                handle_network_events.run_if(in_state(AppState::InGame)),
+                handle_network_events.run_if(in_state(GameState::InGame)),
             ),
         )
         .add_systems(OnExit(AppState::InGame), shutdown_network);
     }
 }
 
-fn wait_for_placement(mut game_state: ResMut<NextState<AppState>>) {
+fn wait_for_placement(mut app_state: ResMut<NextState<AppState>>) {
     warn!("faking placement!");
-    game_state.set(AppState::InitServer);
+
+    app_state.set(AppState::InitServer);
 }
 
-fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<AppState>>) {
+fn init_network(
+    mut commands: Commands,
+    mut app_state: ResMut<NextState<AppState>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
     info!("init network ...");
 
     // TODO: this should bind a specific address
@@ -59,7 +66,8 @@ fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<AppStat
     let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
     commands.insert_resource(transport);
 
-    game_state.set(AppState::LoadAssets);
+    app_state.set(AppState::InGame);
+    game_state.set(GameState::LoadAssets);
 }
 
 fn shutdown_network(mut commands: Commands) {

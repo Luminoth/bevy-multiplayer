@@ -8,30 +8,12 @@ pub use game::GamePlugin;
 
 pub const PROTOCOL_ID: u64 = 0;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
-pub enum AppState {
-    #[cfg(feature = "client")]
-    #[cfg(not(feature = "server"))]
+// TODO: the issue atm is that there's no way
+// to tell the app to go back to its initial state
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
+pub enum GameState {
     #[default]
-    MainMenu,
-
-    #[cfg(feature = "client")]
-    #[cfg(not(feature = "server"))]
-    ConnectToServer,
-
-    #[cfg(feature = "client")]
-    #[cfg(not(feature = "server"))]
-    WaitForConnect,
-
-    #[cfg(feature = "server")]
-    #[cfg(not(feature = "client"))]
-    #[default]
-    WaitForPlacement,
-
-    #[cfg(feature = "server")]
-    #[cfg(not(feature = "client"))]
-    InitServer,
-
+    WaitingForApp,
     LoadAssets,
     InGame,
 }

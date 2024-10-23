@@ -1,6 +1,17 @@
 mod server;
 
 use bevy::prelude::*;
+use bevy_replicon::prelude::*;
+use bevy_replicon_renet::RepliconRenetPlugins;
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
+pub enum AppState {
+    #[default]
+    WaitForPlacement,
+    InitServer,
+    LoadAssets,
+    InGame,
+}
 
 // TODO: this sets the server "frame rate"
 // bevy FixedUpdate tho runs at 64hz
@@ -28,6 +39,8 @@ fn main() {
         bevy::animation::AnimationPlugin,
         bevy::state::app::StatesPlugin,
         // third-party plugins
+        RepliconPlugins,
+        RepliconRenetPlugins,
         bevy_mod_reqwest::ReqwestPlugin::default(),
         // game plugins
         server::ServerPlugin,

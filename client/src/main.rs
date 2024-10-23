@@ -7,6 +7,17 @@ mod ui;
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use bevy_replicon::prelude::*;
+use bevy_replicon_renet::RepliconRenetPlugins;
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
+pub enum AppState {
+    #[default]
+    MainMenu,
+    ConnectToServer,
+    WaitForConnect,
+    InGame,
+}
 
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
 
@@ -35,6 +46,8 @@ fn main() {
         bevy_egui::EguiPlugin,
         bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
+        RepliconPlugins,
+        RepliconRenetPlugins,
         bevy_mod_reqwest::ReqwestPlugin::default(),
         // game plugins
         client::ClientPlugin,
@@ -50,7 +63,7 @@ fn main() {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
-    .init_state::<game::AppState>();
+    .init_state::<AppState>();
 
     info!("running client ...");
     app.run();
