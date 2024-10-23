@@ -87,6 +87,7 @@ fn run() {
         main_menu::MainMenuPlugin,
         camera::FpsCameraPlugin,
         input::InputPlugin,
+        ui::UiPlugin,
         game::GamePlugin,
         debug::DebugPlugin,
     ))
@@ -95,8 +96,7 @@ fn run() {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
-    .init_state::<AppState>()
-    .add_systems(Update, ui::update_button);
+    .init_state::<AppState>();
 
     info!("running client ...");
     app.run();
@@ -108,6 +108,7 @@ fn run() {
 
     let mut app = App::new();
     app.add_plugins((
+        // bevy plugins
         // TODO: replace with HeadlessPlugins in 0.15
         // (it includes all the plugins that Minimal is missing)
         MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
@@ -125,28 +126,10 @@ fn run() {
         // third-party plugins
         bevy_mod_reqwest::ReqwestPlugin::default(),
         // game plugins
+        server::ServerPlugin,
         game::GamePlugin,
     ))
-    .init_state::<AppState>()
-    // rapier makes use of Mesh assets
-    // and this is missing without rendering
-    .init_asset::<Mesh>()
-    .insert_resource(bevy_replicon_renet::renet::RenetServer::new(
-        bevy_replicon_renet::renet::ConnectionConfig::default(),
-    ))
-    .add_systems(
-        Update,
-        server::wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
-    )
-    .add_systems(
-        Update,
-        server::init_network.run_if(in_state(AppState::InitServer)),
-    )
-    .add_systems(
-        Update,
-        server::handle_network_events.run_if(in_state(AppState::InGame)),
-    )
-    .add_systems(OnExit(AppState::InGame), server::shutdown_network);
+    .init_state::<AppState>();
 
     info!("running server ...");
     app.run();

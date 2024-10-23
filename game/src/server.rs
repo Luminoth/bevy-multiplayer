@@ -11,12 +11,35 @@ use bevy_replicon_renet::renet::ServerEvent;
 
 use crate::AppState;
 
-pub fn wait_for_placement(mut game_state: ResMut<NextState<AppState>>) {
+#[derive(Debug)]
+pub struct ServerPlugin;
+
+impl Plugin for ServerPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(bevy_replicon_renet::renet::RenetServer::new(
+            bevy_replicon_renet::renet::ConnectionConfig::default(),
+        ))
+        // rapier makes use of Mesh assets
+        // and this is missing without rendering
+        .init_asset::<Mesh>()
+        .add_systems(
+            Update,
+            (
+                wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
+                init_network.run_if(in_state(AppState::InitServer)),
+                handle_network_events.run_if(in_state(AppState::InGame)),
+            ),
+        )
+        .add_systems(OnExit(AppState::InGame), shutdown_network);
+    }
+}
+
+fn wait_for_placement(mut game_state: ResMut<NextState<AppState>>) {
     warn!("faking placement!");
     game_state.set(AppState::InitServer);
 }
 
-pub fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<AppState>>) {
+fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<AppState>>) {
     info!("init network ...");
 
     // TODO: this should bind a specific address
@@ -41,13 +64,13 @@ pub fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<App
     game_state.set(AppState::LoadAssets);
 }
 
-pub fn shutdown_network(mut commands: Commands) {
+fn shutdown_network(mut commands: Commands) {
     info!("shutdown network ...");
 
     commands.remove_resource::<NetcodeServerTransport>();
 }
 
-pub fn handle_network_events(mut evt_server: EventReader<ServerEvent>) {
+fn handle_network_events(mut evt_server: EventReader<ServerEvent>) {
     for evt in evt_server.read() {
         match evt {
             ServerEvent::ClientConnected { client_id } => {
