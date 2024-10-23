@@ -3,10 +3,13 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::game::InputState;
+use crate::InputState;
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
+
+#[derive(Debug, Component)]
+pub struct PlayerCamera;
 
 #[derive(Debug, Default, Component, Reflect)]
 pub struct PlayerPhysics {

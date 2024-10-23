@@ -1,8 +1,6 @@
-#![cfg(not(feature = "server"))]
-
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
-use crate::{game::InputState, player::JumpEvent, AppState};
+use game::{player::JumpEvent, AppState, InputState};
 
 // TODO: move to a settings resource
 const INVERT_LOOK: bool = true;

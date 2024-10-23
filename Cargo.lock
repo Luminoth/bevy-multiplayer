@@ -1940,6 +1940,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "client"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy_egui",
+ "bevy_mod_picking",
+ "bevy_mod_reqwest",
+ "bevy_rapier3d",
+ "bevy_replicon",
+ "bevy_replicon_renet",
+ "common",
+ "game",
+]
+
+[[package]]
 name = "clipboard-win"
 version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2642,12 +2658,7 @@ dependencies = [
 name = "game"
 version = "0.1.0"
 dependencies = [
- "agones",
  "bevy",
- "bevy-inspector-egui",
- "bevy_egui",
- "bevy_mod_picking",
- "bevy_mod_reqwest",
  "bevy_rapier3d",
  "bevy_replicon",
  "bevy_replicon_renet",
@@ -4971,6 +4982,22 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "agones",
+ "bevy",
+ "bevy_mod_reqwest",
+ "bevy_rapier3d",
+ "bevy_replicon",
+ "bevy_replicon_renet",
+ "common",
+ "game",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

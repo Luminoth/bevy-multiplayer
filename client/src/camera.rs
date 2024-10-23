@@ -1,8 +1,9 @@
-#![cfg(not(feature = "server"))]
-
 use bevy::prelude::*;
 
-use crate::{game::InputState, game::PlayerCamera, player::LocalPlayer};
+use game::{
+    player::{LocalPlayer, PlayerCamera},
+    InputState,
+};
 
 const LOOK_SENSITIVITY: f32 = 4.0; // TODO: move to a settings resource
 const PITCH_MAX: f32 = std::f32::consts::FRAC_PI_2 - 0.01;

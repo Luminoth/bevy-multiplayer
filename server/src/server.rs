@@ -1,5 +1,3 @@
-#![cfg(feature = "server")]
-
 use std::net::UdpSocket;
 use std::time::SystemTime;
 
@@ -9,7 +7,7 @@ use bevy_replicon_renet::renet::transport::{
 };
 use bevy_replicon_renet::renet::ServerEvent;
 
-use crate::AppState;
+use game::{AppState, PROTOCOL_ID};
 
 #[derive(Debug)]
 pub struct ServerPlugin;
@@ -51,7 +49,7 @@ fn init_network(mut commands: Commands, mut game_state: ResMut<NextState<AppStat
     let server_config = ServerConfig {
         current_time,
         max_clients: 3,
-        protocol_id: crate::PROTOCOL_ID,
+        protocol_id: PROTOCOL_ID,
         public_addresses: vec![server_addr],
         authentication: ServerAuthentication::Unsecure,
     };

@@ -1,5 +1,3 @@
-#![cfg(not(feature = "server"))]
-
 use bevy::{
     diagnostic::{
         DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
@@ -10,7 +8,7 @@ use bevy::{
 };
 use bevy_egui::{egui, EguiContexts};
 
-use crate::AppState;
+use game::AppState;
 
 #[derive(Debug, Default, Reflect, Resource)]
 pub struct DebugSettings {

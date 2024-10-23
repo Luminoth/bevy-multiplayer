@@ -4,12 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-agones = { version = "1.34", optional = true }
 bevy = "0.14"
-bevy_egui = { version = "0.30", optional = true }
-bevy-inspector-egui = { version = "0.27", optional = true }
-bevy_mod_picking = { version = "0.20", optional = true }
-bevy_mod_reqwest = "0.16"
 bevy_rapier3d = "0.27"
 bevy_replicon = { version = "0.28", default-features = false, features = [
     "scene",
@@ -25,47 +20,6 @@ tokio = { version = "1.40", features = ["full"], optional = true }
 common = { path = "../common" }
 
 [features]
-default = [
-    "client",
-    #"server",
-]
-client = [
-    "dep:bevy_egui",
-    "dep:bevy-inspector-egui",
-    "dep:bevy_mod_picking",
-    "bevy_replicon/client",
-    "bevy_replicon_renet/client",
-]
-server = [
-    "dep:agones",
-    "dep:tokio",
-    "bevy_replicon/server",
-    "bevy_replicon_renet/server",
-]
-
-# Enable a small amount of optimization in the dev profile.
-[profile.dev]
-opt-level = 1
-
-# Enable a large amount of optimization in the dev profile for dependencies.
-[profile.dev.package."*"]
-opt-level = 3
-
-# Enable more optimization in the release profile at the cost of compile time.
-[profile.release]
-# Compile the entire crate as one unit.
-# Slows compile times, marginal improvements.
-codegen-units = 1
-# Do a second optimization pass over the entire program, including dependencies.
-# Slows compile times, marginal improvements.
-lto = "thin"
-
-# Optimize for size in the wasm-release profile to reduce load times and bandwidth usage on web.
-[profile.wasm-release]
-# Default to release profile values.
-inherits = "release"
-# Optimize with size in mind (also try "z", sometimes it is better).
-# Slightly slows compile times, great improvements to file size and runtime performance.
-opt-level = "s"
-# Strip all debugging information from the binary to slightly reduce file size.
-strip = "debuginfo"
+default = []
+client = ["bevy_replicon/client", "bevy_replicon_renet/client"]
+server = ["bevy_replicon/server", "bevy_replicon_renet/server"]

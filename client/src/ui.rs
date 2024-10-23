@@ -1,5 +1,3 @@
-#![cfg(not(feature = "server"))]
-
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 

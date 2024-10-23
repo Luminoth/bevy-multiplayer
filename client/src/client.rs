@@ -1,5 +1,3 @@
-#![cfg(not(feature = "server"))]
-
 use std::net::UdpSocket;
 use std::time::SystemTime;
 
@@ -9,7 +7,7 @@ use bevy_replicon_renet::renet::transport::{
     ClientAuthentication, NetcodeClientTransport, NetcodeTransportError,
 };
 
-use crate::{AppState, PROTOCOL_ID};
+use game::{AppState, PROTOCOL_ID};
 
 #[derive(Debug)]
 pub struct ClientPlugin;

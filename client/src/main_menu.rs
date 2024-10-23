@@ -1,9 +1,9 @@
-#![cfg(not(feature = "server"))]
-
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use crate::{cleanup_state, ui, AppState};
+use game::{cleanup_state, AppState};
+
+use crate::ui;
 
 #[derive(Debug, Component)]
 struct OnMainMenu;
