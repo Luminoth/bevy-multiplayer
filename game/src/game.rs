@@ -1,15 +1,10 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::{
-    ball::{Ball, BallPlugin},
-    cleanup_state,
-    player::{LocalPlayer, PlayerCamera, PlayerPhysics, PlayerPlugin},
-    GameState, InputState,
-};
+use crate::{ball, cleanup_state, player, world, GameState, InputState};
 
 #[derive(Debug, Component)]
-struct OnInGame;
+pub(crate) struct OnInGame;
 
 #[derive(Debug, Resource)]
 struct GameAssetState {
@@ -34,8 +29,8 @@ impl Plugin for GamePlugin {
             // third-party plugins
             RapierPhysicsPlugin::<NoUserData>::default(),
             // game plugins
-            PlayerPlugin,
-            BallPlugin,
+            player::PlayerPlugin,
+            ball::BallPlugin,
         ))
         .init_state::<GameState>()
         .init_resource::<InputState>()
@@ -100,177 +95,112 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 2.0, 15.0),
-            projection: PerspectiveProjection {
-                fov: 90.0_f32.to_radians(), // TODO: this should move to settings
-                ..default()
-            }
-            .into(),
-            ..default()
-        },
-        Name::new("Player Camera"),
-        PlayerCamera,
-        OnInGame,
-    ));
-
     commands.insert_resource(AmbientLight {
         color: WHITE.into(),
         brightness: 80.0,
     });
 
-    commands.spawn((
-        DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                color: ORANGE_RED.into(),
-                shadows_enabled: true,
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(0.0, 5.0, 0.0),
-                rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
-                ..default()
-            },
+    world::spawn_directional_light(
+        &mut commands,
+        ORANGE_RED.into(),
+        Transform {
+            translation: Vec3::new(0.0, 5.0, 0.0),
+            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
             ..default()
         },
-        Name::new("Sun"),
-        OnInGame,
-    ));
+        "Sun",
+    );
 
     // floor
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            mesh: assets.floor_mesh.clone(),
-            material: assets.floor_material.clone(),
-            ..default()
-        },
-        Collider::cuboid(25.0, 0.1, 25.0),
-        Name::new("Ground"),
-        OnInGame,
-    ));
+    world::spawn_wall(
+        &mut commands,
+        Transform::from_xyz(0.0, 0.0, 0.0),
+        assets.floor_mesh.clone(),
+        assets.floor_material.clone(),
+        "Ground",
+    );
 
     // ceiling
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform {
-                translation: Vec3::new(0.0, 50.0, 0.0),
-                rotation: Quat::from_rotation_z(180.0f32.to_radians()),
-                ..default()
-            },
-            mesh: assets.floor_mesh.clone(),
-            material: assets.floor_material.clone(),
+    world::spawn_wall(
+        &mut commands,
+        Transform {
+            translation: Vec3::new(0.0, 50.0, 0.0),
+            rotation: Quat::from_rotation_z(180.0f32.to_radians()),
             ..default()
         },
-        Collider::cuboid(25.0, 0.1, 25.0),
-        Name::new("Ceiling"),
-        OnInGame,
-    ));
+        assets.floor_mesh.clone(),
+        assets.floor_material.clone(),
+        "Ceiling",
+    );
 
     // left wall
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform {
-                translation: Vec3::new(-25.0, 25.0, 0.0),
-                rotation: Quat::from_rotation_z(-90.0f32.to_radians()),
-                ..default()
-            },
-            mesh: assets.floor_mesh.clone(),
-            material: assets.wall_material.clone(),
+    world::spawn_wall(
+        &mut commands,
+        Transform {
+            translation: Vec3::new(-25.0, 25.0, 0.0),
+            rotation: Quat::from_rotation_z(-90.0f32.to_radians()),
             ..default()
         },
-        Collider::cuboid(25.0, 0.1, 25.0),
-        Name::new("Left Wall"),
-        OnInGame,
-    ));
+        assets.floor_mesh.clone(),
+        assets.wall_material.clone(),
+        "Left Wall",
+    );
 
     // right wall
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform {
-                translation: Vec3::new(25.0, 25.0, 0.0),
-                rotation: Quat::from_rotation_z(90.0f32.to_radians()),
-                ..default()
-            },
-            mesh: assets.floor_mesh.clone(),
-            material: assets.wall_material.clone(),
+    world::spawn_wall(
+        &mut commands,
+        Transform {
+            translation: Vec3::new(25.0, 25.0, 0.0),
+            rotation: Quat::from_rotation_z(90.0f32.to_radians()),
             ..default()
         },
-        Collider::cuboid(25.0, 0.1, 25.0),
-        Name::new("Right Wall"),
-        OnInGame,
-    ));
+        assets.floor_mesh.clone(),
+        assets.wall_material.clone(),
+        "Right Wall",
+    );
 
     // forward wall
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform {
-                translation: Vec3::new(0.0, 25.0, -25.0),
-                rotation: Quat::from_rotation_x(90.0f32.to_radians()),
-                ..default()
-            },
-            mesh: assets.floor_mesh.clone(),
-            material: assets.wall_material.clone(),
+    world::spawn_wall(
+        &mut commands,
+        Transform {
+            translation: Vec3::new(0.0, 25.0, -25.0),
+            rotation: Quat::from_rotation_x(90.0f32.to_radians()),
             ..default()
         },
-        Collider::cuboid(25.0, 0.1, 25.0),
-        Name::new("Forward Wall"),
-        OnInGame,
-    ));
+        assets.floor_mesh.clone(),
+        assets.wall_material.clone(),
+        "Forward Wall",
+    );
 
     // rear wall
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform {
-                translation: Vec3::new(0.0, 25.0, 25.0),
-                rotation: Quat::from_rotation_x(-90.0f32.to_radians()),
-                ..default()
-            },
-            mesh: assets.floor_mesh.clone(),
-            material: assets.wall_material.clone(),
+    world::spawn_wall(
+        &mut commands,
+        Transform {
+            translation: Vec3::new(0.0, 25.0, 25.0),
+            rotation: Quat::from_rotation_x(-90.0f32.to_radians()),
             ..default()
         },
-        Collider::cuboid(25.0, 0.1, 25.0),
-        Name::new("Rear Wall"),
-        OnInGame,
-    ));
+        assets.floor_mesh.clone(),
+        assets.wall_material.clone(),
+        "Rear Wall",
+    );
 
     // bouncing ball
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform::from_xyz(0.0, 20.0, 0.0),
-            mesh: assets.ball_mesh.clone(),
-            material: assets.ball_material.clone(),
-            ..default()
-        },
-        RigidBody::Dynamic,
-        Collider::ball(0.5),
-        ColliderMassProperties::Mass(0.5),
-        Restitution::coefficient(0.7),
-        Name::new("Ball"),
-        Ball,
-        OnInGame,
-    ));
+    ball::spawn_ball(
+        &mut commands,
+        Vec3::new(0.0, 20.0, 0.0),
+        assets.ball_mesh.clone(),
+        assets.ball_material.clone(),
+    );
 
     // player
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform::from_xyz(-5.0, 2.1, 5.0),
-            mesh: assets.player_mesh.clone(),
-            material: assets.player_material.clone(),
-            ..default()
-        },
-        RigidBody::KinematicPositionBased,
-        PlayerPhysics::default(),
-        GravityScale(2.0),
-        Collider::capsule_y(1.0, 1.0),
-        ColliderMassProperties::Mass(75.0),
-        KinematicCharacterController::default(),
-        Name::new("Player"),
-        LocalPlayer,
-        OnInGame,
-    ));
+    player::spawn_player(
+        &mut commands,
+        Vec3::new(-5.0, 2.1, 5.0),
+        assets.player_mesh.clone(),
+        assets.player_material.clone(),
+    );
+    player::spawn_camera(&mut commands, Vec3::new(0.0, 2.0, 15.0));
 }
 
 fn exit(mut commands: Commands) {

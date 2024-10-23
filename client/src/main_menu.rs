@@ -21,7 +21,7 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn on_join_game(
+fn on_find_game(
     event: Listener<Pointer<Click>>,
     mut app_state: ResMut<NextState<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
@@ -60,105 +60,23 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.spawn((Camera2dBundle::default(), IsDefaultUiCamera, OnMainMenu));
 
-    commands
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                ..default()
-            },
-            Name::new("Canvas"),
-            Pickable::IGNORE,
-        ))
-        .with_children(|parent| {
-            parent
-                .spawn((
-                    NodeBundle {
-                        style: Style {
-                            align_items: AlignItems::Start,
-                            justify_content: JustifyContent::Center,
-                            flex_direction: FlexDirection::Column,
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    Name::new("Column"),
-                    Pickable::IGNORE,
-                ))
-                .with_children(|parent| {
-                    parent
-                        .spawn((
-                            ButtonBundle {
-                                style: Style {
-                                    width: Val::Px(ui::BUTTON_WIDTH),
-                                    height: Val::Px(ui::BUTTON_HEIGHT),
-                                    border: UiRect::all(Val::Px(ui::BUTTON_BORDER)),
-                                    justify_content: JustifyContent::Center,
-                                    align_items: AlignItems::Center,
-                                    ..default()
-                                },
-                                border_color: BorderColor(Color::BLACK),
-                                border_radius: BorderRadius::MAX,
-                                background_color: ui::BUTTON_NORMAL.into(),
-                                ..default()
-                            },
-                            On::<Pointer<Click>>::run(on_join_game),
-                            Name::new("Join Game"),
-                        ))
-                        .with_children(|parent| {
-                            parent.spawn((
-                                TextBundle::from_section(
-                                    "Join Game",
-                                    TextStyle {
-                                        font: asset_server.load(ui::BUTTON_FONT),
-                                        font_size: ui::BUTTON_FONT_SIZE,
-                                        color: ui::BUTTON_FONT_COLOR,
-                                    },
-                                ),
-                                Pickable::IGNORE,
-                            ));
-                        });
+    ui::spawn_canvas(&mut commands, "Main Menu").with_children(|parent| {
+        ui::spawn_vbox(parent).with_children(|parent| {
+            ui::spawn_button(
+                parent,
+                &asset_server,
+                "Find Game",
+                On::<Pointer<Click>>::run(on_find_game),
+            );
 
-                    parent
-                        .spawn((
-                            ButtonBundle {
-                                style: Style {
-                                    width: Val::Px(ui::BUTTON_WIDTH),
-                                    height: Val::Px(ui::BUTTON_HEIGHT),
-                                    border: UiRect::all(Val::Px(ui::BUTTON_BORDER)),
-                                    justify_content: JustifyContent::Center,
-                                    align_items: AlignItems::Center,
-                                    ..default()
-                                },
-                                border_color: BorderColor(Color::BLACK),
-                                border_radius: BorderRadius::MAX,
-                                background_color: ui::BUTTON_NORMAL.into(),
-                                ..default()
-                            },
-                            On::<Pointer<Click>>::run(on_exit_game),
-                            Name::new("Exit"),
-                        ))
-                        .with_children(|parent| {
-                            parent.spawn((
-                                TextBundle::from_section(
-                                    "Exit",
-                                    TextStyle {
-                                        font: asset_server.load(ui::BUTTON_FONT),
-                                        font_size: ui::BUTTON_FONT_SIZE,
-                                        color: ui::BUTTON_FONT_COLOR,
-                                    },
-                                ),
-                                Pickable::IGNORE,
-                            ));
-                        });
-                });
+            ui::spawn_button(
+                parent,
+                &asset_server,
+                "Exit",
+                On::<Pointer<Click>>::run(on_exit_game),
+            );
         });
+    });
 }
 
 fn exit(mut commands: Commands) {

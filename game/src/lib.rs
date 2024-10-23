@@ -1,6 +1,7 @@
 mod ball;
 mod game;
 pub mod player;
+mod world;
 
 use bevy::prelude::*;
 

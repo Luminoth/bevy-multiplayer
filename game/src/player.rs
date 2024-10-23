@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::InputState;
+use crate::{game::OnInGame, InputState};
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
@@ -37,6 +37,48 @@ pub struct JumpEvent;
 const MOVE_SPEED: f32 = 5.0;
 const JUMP_SPEED: f32 = 10.0;
 const TERMINAL_VELOCITY: f32 = 50.0;
+
+pub fn spawn_camera(commands: &mut Commands, position: Vec3) {
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_xyz(position.x, position.y, position.z),
+            projection: PerspectiveProjection {
+                fov: 90.0_f32.to_radians(), // TODO: this should move to settings
+                ..default()
+            }
+            .into(),
+            ..default()
+        },
+        Name::new("Player Camera"),
+        PlayerCamera,
+        OnInGame,
+    ));
+}
+
+pub fn spawn_player(
+    commands: &mut Commands,
+    position: Vec3,
+    mesh: Handle<Mesh>,
+    material: Handle<StandardMaterial>,
+) {
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform::from_xyz(position.x, position.y, position.z),
+            mesh,
+            material,
+            ..default()
+        },
+        RigidBody::KinematicPositionBased,
+        PlayerPhysics::default(),
+        GravityScale(2.0),
+        Collider::capsule_y(1.0, 1.0),
+        ColliderMassProperties::Mass(75.0),
+        KinematicCharacterController::default(),
+        Name::new("Player"),
+        LocalPlayer,
+        OnInGame,
+    ));
+}
 
 #[derive(Debug)]
 pub struct PlayerPlugin;
