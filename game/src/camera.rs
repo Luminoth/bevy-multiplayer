@@ -7,7 +7,7 @@ use crate::{input::InputState, player::LocalPlayer};
 #[derive(Debug, Component)]
 pub struct PlayerCamera;
 
-const LOOK_SENSITIVITY: f32 = 4.0;
+const LOOK_SENSITIVITY: f32 = 4.0; // TODO: move to a settings resource
 const PITCH_MAX: f32 = std::f32::consts::FRAC_PI_2 - 0.01;
 
 #[derive(Debug)]

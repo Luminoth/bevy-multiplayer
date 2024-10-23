@@ -2,8 +2,9 @@
 
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
-use crate::player::JumpEvent;
+use crate::{player::JumpEvent, AppState};
 
+// TODO: should this be split into separate resources?
 #[derive(Debug, Default, Resource, Reflect)]
 pub struct InputState {
     look: Vec2,
@@ -22,9 +23,29 @@ impl InputState {
     }
 }
 
+// TODO: move to a settings resource
 const INVERT_LOOK: bool = true;
 
-pub fn update_gamepad(
+#[derive(Debug)]
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<InputState>().add_systems(
+            Update,
+            ((handle_gamepad_events, update_gamepad).chain()).run_if(in_state(AppState::InGame)),
+        );
+
+        app.register_type::<InputState>();
+    }
+}
+fn handle_gamepad_events(mut evr_gamepad: EventReader<GamepadEvent>) {
+    for _ev in evr_gamepad.read() {
+        // TODO: handle connection events
+    }
+}
+
+fn update_gamepad(
     axes: Res<Axis<GamepadAxis>>,
     buttons: Res<ButtonInput<GamepadButton>>,
     mut input_state: ResMut<InputState>,
@@ -71,11 +92,5 @@ pub fn update_gamepad(
 
     if buttons.just_pressed(south_button) {
         ev_jump.send(JumpEvent);
-    }
-}
-
-pub fn handle_gamepad_events(mut evr_gamepad: EventReader<GamepadEvent>) {
-    for _ev in evr_gamepad.read() {
-        // TODO: handle connection events
     }
 }

@@ -82,6 +82,7 @@ fn init_app(app: &mut App) {
         RapierDebugRenderPlugin::default(),
         client::ClientPlugin,
         camera::FpsCameraPlugin,
+        input::InputPlugin,
         debug::DebugPlugin,
     ))
     // update continuously even while unfocused (for networking)
@@ -89,7 +90,6 @@ fn init_app(app: &mut App) {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
-    .init_resource::<input::InputState>()
     .add_event::<player::JumpEvent>()
     .add_systems(Update, ui::update_button)
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
@@ -100,15 +100,9 @@ fn init_app(app: &mut App) {
             cleanup_state::<main_menu::OnMainMenu>,
             cleanup_state::<Node>,
         ),
-    )
-    .add_systems(
-        Update,
-        ((input::handle_gamepad_events, input::update_gamepad).chain())
-            .run_if(in_state(AppState::InGame)),
     );
 
-    app.register_type::<input::InputState>()
-        .register_type::<player::PlayerPhysics>();
+    app.register_type::<player::PlayerPhysics>();
 }
 
 #[cfg(feature = "server")]

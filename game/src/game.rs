@@ -13,7 +13,7 @@ use crate::{
 struct OnInGame;
 
 #[derive(Debug, Resource)]
-struct GameAssetState {
+pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
     floor_material: Handle<StandardMaterial>,
 
