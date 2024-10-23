@@ -79,6 +79,7 @@ fn init_app(app: &mut App) {
         bevy_egui::EguiPlugin,
         bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
+        client::ClientPlugin,
         camera::FpsCameraPlugin,
         debug::DebugPlugin,
     ))
@@ -87,12 +88,9 @@ fn init_app(app: &mut App) {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
-    .insert_resource(bevy_replicon_renet::renet::RenetClient::new(
-        bevy_replicon_renet::renet::ConnectionConfig::default(),
-    ))
     .init_resource::<input::InputState>()
     .add_event::<player::JumpEvent>()
-    .add_systems(Update, (client::panic_on_network_error, ui::update_button))
+    .add_systems(Update, ui::update_button)
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
     .add_systems(
         OnExit(AppState::MainMenu),
@@ -102,11 +100,6 @@ fn init_app(app: &mut App) {
             cleanup_state::<Node>,
         ),
     )
-    .add_systems(
-        OnEnter(AppState::ConnectToServer),
-        client::connect_to_server,
-    )
-    .add_systems(Update, client::connected.run_if(client_just_connected))
     .add_systems(
         Update,
         ((input::handle_gamepad_events, input::update_gamepad).chain())
