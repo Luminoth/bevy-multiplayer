@@ -39,6 +39,7 @@ impl Plugin for InputPlugin {
         app.register_type::<InputState>();
     }
 }
+
 fn handle_gamepad_events(mut evr_gamepad: EventReader<GamepadEvent>) {
     for _ev in evr_gamepad.read() {
         // TODO: handle connection events

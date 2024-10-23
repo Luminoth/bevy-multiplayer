@@ -81,6 +81,7 @@ fn init_app(app: &mut App) {
         bevy_mod_picking::DefaultPickingPlugins,
         RapierDebugRenderPlugin::default(),
         client::ClientPlugin,
+        main_menu::MainMenuPlugin,
         camera::FpsCameraPlugin,
         input::InputPlugin,
         debug::DebugPlugin,
@@ -91,16 +92,7 @@ fn init_app(app: &mut App) {
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     })
     .add_event::<player::JumpEvent>()
-    .add_systems(Update, ui::update_button)
-    .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
-    .add_systems(
-        OnExit(AppState::MainMenu),
-        (
-            main_menu::exit,
-            cleanup_state::<main_menu::OnMainMenu>,
-            cleanup_state::<Node>,
-        ),
-    );
+    .add_systems(Update, ui::update_button);
 
     app.register_type::<player::PlayerPhysics>();
 }
