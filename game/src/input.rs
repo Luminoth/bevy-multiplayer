@@ -2,21 +2,41 @@
 
 use bevy::{input::gamepad::GamepadEvent, prelude::*};
 
-use crate::game::{MainCamera, Player, PlayerPhysics};
+#[derive(Debug, Default, Resource, Reflect)]
+pub struct InputState {
+    look: Vec2,
+    r#move: Vec2,
+
+    jump: bool,
+}
+
+impl InputState {
+    #[inline]
+    pub fn look(&self) -> Vec2 {
+        self.look
+    }
+
+    #[inline]
+    pub fn r#move(&self) -> Vec2 {
+        self.r#move
+    }
+
+    #[inline]
+    pub fn consume_jump(&mut self) -> bool {
+        let v = self.jump;
+        self.jump = false;
+        v
+    }
+}
 
 const INVERT_LOOK: bool = true;
 
-pub fn poll_gamepad(
+pub fn update_gamepad(
     axes: Res<Axis<GamepadAxis>>,
-    time: Res<Time>,
-    mut camera_query: Query<&mut Transform, With<MainCamera>>,
-    mut player_query: Query<(&GlobalTransform, &mut PlayerPhysics), With<Player>>,
+    buttons: Res<ButtonInput<GamepadButton>>,
+    mut input_state: ResMut<InputState>,
 ) {
-    let mut camera_transform = camera_query.single_mut();
-
     let gamepad = Gamepad { id: 0 };
-    let (player_transform, mut player_physics) = player_query.single_mut();
-    let player_transform = player_transform.compute_transform();
 
     // left stick (move)
     let axis_lx = GamepadAxis {
@@ -28,17 +48,10 @@ pub fn poll_gamepad(
         axis_type: GamepadAxisType::LeftStickY,
     };
 
-    player_physics.velocity.x = 0.0;
-    player_physics.velocity.z = 0.0;
-
-    if player_physics.is_grounded() {
-        if let (Some(x), Some(y)) = (axes.get(axis_lx), axes.get(axis_ly)) {
-            let direction = player_transform.rotation * Vec3::new(x, 0.0, -y);
-            if direction.length_squared() > 0.0 {
-                player_physics.velocity.x = direction.x * 5.0;
-                player_physics.velocity.z = direction.z * 5.0;
-            }
-        }
+    if let (Some(x), Some(y)) = (axes.get(axis_lx), axes.get(axis_ly)) {
+        input_state.r#move = Vec2::new(x, y);
+    } else {
+        input_state.r#move = Vec2::default();
     }
 
     // right stick (look)
@@ -52,18 +65,17 @@ pub fn poll_gamepad(
     };
 
     if let (Some(x), Some(y)) = (axes.get(axis_rx), axes.get(axis_ry)) {
-        let delta_yaw = -x * 4.0 * time.delta_seconds();
-        let delta_pitch = if INVERT_LOOK { -1.0 } else { 1.0 } * y * 4.0 * time.delta_seconds();
-
-        let (yaw, pitch, roll) = camera_transform.rotation.to_euler(EulerRot::YXZ);
-        let yaw = yaw + delta_yaw;
-        let pitch = (pitch + delta_pitch).clamp(
-            -(std::f32::consts::FRAC_PI_2 - 0.01),
-            std::f32::consts::FRAC_PI_2 - 0.01,
-        );
-
-        camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+        input_state.look = Vec2::new(x, if INVERT_LOOK { -1.0 } else { 1.0 } * y);
+    } else {
+        input_state.look = Vec2::default();
     }
+
+    let south_button = GamepadButton {
+        gamepad,
+        button_type: GamepadButtonType::South,
+    };
+
+    input_state.jump = buttons.just_pressed(south_button);
 }
 
 pub fn handle_gamepad_events(mut evr_gamepad: EventReader<GamepadEvent>) {

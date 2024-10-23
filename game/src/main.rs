@@ -1,8 +1,10 @@
+mod camera;
 mod client;
 mod debug;
 mod game;
 mod input;
 mod main_menu;
+mod player;
 mod server;
 mod ui;
 
@@ -87,6 +89,7 @@ fn init_app(app: &mut App) {
     .insert_resource(bevy_replicon_renet::renet::RenetClient::new(
         bevy_replicon_renet::renet::ConnectionConfig::default(),
     ))
+    .init_resource::<input::InputState>()
     .add_systems(Update, (client::panic_on_network_error, ui::update_button))
     .add_systems(OnEnter(AppState::MainMenu), main_menu::enter)
     .add_systems(
@@ -104,10 +107,17 @@ fn init_app(app: &mut App) {
     .add_systems(Update, client::connected.run_if(client_just_connected))
     .add_systems(
         Update,
-        (input::handle_gamepad_events, input::poll_gamepad).run_if(in_state(AppState::InGame)),
+        ((
+            input::handle_gamepad_events,
+            input::update_gamepad,
+            camera::update_camera,
+        )
+            .chain())
+        .run_if(in_state(AppState::InGame)),
     );
 
-    app.register_type::<game::PlayerPhysics>();
+    app.register_type::<input::InputState>()
+        .register_type::<player::PlayerPhysics>();
 }
 
 #[cfg(feature = "server")]
@@ -170,12 +180,7 @@ fn main() {
     .add_systems(OnEnter(AppState::InGame), game::enter)
     .add_systems(
         FixedUpdate,
-        ((
-            game::update_player_physics,
-            game::read_player_physics_result,
-        )
-            .chain(),)
-            .run_if(in_state(AppState::InGame)),
+        player::update_player_physics.run_if(in_state(AppState::InGame)),
     )
     .add_systems(
         OnExit(AppState::InGame),
@@ -188,7 +193,7 @@ fn main() {
 
     // replication
     app.replicate_group::<(Transform, game::Ball)>()
-        .replicate_group::<(Transform, game::Player)>();
+        .replicate_group::<(Transform, player::Player)>();
 
     info!("running ...");
     app.run();
