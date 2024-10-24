@@ -1,18 +1,34 @@
+mod error;
+mod handlers;
+mod http_tracing;
 mod options;
+mod redis;
+mod routes;
+mod state;
+mod util;
 
-use axum::{http::StatusCode, response::IntoResponse, routing::get, Router};
+use std::net::SocketAddr;
+
+use axum::{
+    http::{HeaderValue, Method},
+    middleware, Router,
+};
 use clap::Parser;
-use tracing::info;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tower::ServiceBuilder;
+use tower_http::{
+    cors::CorsLayer,
+    trace::{DefaultMakeSpan, DefaultOnFailure, TraceLayer},
+    LatencyUnit,
+};
+use tracing::{info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 use options::Options;
+use state::AppState;
 
-#[tokio::main]
-async fn main() {
-    let _options = Options::parse();
-
-    tracing_subscriber::registry()
-        .with(
+fn init_logging() -> anyhow::Result<()> {
+    let subscriber = FmtSubscriber::builder()
+        .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 // axum logs rejections from built-in extractors with the `axum::rejection`
                 // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
@@ -23,20 +39,59 @@ async fn main() {
                 .into()
             }),
         )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+        .with_max_level(Level::INFO)
+        .finish();
 
-    let app = Router::new().route("/", get(root)).fallback(handler_404);
+    tracing::subscriber::set_global_default(subscriber)?;
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    Ok(())
 }
 
-async fn handler_404() -> impl IntoResponse {
-    (StatusCode::NOT_FOUND, "nothing to see here")
+fn init_cors_layer() -> anyhow::Result<CorsLayer> {
+    info!("Initializing CORS layer...");
+
+    let layer = CorsLayer::new()
+        .allow_methods([Method::OPTIONS, Method::HEAD, Method::GET, Method::POST])
+        .allow_origin("*".parse::<HeaderValue>()?);
+
+    Ok(layer)
 }
 
-async fn root() -> &'static str {
-    "Hello, World!"
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let options = Options::parse();
+
+    init_logging()?;
+
+    let redis_connection_pool = redis::connect("redis://localhost").await?;
+
+    let app_state = AppState::new(options, redis_connection_pool);
+
+    let app = routes::init_routes(Router::new())
+        .layer(init_cors_layer()?)
+        .layer(
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(http_tracing::tracing_wrapper))
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(
+                            DefaultMakeSpan::new()
+                                //.level(Level::INFO)
+                                .include_headers(true),
+                        )
+                        //.on_request(http_tracing::on_request)
+                        //.on_response(http_tracing::on_response),
+                        .on_failure(DefaultOnFailure::new().latency_unit(LatencyUnit::Micros)),
+                )
+                .into_inner(),
+        )
+        .with_state(app_state);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    info!("listening on {}", listener.local_addr()?);
+    Ok(axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?)
 }
