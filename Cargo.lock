@@ -272,9 +272,11 @@ dependencies = [
  "bb8",
  "bb8-redis",
  "clap",
+ "common",
  "http 1.1.0",
  "redis",
  "serde",
+ "serde_json",
  "tokio",
  "tonic 0.12.3",
  "tower 0.5.1",
@@ -2167,6 +2169,10 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "uuid",
+]
 
 [[package]]
 name = "concurrent-queue"

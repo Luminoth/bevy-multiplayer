@@ -13,9 +13,12 @@ clap = { version = "4.5", features = ["derive"] }
 http = "1.1"
 redis = "0.27"
 serde = "1.0"
+serde_json = "1.0"
 tokio = { version = "1.40", features = ["full"] }
 tonic = "0.12"
 tower = "0.5"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+common = { path = "../common" }

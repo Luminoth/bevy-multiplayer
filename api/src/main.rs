@@ -48,7 +48,7 @@ fn init_logging() -> anyhow::Result<()> {
 }
 
 fn init_cors_layer() -> anyhow::Result<CorsLayer> {
-    info!("Initializing CORS layer...");
+    info!("initializing CORS layer...");
 
     let layer = CorsLayer::new()
         .allow_methods([Method::OPTIONS, Method::HEAD, Method::GET, Method::POST])
