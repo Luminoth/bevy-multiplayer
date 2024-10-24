@@ -26,6 +26,9 @@ impl GameServerInfo {
 pub struct GameSessionInfo {
     game_session_id: Uuid,
     server_id: Uuid,
+
+    player_session_ids: Vec<Uuid>,
+    pending_player_ids: Vec<String>,
 }
 
 impl GameSessionInfo {
@@ -41,8 +44,14 @@ impl TryFrom<common::gameserver::GameServerInfo> for GameSessionInfo {
         Ok(Self {
             game_session_id: server_info
                 .game_session_id
-                .ok_or_else(|| anyhow::anyhow!("test"))?,
+                .ok_or_else(|| anyhow::anyhow!("missing game session id"))?,
             server_id: server_info.server_id,
+            player_session_ids: server_info
+                .player_session_ids
+                .ok_or_else(|| anyhow::anyhow!("missing player session ids"))?,
+            pending_player_ids: server_info
+                .pending_player_ids
+                .ok_or_else(|| anyhow::anyhow!("missing pending players"))?,
         })
     }
 }

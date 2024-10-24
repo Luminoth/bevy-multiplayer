@@ -17,6 +17,10 @@ pub fn heartbeat(
         .json(&common::gameserver::GameServerInfo {
             server_id: server_info.server_id,
             game_session_id: session_info.map(|session_info| session_info.session_id),
+            player_session_ids: session_info
+                .map(|session_info| session_info.player_session_ids.clone()),
+            pending_player_ids: session_info
+                .map(|session_info| session_info.pending_player_ids.clone()),
         })
         .build()
         .unwrap();

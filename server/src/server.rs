@@ -29,6 +29,8 @@ impl GameServerInfo {
 #[derive(Debug, Resource)]
 pub struct GameSessionInfo {
     pub session_id: Uuid,
+    pub player_session_ids: Vec<Uuid>,
+    pub pending_player_ids: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -83,6 +85,8 @@ fn wait_for_placement(
 
     let session_info = GameSessionInfo {
         session_id: Uuid::new_v4(),
+        player_session_ids: vec![],
+        pending_player_ids: vec!["test_player".into()],
     };
     info!("starting session {}", session_info.session_id);
 
