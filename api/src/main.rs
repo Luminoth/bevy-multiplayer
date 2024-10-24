@@ -1,9 +1,16 @@
+mod options;
+
 use axum::{http::StatusCode, response::IntoResponse, routing::get, Router};
+use clap::Parser;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use options::Options;
+
 #[tokio::main]
 async fn main() {
+    let _options = Options::parse();
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {

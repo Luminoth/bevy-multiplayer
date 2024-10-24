@@ -1,8 +1,12 @@
+mod options;
 mod server;
 
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
+use clap::Parser;
+
+use options::Options;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
 pub enum AppState {
@@ -19,6 +23,8 @@ pub enum AppState {
 const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
 
 fn main() {
+    let _options = Options::parse();
+
     println!("initializing server ...");
 
     let mut app = App::new();

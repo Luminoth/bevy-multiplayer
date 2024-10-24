@@ -3,6 +3,7 @@ mod client;
 mod debug;
 mod input;
 mod main_menu;
+mod options;
 mod settings;
 mod ui;
 
@@ -10,7 +11,9 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
+use clap::Parser;
 
+use options::Options;
 use settings::Settings;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
@@ -25,6 +28,8 @@ pub enum AppState {
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
 
 fn main() {
+    let _options = Options::parse();
+
     println!("initializing client ...");
 
     let mut app = App::new();
