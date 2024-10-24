@@ -40,10 +40,11 @@ fn update_fps_camera(
 
     let mut camera_query = transforms_query.p0();
     if let Ok(mut camera_transform) = camera_query.get_single_mut() {
-        let (yaw, pitch, roll) = camera_transform.rotation.to_euler(EulerRot::YXZ);
-        let yaw = yaw + delta_yaw; // TODO: don't do this once the camera is under the player
-        let pitch = (pitch + delta_pitch).clamp(-PITCH_MAX, PITCH_MAX);
+        // can't do this because we need to clamp the pitch
+        //camera_transform.rotate_x(delta_pitch);
 
+        let (yaw, pitch, roll) = camera_transform.rotation.to_euler(EulerRot::YXZ);
+        let pitch = (pitch + delta_pitch).clamp(-PITCH_MAX, PITCH_MAX);
         camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
 }

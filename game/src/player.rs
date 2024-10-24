@@ -38,46 +38,46 @@ const MOVE_SPEED: f32 = 5.0;
 const JUMP_SPEED: f32 = 10.0;
 const TERMINAL_VELOCITY: f32 = 50.0;
 
-pub fn spawn_camera(commands: &mut Commands, position: Vec3) {
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(position.x, position.y, position.z),
-            projection: PerspectiveProjection {
-                fov: 90.0_f32.to_radians(), // TODO: this should move to settings
-                ..default()
-            }
-            .into(),
-            ..default()
-        },
-        Name::new("Player Camera"),
-        PlayerCamera,
-        OnInGame,
-    ));
-}
-
-pub fn spawn_player(
+pub fn spawn_local_player(
     commands: &mut Commands,
     position: Vec3,
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
 ) {
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform::from_xyz(position.x, position.y, position.z),
-            mesh,
-            material,
-            ..default()
-        },
-        RigidBody::KinematicPositionBased,
-        PlayerPhysics::default(),
-        GravityScale(2.0),
-        Collider::capsule_y(1.0, 1.0),
-        ColliderMassProperties::Mass(75.0),
-        KinematicCharacterController::default(),
-        Name::new("Player"),
-        LocalPlayer,
-        OnInGame,
-    ));
+    commands
+        .spawn((
+            MaterialMeshBundle {
+                transform: Transform::from_xyz(position.x, position.y, position.z),
+                mesh,
+                material,
+                ..default()
+            },
+            RigidBody::KinematicPositionBased,
+            PlayerPhysics::default(),
+            GravityScale(2.0),
+            Collider::capsule_y(1.0, 1.0),
+            ColliderMassProperties::Mass(75.0),
+            KinematicCharacterController::default(),
+            Name::new("Player"),
+            LocalPlayer,
+            OnInGame,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Camera3dBundle {
+                    transform: Transform::from_xyz(0.0, 1.9, -0.9),
+                    projection: PerspectiveProjection {
+                        fov: 90.0_f32.to_radians(), // TODO: this should move to settings
+                        ..default()
+                    }
+                    .into(),
+                    ..default()
+                },
+                Name::new("Camera"),
+                PlayerCamera,
+                OnInGame,
+            ));
+        });
 }
 
 #[derive(Debug)]

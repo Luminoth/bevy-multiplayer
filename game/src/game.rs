@@ -194,13 +194,12 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     );
 
     // player
-    player::spawn_player(
+    player::spawn_local_player(
         &mut commands,
         Vec3::new(-5.0, 2.1, 5.0),
         assets.player_mesh.clone(),
         assets.player_material.clone(),
     );
-    player::spawn_camera(&mut commands, Vec3::new(0.0, 2.0, 15.0));
 }
 
 fn exit(mut commands: Commands) {
