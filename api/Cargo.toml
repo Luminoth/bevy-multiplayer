@@ -20,5 +20,6 @@ tower = "0.5"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.11", features = ["v4"] }
 
 common = { path = "../common" }

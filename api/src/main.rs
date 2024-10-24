@@ -1,6 +1,7 @@
 mod error;
 mod handlers;
 mod http_tracing;
+mod models;
 mod options;
 mod redis;
 mod routes;

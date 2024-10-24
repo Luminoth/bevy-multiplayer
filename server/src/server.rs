@@ -26,6 +26,11 @@ impl GameServerInfo {
     }
 }
 
+#[derive(Debug, Resource)]
+pub struct GameSessionInfo {
+    pub session_id: Uuid,
+}
+
 #[derive(Debug)]
 pub struct ServerPlugin;
 
@@ -52,19 +57,37 @@ impl Plugin for ServerPlugin {
 }
 
 fn setup(mut commands: Commands, client: BevyReqwest) {
-    let info = GameServerInfo::new();
-    info!("starting server {}", info.server_id);
+    let server_info = GameServerInfo::new();
+    info!("starting server {}", server_info.server_id);
 
-    api::heartbeat(client, &info);
-    commands.insert_resource(info);
+    api::heartbeat(client, &server_info, None);
+    commands.insert_resource(server_info);
 }
 
-fn heartbeat(client: BevyReqwest, info: Res<GameServerInfo>) {
-    api::heartbeat(client, &info);
+fn heartbeat(
+    client: BevyReqwest,
+    server_info: Res<GameServerInfo>,
+    session_info: Option<Res<GameSessionInfo>>,
+) {
+    let session_info = session_info.as_deref();
+    api::heartbeat(client, &server_info, session_info);
 }
 
-fn wait_for_placement(mut app_state: ResMut<NextState<AppState>>) {
+fn wait_for_placement(
+    mut commands: Commands,
+    client: BevyReqwest,
+    server_info: Res<GameServerInfo>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
     warn!("faking placement!");
+
+    let session_info = GameSessionInfo {
+        session_id: Uuid::new_v4(),
+    };
+    info!("starting session {}", session_info.session_id);
+
+    api::heartbeat(client, &server_info, Some(&session_info));
+    commands.insert_resource(session_info);
 
     app_state.set(AppState::InitServer);
 }

@@ -1,9 +1,13 @@
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
 
-use crate::server::GameServerInfo;
+use crate::server::{GameServerInfo, GameSessionInfo};
 
-pub fn heartbeat(mut client: BevyReqwest, info: &GameServerInfo) {
+pub fn heartbeat(
+    mut client: BevyReqwest,
+    server_info: &GameServerInfo,
+    session_info: Option<&GameSessionInfo>,
+) {
     info!("heartbeat");
 
     let url = "http://localhost:8080/gameserver/heartbeat/v1";
@@ -11,8 +15,8 @@ pub fn heartbeat(mut client: BevyReqwest, info: &GameServerInfo) {
     let req = client
         .post(url)
         .json(&common::gameserver::GameServerInfo {
-            server_id: info.server_id.clone(),
-            game_session_id: None,
+            server_id: server_info.server_id,
+            game_session_id: session_info.map(|session_info| session_info.session_id),
         })
         .build()
         .unwrap();
