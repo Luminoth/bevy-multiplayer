@@ -136,10 +136,10 @@ fn handle_network_events(mut evt_server: EventReader<ServerEvent>) {
     for evt in evt_server.read() {
         match evt {
             ServerEvent::ClientConnected { client_id } => {
-                info!("Client {} connected", client_id);
+                info!("client {} connected", client_id);
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
-                info!("Client {} disconnected: {}", client_id, reason);
+                info!("client {} disconnected: {}", client_id, reason);
             }
         }
     }

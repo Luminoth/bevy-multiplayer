@@ -8,7 +8,7 @@ pub fn heartbeat(
     server_info: &GameServerInfo,
     session_info: Option<&GameSessionInfo>,
 ) {
-    info!("heartbeat");
+    println!("heartbeat");
 
     let url = "http://localhost:8080/gameserver/heartbeat/v1";
 
@@ -30,10 +30,10 @@ pub fn heartbeat(
         .on_response(|req: Trigger<ReqwestResponseEvent>| {
             let req = req.event();
             let res = req.as_str();
-            info!("return data: {res:?}");
+            println!("return data: {res:?}");
         })
         .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
             let e = &trigger.event().0;
-            error!("error: {e:?}");
+            error!("heartbeat error: {:?}", e);
         });
 }
