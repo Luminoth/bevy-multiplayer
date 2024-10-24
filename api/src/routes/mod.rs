@@ -1,3 +1,4 @@
+mod gameclient;
 mod gameserver;
 
 use axum::Router;
@@ -10,6 +11,7 @@ pub fn init_routes(app: Router<AppState>) -> Router<AppState> {
     info!("initializing routes...");
 
     // TODO: this is ugly
+    let app = gameclient::init_routes(app);
     let app = gameserver::init_routes(app);
 
     app.fallback(handlers::handler_404)

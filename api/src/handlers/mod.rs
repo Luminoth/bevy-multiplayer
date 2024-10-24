@@ -1,3 +1,4 @@
+pub mod gameclient;
 pub mod gameserver;
 
 use axum::{debug_handler, http::StatusCode, http::Uri, response::IntoResponse};
