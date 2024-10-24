@@ -1,15 +1,30 @@
 use std::net::UdpSocket;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, time::common_conditions::on_timer};
+use bevy_mod_reqwest::*;
 use bevy_replicon_renet::renet::transport::{
     NetcodeServerTransport, ServerAuthentication, ServerConfig,
 };
 use bevy_replicon_renet::renet::ServerEvent;
+use uuid::Uuid;
 
 use game::{GameState, PROTOCOL_ID};
 
-use crate::AppState;
+use crate::{api, AppState};
+
+#[derive(Debug, Resource)]
+pub struct GameServerInfo {
+    pub server_id: Uuid,
+}
+
+impl GameServerInfo {
+    pub fn new() -> Self {
+        Self {
+            server_id: Uuid::new_v4(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ServerPlugin;
@@ -22,16 +37,30 @@ impl Plugin for ServerPlugin {
         // rapier makes use of Mesh assets
         // and this is missing without rendering
         .init_asset::<Mesh>()
+        .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
                 wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
                 init_network.run_if(in_state(AppState::InitServer)),
                 handle_network_events.run_if(in_state(GameState::InGame)),
+                heartbeat.run_if(on_timer(Duration::from_secs(30))),
             ),
         )
         .add_systems(OnExit(AppState::InGame), shutdown_network);
     }
+}
+
+fn setup(mut commands: Commands, client: BevyReqwest) {
+    let info = GameServerInfo::new();
+    info!("starting server {}", info.server_id);
+
+    api::heartbeat(client, &info);
+    commands.insert_resource(info);
+}
+
+fn heartbeat(client: BevyReqwest, info: Res<GameServerInfo>) {
+    api::heartbeat(client, &info);
 }
 
 fn wait_for_placement(mut app_state: ResMut<NextState<AppState>>) {
