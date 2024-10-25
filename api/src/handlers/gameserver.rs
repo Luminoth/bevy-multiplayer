@@ -1,5 +1,5 @@
 use axum::{debug_handler, extract::State, Json};
-use redis::AsyncCommands;
+use bb8_redis::redis::{self};
 use serde::Serialize;
 
 use crate::{error::AppError, models, state::AppState};
@@ -14,18 +14,20 @@ pub async fn post_heartbeat_v1(
 ) -> Result<Json<PostHeartbeatResponseV1>, AppError> {
     let mut conn = app_state.redis_connection_pool.get().await?;
 
-    // TODO: pipeline this
+    let mut pipeline = redis::pipe();
 
     let server_info_data = models::gameserver::GameServerInfo::from(server_info.clone());
     let value = serde_json::to_string(&server_info_data)?;
     let ttl = 60;
-    let _: () = conn.set_ex(server_info_data.get_key(), value, ttl).await?;
+    pipeline.set_ex(server_info_data.get_key(), value, ttl);
 
     if let Ok(session_info_data) = models::gameserver::GameSessionInfo::try_from(server_info) {
         let value = serde_json::to_string(&session_info_data)?;
         let ttl = 60;
-        let _: () = conn.set_ex(session_info_data.get_key(), value, ttl).await?;
+        pipeline.set_ex(session_info_data.get_key(), value, ttl);
     }
+
+    let _: () = pipeline.query_async(&mut *conn).await?;
 
     Ok(Json(PostHeartbeatResponseV1 {}))
 }
