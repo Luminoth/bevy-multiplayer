@@ -26,7 +26,7 @@ impl Plugin for ConnectServerPlugin {
             .add_systems(
                 Update,
                 (
-                    panic_on_network_error,
+                    handle_network_error,
                     connected.run_if(client_just_connected),
                 ),
             )
@@ -41,11 +41,19 @@ impl Plugin for ConnectServerPlugin {
     }
 }
 
-// TODO: remove this and actually handle the errors
 #[allow(clippy::never_loop)]
-fn panic_on_network_error(mut evt_error: EventReader<NetcodeTransportError>) {
-    for evt in evt_error.read() {
-        panic!("{}", evt);
+fn handle_network_error(
+    mut evt_error: EventReader<NetcodeTransportError>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    if !evt_error.is_empty() {
+        for evt in evt_error.read() {
+            // TODO: these errors just spam forever?
+            //error!("network error: {}", evt);
+            panic!("network error: {}", evt);
+        }
+
+        app_state.set(AppState::MainMenu);
     }
 }
 
