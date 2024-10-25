@@ -1,5 +1,7 @@
 use axum::{debug_handler, extract::Query, Json};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+
+use common::gameclient::*;
 
 use crate::error::AppError;
 
@@ -7,12 +9,6 @@ use crate::error::AppError;
 #[allow(dead_code)]
 pub struct FindServerParamsV1 {
     player_id: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct FindServerResponseV1 {
-    pub address: String,
-    pub port: u16,
 }
 
 #[debug_handler]

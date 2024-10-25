@@ -9,6 +9,7 @@ use bevy_replicon_renet::renet::transport::{
     ClientAuthentication, NetcodeClientTransport, NetcodeTransportError,
 };
 
+use common::gameclient::*;
 use game::{cleanup_state, GameState, PROTOCOL_ID};
 
 use crate::{api, ui, AppState};
@@ -87,19 +88,18 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>, mut client: Bev
 
     api::find_server(&mut client, "test_player")
         .on_response(|req: Trigger<ReqwestResponseEvent>, commands: Commands| {
-            let req = req.event();
-            let res = req.as_str().unwrap();
-            println!("return data: {res:?}");
-
-            // TODO: get connection info from response
-            connect_to_server(commands, "127.0.0.1", 5576);
+            let resp = req.event().as_str().unwrap();
+            let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
+            connect_to_server(commands, resp.address, resp.port);
         })
-        .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
-            let e = &trigger.event().0;
-            error!("find server error: {:?}", e);
+        .on_error(
+            |trigger: Trigger<ReqwestErrorEvent>, mut app_state: ResMut<NextState<AppState>>| {
+                let e = &trigger.event().0;
+                error!("find server error: {:?}", e);
 
-            // TODO: ok but now what?
-        });
+                app_state.set(AppState::MainMenu);
+            },
+        );
 }
 
 fn exit(mut commands: Commands) {

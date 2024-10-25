@@ -1,15 +1,14 @@
 use axum::{debug_handler, extract::State, Json};
 use bb8_redis::redis::{self};
-use serde::Serialize;
+
+use common::gameserver::*;
 
 use crate::{error::AppError, models, state::AppState};
-
-#[derive(Debug, Serialize)]
-pub struct PostHeartbeatResponseV1 {}
 
 #[debug_handler]
 pub async fn post_heartbeat_v1(
     State(app_state): State<AppState>,
+    // TODO: this should be a request object with the server info in it
     Json(server_info): Json<common::gameserver::GameServerInfo>,
 ) -> Result<Json<PostHeartbeatResponseV1>, AppError> {
     let mut conn = app_state.redis_connection_pool.get().await?;

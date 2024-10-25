@@ -2093,6 +2093,7 @@ dependencies = [
  "clap",
  "common",
  "game",
+ "serde_json",
 ]
 
 [[package]]

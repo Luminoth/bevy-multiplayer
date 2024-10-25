@@ -14,3 +14,6 @@ pub struct GameServerInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pending_player_ids: Option<Vec<String>>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostHeartbeatResponseV1 {}
