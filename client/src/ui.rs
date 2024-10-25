@@ -5,9 +5,9 @@ const BUTTON_NORMAL: Color = Color::srgb(0.15, 0.15, 0.15);
 const BUTTON_HOVER: Color = Color::srgb(0.25, 0.25, 0.25);
 const BUTTON_PRESSED: Color = Color::srgb(0.35, 0.75, 0.35);
 
-const BUTTON_WIDTH: f32 = 150.0;
-const BUTTON_HEIGHT: f32 = 50.0;
-const BUTTON_BORDER: f32 = 5.0;
+const BUTTON_WIDTH: f32 = 200.0;
+const BUTTON_HEIGHT: f32 = 100.0;
+const BUTTON_BORDER: f32 = 10.0;
 
 const BUTTON_FONT: &str = "fonts/FiraSans-Bold.ttf";
 const BUTTON_FONT_SIZE: f32 = 32.0;

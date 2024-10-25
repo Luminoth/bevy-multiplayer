@@ -17,9 +17,9 @@ pub struct FindServerResponseV1 {
 
 #[debug_handler]
 pub async fn get_find_server_v1(
-    Query(_params): Query<FindServerParamsV1>,
+    Query(params): Query<FindServerParamsV1>,
 ) -> Result<Json<FindServerResponseV1>, AppError> {
-    println!("TODO: find server");
+    println!("TODO: find server for {}", params.player_id);
 
     Ok(Json(FindServerResponseV1 {
         address: "127.0.0.1".into(),

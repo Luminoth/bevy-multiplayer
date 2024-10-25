@@ -21,7 +21,7 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn on_find_game(
+fn on_start_local(
     event: Listener<Pointer<Click>>,
     mut app_state: ResMut<NextState<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
@@ -35,9 +35,21 @@ fn on_find_game(
         return;
     }
 
-    //app_state.set(AppState::ConnectToServer);
     app_state.set(AppState::InGame);
     game_state.set(GameState::LoadAssets);
+}
+
+fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
+    if !ui::check_click_event(
+        event.listener(),
+        event.target,
+        event.button,
+        PointerButton::Primary,
+    ) {
+        return;
+    }
+
+    app_state.set(AppState::ConnectToServer);
 }
 
 fn on_exit_game(event: Listener<Pointer<Click>>, mut exit: EventWriter<AppExit>) {
@@ -65,8 +77,15 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
             ui::spawn_button(
                 parent,
                 &asset_server,
-                "Find Game",
-                On::<Pointer<Click>>::run(on_find_game),
+                "Start Local",
+                On::<Pointer<Click>>::run(on_start_local),
+            );
+
+            ui::spawn_button(
+                parent,
+                &asset_server,
+                "Find Server",
+                On::<Pointer<Click>>::run(on_find_server),
             );
 
             ui::spawn_button(

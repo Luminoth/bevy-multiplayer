@@ -1,5 +1,7 @@
+mod api;
 mod camera;
 mod client;
+mod connect_server;
 mod debug;
 mod input;
 mod main_menu;
@@ -21,7 +23,6 @@ pub enum AppState {
     #[default]
     MainMenu,
     ConnectToServer,
-    WaitForConnect,
     InGame,
 }
 
@@ -60,6 +61,7 @@ fn main() {
         // game plugins
         client::ClientPlugin,
         main_menu::MainMenuPlugin,
+        connect_server::ConnectServerPlugin,
         camera::FpsCameraPlugin,
         input::InputPlugin,
         ui::UiPlugin,
