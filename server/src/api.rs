@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
 
+use common::gameserver::*;
+
 use crate::server::{GameServerInfo, GameSessionInfo};
 
 pub fn heartbeat<'a>(
@@ -14,13 +16,15 @@ pub fn heartbeat<'a>(
 
     let req = client
         .post(url)
-        .json(&common::gameserver::GameServerInfo {
-            server_id: server_info.server_id,
-            game_session_id: session_info.map(|session_info| session_info.session_id),
-            player_session_ids: session_info
-                .map(|session_info| session_info.player_session_ids.clone()),
-            pending_player_ids: session_info
-                .map(|session_info| session_info.pending_player_ids.clone()),
+        .json(&PostHeartbeatRequestV1 {
+            server_info: common::gameserver::GameServerInfo {
+                server_id: server_info.server_id,
+                game_session_id: session_info.map(|session_info| session_info.session_id),
+                player_session_ids: session_info
+                    .map(|session_info| session_info.player_session_ids.clone()),
+                pending_player_ids: session_info
+                    .map(|session_info| session_info.pending_player_ids.clone()),
+            },
         })
         .build()
         .unwrap();

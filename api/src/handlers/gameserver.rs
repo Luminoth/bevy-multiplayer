@@ -8,19 +8,20 @@ use crate::{error::AppError, models, state::AppState};
 #[debug_handler]
 pub async fn post_heartbeat_v1(
     State(app_state): State<AppState>,
-    // TODO: this should be a request object with the server info in it
-    Json(server_info): Json<common::gameserver::GameServerInfo>,
+    Json(request): Json<PostHeartbeatRequestV1>,
 ) -> Result<Json<PostHeartbeatResponseV1>, AppError> {
     let mut conn = app_state.redis_connection_pool.get().await?;
 
     let mut pipeline = redis::pipe();
 
-    let server_info_data = models::gameserver::GameServerInfo::from(server_info.clone());
+    let server_info_data = models::gameserver::GameServerInfo::from(request.server_info.clone());
     let value = serde_json::to_string(&server_info_data)?;
     let ttl = 60;
     pipeline.set_ex(server_info_data.get_key(), value, ttl);
 
-    if let Ok(session_info_data) = models::gameserver::GameSessionInfo::try_from(server_info) {
+    if let Ok(session_info_data) =
+        models::gameserver::GameSessionInfo::try_from(request.server_info)
+    {
         let value = serde_json::to_string(&session_info_data)?;
         let ttl = 60;
         pipeline.set_ex(session_info_data.get_key(), value, ttl);

@@ -16,4 +16,9 @@ pub struct GameServerInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct PostHeartbeatRequestV1 {
+    pub server_info: GameServerInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PostHeartbeatResponseV1 {}
