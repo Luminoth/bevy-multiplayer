@@ -10,7 +10,7 @@ use bevy_replicon_renet::renet::transport::{
 };
 
 use common::gameclient::*;
-use game::{cleanup_state, GameState, PROTOCOL_ID};
+use game::{cleanup_state, PROTOCOL_ID};
 
 use crate::{api, ui, AppState};
 
@@ -132,12 +132,8 @@ fn connect_to_server(mut commands: Commands, address: impl AsRef<str>, port: u16
     commands.insert_resource(transport);
 }
 
-fn connected(
-    mut app_state: ResMut<NextState<AppState>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
+fn connected(mut app_state: ResMut<NextState<AppState>>) {
     info!("connected!");
 
     app_state.set(AppState::InGame);
-    game_state.set(GameState::LoadAssets);
 }

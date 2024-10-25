@@ -67,7 +67,8 @@ impl Plugin for ServerPlugin {
                 heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
             ),
         )
-        .add_systems(OnExit(AppState::InGame), shutdown_network);
+        .add_systems(OnEnter(AppState::InGame), enter)
+        .add_systems(OnExit(AppState::InGame), exit);
     }
 }
 
@@ -78,6 +79,18 @@ fn setup(mut commands: Commands, mut client: BevyReqwest) {
     heartbeat(&mut client, &server_info, None);
 
     commands.insert_resource(server_info);
+}
+
+fn enter(mut game_state: ResMut<NextState<GameState>>) {
+    info!("enter game ...");
+
+    game_state.set(GameState::LoadAssets);
+}
+
+fn exit(mut commands: Commands) {
+    info!("exit game ...");
+
+    commands.remove_resource::<NetcodeServerTransport>();
 }
 
 fn heartbeat_monitor(
@@ -111,11 +124,7 @@ fn wait_for_placement(
     app_state.set(AppState::InitServer);
 }
 
-fn init_network(
-    mut commands: Commands,
-    mut app_state: ResMut<NextState<AppState>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
+fn init_network(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
     info!("init network ...");
 
     // TODO: this should bind a specific address
@@ -138,13 +147,6 @@ fn init_network(
     commands.insert_resource(transport);
 
     app_state.set(AppState::InGame);
-    game_state.set(GameState::LoadAssets);
-}
-
-fn shutdown_network(mut commands: Commands) {
-    info!("shutdown network ...");
-
-    commands.remove_resource::<NetcodeServerTransport>();
 }
 
 fn handle_network_events(mut evt_server: EventReader<ServerEvent>) {

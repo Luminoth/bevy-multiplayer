@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use game::{cleanup_state, GameState};
+use game::cleanup_state;
 
 use crate::{ui, AppState};
 
@@ -21,11 +21,7 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn on_start_local(
-    event: Listener<Pointer<Click>>,
-    mut app_state: ResMut<NextState<AppState>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
+fn on_start_local(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
     if !ui::check_click_event(
         event.listener(),
         event.target,
@@ -36,7 +32,6 @@ fn on_start_local(
     }
 
     app_state.set(AppState::InGame);
-    game_state.set(GameState::LoadAssets);
 }
 
 fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
