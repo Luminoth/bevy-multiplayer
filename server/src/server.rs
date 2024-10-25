@@ -33,6 +33,19 @@ pub struct GameSessionInfo {
     pub pending_player_ids: Vec<String>,
 }
 
+fn heartbeat(
+    client: &mut BevyReqwest,
+    server_info: &GameServerInfo,
+    session_info: Option<&GameSessionInfo>,
+) {
+    api::heartbeat(client, server_info, session_info).on_error(
+        |trigger: Trigger<ReqwestErrorEvent>| {
+            let e = &trigger.event().0;
+            error!("heartbeat error: {:?}", e);
+        },
+    );
+}
+
 #[derive(Debug)]
 pub struct ServerPlugin;
 
@@ -51,33 +64,34 @@ impl Plugin for ServerPlugin {
                 wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
                 init_network.run_if(in_state(AppState::InitServer)),
                 handle_network_events.run_if(in_state(GameState::InGame)),
-                heartbeat.run_if(on_timer(Duration::from_secs(30))),
+                heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
             ),
         )
         .add_systems(OnExit(AppState::InGame), shutdown_network);
     }
 }
 
-fn setup(mut commands: Commands, client: BevyReqwest) {
+fn setup(mut commands: Commands, mut client: BevyReqwest) {
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
 
-    api::heartbeat(client, &server_info, None);
+    heartbeat(&mut client, &server_info, None);
+
     commands.insert_resource(server_info);
 }
 
-fn heartbeat(
-    client: BevyReqwest,
+fn heartbeat_monitor(
+    mut client: BevyReqwest,
     server_info: Res<GameServerInfo>,
     session_info: Option<Res<GameSessionInfo>>,
 ) {
     let session_info = session_info.as_deref();
-    api::heartbeat(client, &server_info, session_info);
+    heartbeat(&mut client, &server_info, session_info);
 }
 
 fn wait_for_placement(
     mut commands: Commands,
-    client: BevyReqwest,
+    mut client: BevyReqwest,
     server_info: Res<GameServerInfo>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
@@ -90,7 +104,8 @@ fn wait_for_placement(
     };
     info!("starting session {}", session_info.session_id);
 
-    api::heartbeat(client, &server_info, Some(&session_info));
+    heartbeat(&mut client, &server_info, Some(&session_info));
+
     commands.insert_resource(session_info);
 
     app_state.set(AppState::InitServer);

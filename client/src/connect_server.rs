@@ -11,7 +11,7 @@ use bevy_replicon_renet::renet::transport::{
 
 use game::{cleanup_state, GameState, PROTOCOL_ID};
 
-use crate::{ui, AppState};
+use crate::{api, ui, AppState};
 
 #[derive(Debug, Component)]
 struct OnConnectServer;
@@ -61,7 +61,7 @@ fn on_cancel(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<Ap
     app_state.set(AppState::MainMenu);
 }
 
-fn enter(mut commands: Commands, asset_server: Res<AssetServer>, _client: BevyReqwest) {
+fn enter(mut commands: Commands, asset_server: Res<AssetServer>, mut client: BevyReqwest) {
     info!("entering connect server ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
@@ -85,8 +85,21 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>, _client: BevyRe
         });
     });
 
-    //api::find_server(client, "test_player");
-    connect_to_server(commands);
+    api::find_server(&mut client, "test_player")
+        .on_response(|req: Trigger<ReqwestResponseEvent>, commands: Commands| {
+            let req = req.event();
+            let res = req.as_str().unwrap();
+            println!("return data: {res:?}");
+
+            // TODO: get connection info from response
+            connect_to_server(commands, "127.0.0.1", 5576);
+        })
+        .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
+            let e = &trigger.event().0;
+            error!("find server error: {:?}", e);
+
+            // TODO: ok but now what?
+        });
 }
 
 fn exit(mut commands: Commands) {
@@ -95,11 +108,12 @@ fn exit(mut commands: Commands) {
     commands.remove_resource::<ClearColor>();
 }
 
-fn connect_to_server(mut commands: Commands) {
+fn connect_to_server(mut commands: Commands, address: impl AsRef<str>, port: u16) {
     info!("connect to server ...");
 
-    let server_addr = "127.0.0.1:5576".parse().unwrap();
-    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let address = address.as_ref();
+    let server_addr = format!("{}:{}", address, port).parse().unwrap();
+    let socket = UdpSocket::bind(format!("{}:0", address)).unwrap();
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();

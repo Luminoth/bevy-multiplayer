@@ -3,12 +3,12 @@ use bevy_mod_reqwest::*;
 
 use crate::server::{GameServerInfo, GameSessionInfo};
 
-pub fn heartbeat(
-    mut client: BevyReqwest,
+pub fn heartbeat<'a>(
+    client: &'a mut BevyReqwest,
     server_info: &GameServerInfo,
     session_info: Option<&GameSessionInfo>,
-) {
-    println!("heartbeat");
+) -> BevyReqwestBuilder<'a> {
+    debug!("heartbeat");
 
     let url = "http://localhost:8080/gameserver/heartbeat/v1";
 
@@ -25,15 +25,5 @@ pub fn heartbeat(
         .build()
         .unwrap();
 
-    client
-        .send(req)
-        .on_response(|req: Trigger<ReqwestResponseEvent>| {
-            let req = req.event();
-            let res = req.as_str();
-            println!("return data: {res:?}");
-        })
-        .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
-            let e = &trigger.event().0;
-            error!("heartbeat error: {:?}", e);
-        });
+    client.send(req)
 }
