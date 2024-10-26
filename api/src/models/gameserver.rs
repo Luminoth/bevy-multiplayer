@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
-    server_id: Uuid,
-    game_session_id: Option<Uuid>,
+    pub server_id: Uuid,
+    pub game_session_id: Option<Uuid>,
 }
 
 impl From<common::gameserver::GameServerInfo> for GameServerInfo {
@@ -24,11 +24,11 @@ impl GameServerInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameSessionInfo {
-    game_session_id: Uuid,
-    server_id: Uuid,
+    pub game_session_id: Uuid,
+    pub server_id: Uuid,
 
-    player_session_ids: Vec<Uuid>,
-    pending_player_ids: Vec<String>,
+    pub player_session_ids: Vec<Uuid>,
+    pub pending_player_ids: Vec<String>,
 }
 
 impl GameSessionInfo {
