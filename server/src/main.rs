@@ -1,5 +1,6 @@
 mod api;
 mod options;
+mod orchestration;
 mod server;
 
 use bevy::prelude::*;
