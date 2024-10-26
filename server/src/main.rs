@@ -5,6 +5,7 @@ mod server;
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
+use bevy_tokio_tasks::TokioTasksPlugin;
 use clap::Parser;
 
 use options::Options;
@@ -53,6 +54,7 @@ fn main() {
         server::ServerPlugin,
         game::GamePlugin,
     ))
+    .add_plugins(TokioTasksPlugin::default())
     .init_state::<AppState>();
 
     info!("running server ...");

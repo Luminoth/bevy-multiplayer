@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
+aws-config = "1.5"
+aws-sdk-gamelift = "1.50"
 axum = { version = "0.7", features = ["macros"] }
 bb8-redis = "0.17"
 chrono = "0.4"

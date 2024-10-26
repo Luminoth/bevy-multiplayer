@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-agones = "1.44"
+agones = { version = "1.44", optional = true }
+aws-gamelift-server-sdk-rs = { version = "0.3", optional = true }
 bevy = "0.14"
 bevy_mod_reqwest = "0.16"
 bevy_replicon = { version = "0.28", default-features = false, features = [
@@ -17,9 +18,14 @@ bevy_replicon_renet = { version = "0.5", default-features = false, features = [
     "renet_transport",
     "server",
 ] }
+bevy-tokio-tasks = "0.14"
 clap = { version = "4.5", features = ["derive"] }
-tokio = { version = "1.40", features = ["full"], optional = true }
 uuid = { version = "1.11", features = ["v4"] }
 
 common = { path = "../common" }
 game = { path = "../game" }
+
+[features]
+default = ["agones"]
+agones = ["dep:agones"]
+gamelift = ["dep:aws-gamelift-server-sdk-rs"]
