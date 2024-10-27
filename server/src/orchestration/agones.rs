@@ -1,8 +1,7 @@
 #![cfg(feature = "agones")]
 
-use super::Orchestration;
+use bevy::prelude::*;
 
-#[derive(Debug)]
-pub(crate) struct AgonesOrchestration {}
-
-impl Orchestration for AgonesOrchestration {}
+pub(super) fn ready() {
+    info!("readying agones ...");
+}

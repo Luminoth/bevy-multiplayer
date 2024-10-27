@@ -1,5 +1,5 @@
+use bevy::prelude::*;
 use clap::Parser;
 
-/// Website API
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Resource)]
 pub struct Options {}

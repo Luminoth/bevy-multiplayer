@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use crate::{options::Options, redis::RedisConnectionPool};
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct AppState {
+    #[allow(dead_code)]
     pub options: Arc<Options>,
+
     pub redis_connection_pool: RedisConnectionPool,
 }
 

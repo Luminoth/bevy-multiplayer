@@ -2,14 +2,21 @@ use bevy::prelude::*;
 
 use game::GameState;
 
-use crate::{AppState, Settings};
+use crate::{camera, connect_server, input, main_menu, ui, AppState, Settings};
 
 #[derive(Debug)]
 pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(bevy_replicon_renet::renet::RenetClient::new(
+        app.add_plugins((
+            main_menu::MainMenuPlugin,
+            connect_server::ConnectServerPlugin,
+            camera::FpsCameraPlugin,
+            input::InputPlugin,
+            ui::UiPlugin,
+        ))
+        .insert_resource(bevy_replicon_renet::renet::RenetClient::new(
             bevy_replicon_renet::renet::ConnectionConfig::default(),
         ))
         .init_resource::<Settings>()

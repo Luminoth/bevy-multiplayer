@@ -1,17 +1,35 @@
-#![allow(dead_code)]
-
-#[cfg(all(feature = "agones", feature = "gamelift"))]
-compile_error!("multiple orchestrator backends cannot be enabled at the same time");
-
 mod agones;
 mod gamelift;
 
-pub trait Orchestration {}
+use bevy::prelude::*;
 
-pub fn create() -> Box<dyn Orchestration> {
+#[derive(Debug, Resource)]
+pub enum Orchestration {
+    Local,
+
     #[cfg(feature = "agones")]
-    return Box::new(agones::AgonesOrchestration {});
+    Agones,
 
     #[cfg(feature = "gamelift")]
-    return Box::new(agones::GameLiftOrchestration {});
+    GameLift,
+}
+
+impl Orchestration {
+    pub fn ready(&self) {
+        match self {
+            Self::Local => {
+                info!("readying local ...");
+            }
+
+            #[cfg(feature = "agones")]
+            Self::Agones => {
+                agones::ready();
+            }
+
+            #[cfg(feature = "gamelift")]
+            Self::GameLift => {
+                gamelift::ready();
+            }
+        }
+    }
 }

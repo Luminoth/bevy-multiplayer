@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use game::{GameState, PROTOCOL_ID};
 
-use crate::{api, AppState};
+use crate::{api, options::Options, placement, AppState};
 
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {
@@ -33,7 +33,7 @@ pub struct GameSessionInfo {
     pub pending_player_ids: Vec<String>,
 }
 
-fn heartbeat(
+pub fn heartbeat(
     client: &mut BevyReqwest,
     server_info: &GameServerInfo,
     session_info: Option<&GameSessionInfo>,
@@ -51,34 +51,44 @@ pub struct ServerPlugin;
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(bevy_replicon_renet::renet::RenetServer::new(
-            bevy_replicon_renet::renet::ConnectionConfig::default(),
-        ))
-        // rapier makes use of Mesh assets
-        // and this is missing without rendering
-        .init_asset::<Mesh>()
-        .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                wait_for_placement.run_if(in_state(AppState::WaitForPlacement)),
-                init_network.run_if(in_state(AppState::InitServer)),
-                handle_network_events.run_if(in_state(GameState::InGame)),
-                heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
-            ),
-        )
-        .add_systems(OnEnter(AppState::InGame), enter)
-        .add_systems(OnExit(AppState::InGame), exit);
+        app.add_plugins(placement::PlacementPlugin)
+            .insert_resource(bevy_replicon_renet::renet::RenetServer::new(
+                bevy_replicon_renet::renet::ConnectionConfig::default(),
+            ))
+            // rapier makes use of Mesh assets
+            // and this is missing without rendering
+            .init_asset::<Mesh>()
+            .add_systems(Startup, setup)
+            .add_systems(
+                Update,
+                (
+                    init_network.run_if(in_state(AppState::InitServer)),
+                    handle_network_events.run_if(in_state(GameState::InGame)),
+                    heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
+                ),
+            )
+            .add_systems(OnEnter(AppState::InGame), enter)
+            .add_systems(OnExit(AppState::InGame), exit);
     }
 }
 
-fn setup(mut commands: Commands, mut client: BevyReqwest) {
+fn setup(
+    mut commands: Commands,
+    options: Res<Options>,
+    mut client: BevyReqwest,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
 
     heartbeat(&mut client, &server_info, None);
 
     commands.insert_resource(server_info);
+
+    let orchestration = options.orchestration.resolve();
+    commands.insert_resource(orchestration);
+
+    app_state.set(AppState::WaitForPlacement);
 }
 
 fn enter(mut game_state: ResMut<NextState<GameState>>) {
@@ -100,28 +110,6 @@ fn heartbeat_monitor(
 ) {
     let session_info = session_info.as_deref();
     heartbeat(&mut client, &server_info, session_info);
-}
-
-fn wait_for_placement(
-    mut commands: Commands,
-    mut client: BevyReqwest,
-    server_info: Res<GameServerInfo>,
-    mut app_state: ResMut<NextState<AppState>>,
-) {
-    warn!("faking placement!");
-
-    let session_info = GameSessionInfo {
-        session_id: Uuid::new_v4(),
-        player_session_ids: vec![],
-        pending_player_ids: vec!["test_player".into()],
-    };
-    info!("starting session {}", session_info.session_id);
-
-    heartbeat(&mut client, &server_info, Some(&session_info));
-
-    commands.insert_resource(session_info);
-
-    app_state.set(AppState::InitServer);
 }
 
 fn init_network(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {

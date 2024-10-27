@@ -1,8 +1,7 @@
 #![cfg(feature = "gamelift")]
 
-use super::Orchestration;
+use bevy::prelude::*;
 
-#[derive(Debug)]
-pub(crate) struct GameLiftOrchestration {}
-
-impl Orchestration for GameLiftOrchestration {}
+pub(super) fn ready() {
+    info!("readying gamelift ...");
+}

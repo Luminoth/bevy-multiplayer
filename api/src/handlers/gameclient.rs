@@ -6,7 +6,6 @@ use common::gameclient::*;
 use crate::error::AppError;
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub struct FindServerParamsV1 {
     player_id: String,
 }
