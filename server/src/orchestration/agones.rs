@@ -2,6 +2,10 @@
 
 use bevy::prelude::*;
 
-pub(super) fn ready() {
+pub(super) async fn ready(sdk: &mut agones_api::Sdk) -> anyhow::Result<()> {
     info!("readying agones ...");
+
+    sdk.ready().await?;
+
+    Ok(())
 }

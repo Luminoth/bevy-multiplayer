@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
+use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
 use crate::{
@@ -21,10 +22,12 @@ impl Plugin for PlacementPlugin {
     }
 }
 
-fn enter(orchestration: Res<Orchestration>) {
+fn enter(mut orchestration: ResMut<Orchestration>, runtime: ResMut<TokioTasksRuntime>) {
     info!("enter placement ...");
 
-    orchestration.ready();
+    runtime.spawn_background_task(|_ctx| async move {
+        orchestration.ready().await.unwrap();
+    });
 }
 
 fn update(

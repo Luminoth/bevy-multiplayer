@@ -7,11 +7,12 @@ use bevy_replicon_renet::renet::transport::{
     NetcodeServerTransport, ServerAuthentication, ServerConfig,
 };
 use bevy_replicon_renet::renet::ServerEvent;
+use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
 use game::{GameState, PROTOCOL_ID};
 
-use crate::{api, options::Options, placement, AppState};
+use crate::{api, options::Options, orchestration::Orchestration, placement, AppState};
 
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {
@@ -76,6 +77,7 @@ fn setup(
     mut commands: Commands,
     options: Res<Options>,
     mut client: BevyReqwest,
+    runtime: ResMut<TokioTasksRuntime>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     let server_info = GameServerInfo::new();
@@ -85,10 +87,16 @@ fn setup(
 
     commands.insert_resource(server_info);
 
-    let orchestration = options.orchestration.resolve();
-    commands.insert_resource(orchestration);
+    runtime.spawn_background_task(|ctx| async move {
+        let orchestration = Orchestration::new(options.orchestration).await.unwrap();
+        ctx.run_on_main_thread(move |ctx| {
+            let commands = ctx.world.commands();
+            commands.insert_resource(orchestration);
 
-    app_state.set(AppState::WaitForPlacement);
+            app_state.set(AppState::WaitForPlacement);
+        })
+        .await;
+    });
 }
 
 fn enter(mut game_state: ResMut<NextState<GameState>>) {
