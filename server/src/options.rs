@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use clap::Parser;
 
-#[derive(Debug, Copy, Clone, clap::ValueEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, clap::ValueEnum)]
 #[clap(rename_all = "kebab_case")]
 pub enum OrchestrationType {
     Local,

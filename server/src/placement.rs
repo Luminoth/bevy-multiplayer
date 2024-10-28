@@ -22,11 +22,14 @@ impl Plugin for PlacementPlugin {
     }
 }
 
-fn enter(mut orchestration: ResMut<Orchestration>, runtime: ResMut<TokioTasksRuntime>) {
+fn enter(orchestration: ResMut<Orchestration>, runtime: ResMut<TokioTasksRuntime>) {
     info!("enter placement ...");
 
-    runtime.spawn_background_task(|_ctx| async move {
-        orchestration.ready().await.unwrap();
+    runtime.spawn_background_task({
+        let mut orchestration = orchestration.clone();
+        |_| async move {
+            orchestration.ready().await.unwrap();
+        }
     });
 }
 

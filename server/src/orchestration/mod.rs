@@ -1,17 +1,20 @@
 mod agones;
 mod gamelift;
 
-use bevy::prelude::*;
+use std::sync::Arc;
 
-#[derive(Resource)]
+use bevy::prelude::*;
+use tokio::sync::RwLock;
+
+#[derive(Clone, Resource)]
 pub enum Orchestration {
     Local,
 
     #[cfg(feature = "agones")]
-    Agones(agones_api::Sdk),
+    Agones(Arc<RwLock<agones_api::Sdk>>),
 
     #[cfg(feature = "gamelift")]
-    GameLift(aws_gamelift_server_sdk_rs::api::Api),
+    GameLift(Arc<RwLock<aws_gamelift_server_sdk_rs::api::Api>>),
 }
 
 impl Orchestration {
@@ -23,7 +26,7 @@ impl Orchestration {
             crate::options::OrchestrationType::Agones => {
                 let sdk = agones_api::Sdk::new(None, None).await?;
 
-                Ok(Self::Agones(sdk))
+                Ok(Self::Agones(Arc::new(RwLock::new(sdk))))
             }
 
             #[cfg(feature = "gamelift")]
@@ -31,7 +34,7 @@ impl Orchestration {
                 let mut api = aws_gamelift_server_sdk_rs::api::Api::default();
                 api.init_sdk().await?;
 
-                Ok(Self::GameLift(api))
+                Ok(Self::GameLift(Arc::new(RwLock::new(api))))
             }
         }
     }
@@ -44,12 +47,14 @@ impl Orchestration {
 
             #[cfg(feature = "agones")]
             Self::Agones(sdk) => {
-                agones::ready(sdk).await?;
+                let mut sdk = sdk.write().await;
+                agones::ready(&mut sdk).await?;
             }
 
             #[cfg(feature = "gamelift")]
             Self::GameLift(api) => {
-                gamelift::ready(api).await?;
+                let mut api = api.write().await;
+                gamelift::ready(&mut api).await?;
             }
         }
 

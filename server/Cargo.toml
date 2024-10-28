@@ -21,6 +21,7 @@ bevy_replicon_renet = { version = "0.5", default-features = false, features = [
 ] }
 bevy-tokio-tasks = "0.14"
 clap = { version = "4.5", features = ["derive"] }
+tokio = { version = "1.41", features = ["full"] }
 uuid = { version = "1.11", features = ["v4"] }
 
 common = { path = "../common" }

@@ -78,7 +78,6 @@ fn setup(
     options: Res<Options>,
     mut client: BevyReqwest,
     runtime: ResMut<TokioTasksRuntime>,
-    mut app_state: ResMut<NextState<AppState>>,
 ) {
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
@@ -87,12 +86,16 @@ fn setup(
 
     commands.insert_resource(server_info);
 
-    runtime.spawn_background_task(|ctx| async move {
-        let orchestration = Orchestration::new(options.orchestration).await.unwrap();
+    let orchestration_type = options.orchestration;
+    runtime.spawn_background_task(move |mut ctx| async move {
+        println!("hi");
+        let orchestration = Orchestration::new(orchestration_type).await.unwrap();
         ctx.run_on_main_thread(move |ctx| {
-            let commands = ctx.world.commands();
-            commands.insert_resource(orchestration);
+            println!("hi 2");
 
+            ctx.world.insert_resource(orchestration);
+
+            let mut app_state = ctx.world.resource_mut::<NextState<AppState>>();
             app_state.set(AppState::WaitForPlacement);
         })
         .await;
