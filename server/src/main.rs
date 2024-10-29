@@ -11,6 +11,8 @@ use bevy_replicon_renet::RepliconRenetPlugins;
 use bevy_tokio_tasks::TokioTasksPlugin;
 use clap::Parser;
 
+use common::gameserver::GameServerState;
+
 use options::Options;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]
@@ -21,6 +23,18 @@ pub enum AppState {
     InitServer,
     LoadAssets,
     InGame,
+}
+
+impl From<AppState> for GameServerState {
+    fn from(state: AppState) -> Self {
+        match state {
+            AppState::Startup => GameServerState::Init,
+            AppState::WaitForPlacement => GameServerState::WaitingForPlacement,
+            AppState::InitServer | AppState::LoadAssets | AppState::InGame => {
+                GameServerState::InGame
+            }
+        }
+    }
 }
 
 // TODO: this sets the server "frame rate"

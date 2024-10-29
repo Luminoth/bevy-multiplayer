@@ -1,9 +1,14 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use common::gameserver::GameServerState;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
     pub server_id: Uuid,
+    pub state: GameServerState,
+    // TODO: connection info
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub game_session_id: Option<Uuid>,
 }
 
@@ -11,6 +16,8 @@ impl From<common::gameserver::GameServerInfo> for GameServerInfo {
     fn from(server_info: common::gameserver::GameServerInfo) -> Self {
         Self {
             server_id: server_info.server_id,
+            state: server_info.state,
+            // TODO: connection info
             game_session_id: server_info.game_session_id,
         }
     }

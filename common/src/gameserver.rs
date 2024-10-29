@@ -1,9 +1,18 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum GameServerState {
+    Init,
+    WaitingForPlacement,
+    InGame,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
     pub server_id: Uuid,
+
+    pub state: GameServerState,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_session_id: Option<Uuid>,

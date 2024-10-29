@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{ecs::system::RunSystemOnce, prelude::*};
 use bevy_mod_reqwest::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
@@ -36,8 +36,15 @@ fn enter(
     tasks::spawn_task(
         &mut runtime,
         move || async move { orchestration.ready(port, log_paths).await },
-        |_ctx, _output| {
-            // TODO: send a heartbeat to update our "state"
+        |ctx, _output| {
+            ctx.world.run_system_once(
+                |mut client: BevyReqwest,
+                 server_info: Res<GameServerInfo>,
+                 state: Res<State<AppState>>| {
+                    // let the backend know we're available for placement
+                    heartbeat(&mut client, server_info.server_id, (**state).into(), None);
+                },
+            );
         },
         |_ctx, err| {
             panic!("failed to ready orchestration backend: {}", err);
@@ -45,12 +52,7 @@ fn enter(
     );
 }
 
-fn update(
-    mut commands: Commands,
-    mut client: BevyReqwest,
-    server_info: Res<GameServerInfo>,
-    mut app_state: ResMut<NextState<AppState>>,
-) {
+fn update(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
     warn!("faking placement!");
 
     let session_info = GameSessionInfo {
@@ -59,8 +61,6 @@ fn update(
         pending_player_ids: vec!["test_player".into()],
     };
     info!("starting session {}", session_info.session_id);
-
-    heartbeat(&mut client, &server_info, Some(&session_info));
 
     commands.insert_resource(session_info);
 

@@ -10,6 +10,7 @@ use bevy_replicon_renet::renet::ServerEvent;
 use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
+use common::gameserver::GameServerState;
 use game::{GameState, PROTOCOL_ID};
 
 use crate::{api, options::Options, orchestration::Orchestration, placement, tasks, AppState};
@@ -17,7 +18,6 @@ use crate::{api, options::Options, orchestration::Orchestration, placement, task
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {
     pub server_id: Uuid,
-    // TODO: need ip / port / status here
 }
 
 impl GameServerInfo {
@@ -37,10 +37,12 @@ pub struct GameSessionInfo {
 
 pub fn heartbeat(
     client: &mut BevyReqwest,
-    server_info: &GameServerInfo,
+    server_id: Uuid,
+    state: GameServerState,
+    // TODO: connection info
     session_info: Option<&GameSessionInfo>,
 ) {
-    api::heartbeat(client, server_info, session_info).on_error(
+    api::heartbeat(client, server_id, state, session_info).on_error(
         |trigger: Trigger<ReqwestErrorEvent>| {
             let e = &trigger.event().0;
             error!("heartbeat error: {:?}", e);
@@ -64,11 +66,11 @@ impl Plugin for ServerPlugin {
             .add_systems(
                 Update,
                 (
-                    init_network.run_if(in_state(AppState::InitServer)),
                     handle_network_events.run_if(in_state(GameState::InGame)),
                     heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
                 ),
             )
+            .add_systems(OnEnter(AppState::InitServer), init_server)
             .add_systems(OnEnter(AppState::InGame), enter)
             .add_systems(OnExit(AppState::InGame), exit);
     }
@@ -83,10 +85,13 @@ fn setup(
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
 
-    // TODO: this is fine to send here, but we need to let the backend
-    // know our "state" (init in this case) so it knows when
-    // we're ready to be considered for placement
-    heartbeat(&mut client, &server_info, None);
+    // let the backend know we're starting up
+    heartbeat(
+        &mut client,
+        server_info.server_id,
+        AppState::Startup.into(),
+        None,
+    );
 
     commands.insert_resource(server_info);
 
@@ -106,8 +111,21 @@ fn setup(
     );
 }
 
-fn enter(mut game_state: ResMut<NextState<GameState>>) {
+fn enter(
+    mut game_state: ResMut<NextState<GameState>>,
+    mut client: BevyReqwest,
+    server_info: Res<GameServerInfo>,
+    session_info: Res<GameSessionInfo>,
+    state: Res<State<AppState>>,
+) {
     info!("enter game ...");
+
+    heartbeat(
+        &mut client,
+        server_info.server_id,
+        (**state).into(),
+        Some(&session_info),
+    );
 
     game_state.set(GameState::LoadAssets);
 }
@@ -122,18 +140,36 @@ fn exit(mut commands: Commands) {
 fn heartbeat_monitor(
     mut client: BevyReqwest,
     server_info: Res<GameServerInfo>,
+    state: Res<State<AppState>>,
     session_info: Option<Res<GameSessionInfo>>,
 ) {
     let session_info = session_info.as_deref();
-    heartbeat(&mut client, &server_info, session_info);
+    heartbeat(
+        &mut client,
+        server_info.server_id,
+        (**state).into(),
+        session_info,
+    );
 }
 
-fn init_network(
+fn init_server(
     mut commands: Commands,
+    mut client: BevyReqwest,
     options: Res<Options>,
+    server_info: Res<GameServerInfo>,
+    session_info: Res<GameSessionInfo>,
+    current_state: Res<State<AppState>>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     info!("init network ...");
+
+    // let the backend know we're initializing the game
+    heartbeat(
+        &mut client,
+        server_info.server_id,
+        (**current_state).into(),
+        Some(&session_info),
+    );
 
     // TODO: this should bind a specific address
     let server_addr = format!("0.0.0.0:{}", options.port).parse().unwrap();

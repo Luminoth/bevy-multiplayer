@@ -3,6 +3,8 @@ use std::future::Future;
 use bevy_tokio_tasks::{MainThreadContext, TokioTasksRuntime};
 use tokio::task::JoinHandle;
 
+// TODO: on_success / on_failure should be systems
+// either run with ctx.world.run_system_once() or through observers
 pub fn spawn_task<Output, Task, Spawnable, S, F>(
     runtime: &mut TokioTasksRuntime,
     task: Spawnable,
