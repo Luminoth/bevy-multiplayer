@@ -31,6 +31,8 @@ fn enter(orchestration: ResMut<Orchestration>, runtime: ResMut<TokioTasksRuntime
             let result = orchestration.ready().await;
             ctx.run_on_main_thread(move |_| {
                 result.unwrap();
+
+                // TODO: send a heartbeat to update our "state"
             })
             .await;
         }

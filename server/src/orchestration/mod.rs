@@ -24,9 +24,7 @@ impl Orchestration {
 
             #[cfg(feature = "agones")]
             crate::options::OrchestrationType::Agones => {
-                println!("creating sdk");
                 let sdk = agones_api::Sdk::new(None, None).await?;
-                println!("created it!");
 
                 Ok(Self::Agones(Arc::new(RwLock::new(sdk))))
             }

@@ -82,6 +82,9 @@ fn setup(
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
 
+    // TODO: this is fine to send here, but we need to let the backend
+    // know our "state" (init in this case) so it knows when
+    // we're ready to be considered for placement
     heartbeat(&mut client, &server_info, None);
 
     commands.insert_resource(server_info);
