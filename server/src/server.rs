@@ -17,6 +17,7 @@ use crate::{api, options::Options, orchestration::Orchestration, placement, task
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {
     pub server_id: Uuid,
+    // TODO: need ip / port / status here
 }
 
 impl GameServerInfo {
@@ -127,11 +128,15 @@ fn heartbeat_monitor(
     heartbeat(&mut client, &server_info, session_info);
 }
 
-fn init_network(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
+fn init_network(
+    mut commands: Commands,
+    options: Res<Options>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
     info!("init network ...");
 
     // TODO: this should bind a specific address
-    let server_addr = "0.0.0.0:5576".parse().unwrap();
+    let server_addr = format!("0.0.0.0:{}", options.port).parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)

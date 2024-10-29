@@ -4,6 +4,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
 use crate::{
+    options::Options,
     orchestration::Orchestration,
     server::{heartbeat, GameServerInfo, GameSessionInfo},
     tasks, AppState,
@@ -22,13 +23,19 @@ impl Plugin for PlacementPlugin {
     }
 }
 
-fn enter(orchestration: ResMut<Orchestration>, mut runtime: ResMut<TokioTasksRuntime>) {
+fn enter(
+    options: Res<Options>,
+    orchestration: ResMut<Orchestration>,
+    mut runtime: ResMut<TokioTasksRuntime>,
+) {
     info!("enter placement ...");
 
-    let mut orchestration = orchestration.clone();
+    let port = options.port;
+    let log_paths = options.log_paths.clone();
+    let orchestration = orchestration.clone();
     tasks::spawn_task(
         &mut runtime,
-        || async move { orchestration.ready().await },
+        move || async move { orchestration.ready(port, log_paths).await },
         |_ctx, _output| {
             // TODO: send a heartbeat to update our "state"
         },

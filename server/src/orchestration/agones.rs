@@ -1,11 +1,22 @@
 #![cfg(feature = "agones")]
 
-use bevy::prelude::*;
+use std::sync::Arc;
 
-pub(super) async fn ready(sdk: &mut agones_api::Sdk) -> anyhow::Result<()> {
+use bevy::prelude::*;
+use tokio::sync::RwLock;
+
+pub type AgonesSdk = Arc<RwLock<agones_api::Sdk>>;
+
+pub(super) async fn new_sdk() -> anyhow::Result<AgonesSdk> {
+    let sdk = agones_api::Sdk::new(None, None).await?;
+
+    Ok(Arc::new(RwLock::new(sdk)))
+}
+
+pub(super) async fn ready(sdk: AgonesSdk) -> anyhow::Result<()> {
     info!("readying agones ...");
 
-    sdk.ready().await?;
+    sdk.write().await.ready().await?;
 
     Ok(())
 }
