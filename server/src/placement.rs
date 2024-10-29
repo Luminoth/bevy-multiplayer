@@ -27,8 +27,12 @@ fn enter(orchestration: ResMut<Orchestration>, runtime: ResMut<TokioTasksRuntime
 
     runtime.spawn_background_task({
         let mut orchestration = orchestration.clone();
-        |_| async move {
-            orchestration.ready().await.unwrap();
+        |mut ctx| async move {
+            let result = orchestration.ready().await;
+            ctx.run_on_main_thread(move |_| {
+                result.unwrap();
+            })
+            .await;
         }
     });
 }

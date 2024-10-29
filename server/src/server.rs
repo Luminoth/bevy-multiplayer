@@ -88,12 +88,9 @@ fn setup(
 
     let orchestration_type = options.orchestration;
     runtime.spawn_background_task(move |mut ctx| async move {
-        println!("hi");
-        let orchestration = Orchestration::new(orchestration_type).await.unwrap();
+        let orchestration_result = Orchestration::new(orchestration_type).await;
         ctx.run_on_main_thread(move |ctx| {
-            println!("hi 2");
-
-            ctx.world.insert_resource(orchestration);
+            ctx.world.insert_resource(orchestration_result.unwrap());
 
             let mut app_state = ctx.world.resource_mut::<NextState<AppState>>();
             app_state.set(AppState::WaitForPlacement);

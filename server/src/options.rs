@@ -10,7 +10,7 @@ pub enum OrchestrationType {
     Agones,
 
     #[cfg(feature = "gamelift")]
-    GameLift,
+    Gamelift,
 }
 
 #[derive(Parser, Debug, Resource)]

@@ -24,13 +24,15 @@ impl Orchestration {
 
             #[cfg(feature = "agones")]
             crate::options::OrchestrationType::Agones => {
+                println!("creating sdk");
                 let sdk = agones_api::Sdk::new(None, None).await?;
+                println!("created it!");
 
                 Ok(Self::Agones(Arc::new(RwLock::new(sdk))))
             }
 
             #[cfg(feature = "gamelift")]
-            crate::options::OrchestrationType::GameLift => {
+            crate::options::OrchestrationType::Gamelift => {
                 let mut api = aws_gamelift_server_sdk_rs::api::Api::default();
                 api.init_sdk().await?;
 
