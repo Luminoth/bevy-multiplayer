@@ -3,6 +3,7 @@ mod options;
 mod orchestration;
 mod placement;
 mod server;
+mod tasks;
 
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_replicon_renet::renet::transport::NetcodeClientTransport;
 
 use game::GameState;
 
@@ -31,6 +32,8 @@ fn enter(mut game_state: ResMut<NextState<GameState>>) {
     game_state.set(GameState::LoadAssets);
 }
 
-fn exit() {
+fn exit(mut commands: Commands) {
     info!("exit game ...");
+
+    commands.remove_resource::<NetcodeClientTransport>();
 }

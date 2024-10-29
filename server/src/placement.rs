@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     orchestration::Orchestration,
     server::{heartbeat, GameServerInfo, GameSessionInfo},
-    AppState,
+    tasks, AppState,
 };
 
 #[derive(Debug)]
@@ -22,21 +22,20 @@ impl Plugin for PlacementPlugin {
     }
 }
 
-fn enter(orchestration: ResMut<Orchestration>, runtime: ResMut<TokioTasksRuntime>) {
+fn enter(orchestration: ResMut<Orchestration>, mut runtime: ResMut<TokioTasksRuntime>) {
     info!("enter placement ...");
 
-    runtime.spawn_background_task({
-        let mut orchestration = orchestration.clone();
-        |mut ctx| async move {
-            let result = orchestration.ready().await;
-            ctx.run_on_main_thread(move |_| {
-                result.unwrap();
-
-                // TODO: send a heartbeat to update our "state"
-            })
-            .await;
-        }
-    });
+    let mut orchestration = orchestration.clone();
+    tasks::spawn_task(
+        &mut runtime,
+        || async move { orchestration.ready().await },
+        |_ctx, _output| {
+            // TODO: send a heartbeat to update our "state"
+        },
+        |_ctx, err| {
+            panic!("failed to ready orchestration backend: {}", err);
+        },
+    );
 }
 
 fn update(

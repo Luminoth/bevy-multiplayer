@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use game::{GameState, PROTOCOL_ID};
 
-use crate::{api, options::Options, orchestration::Orchestration, placement, AppState};
+use crate::{api, options::Options, orchestration::Orchestration, placement, tasks, AppState};
 
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {
@@ -77,7 +77,7 @@ fn setup(
     mut commands: Commands,
     options: Res<Options>,
     mut client: BevyReqwest,
-    runtime: ResMut<TokioTasksRuntime>,
+    mut runtime: ResMut<TokioTasksRuntime>,
 ) {
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
@@ -90,16 +90,19 @@ fn setup(
     commands.insert_resource(server_info);
 
     let orchestration_type = options.orchestration;
-    runtime.spawn_background_task(move |mut ctx| async move {
-        let orchestration_result = Orchestration::new(orchestration_type).await;
-        ctx.run_on_main_thread(move |ctx| {
-            ctx.world.insert_resource(orchestration_result.unwrap());
+    tasks::spawn_task(
+        &mut runtime,
+        move || async move { Orchestration::new(orchestration_type).await },
+        |ctx, output| {
+            ctx.world.insert_resource(output);
 
             let mut app_state = ctx.world.resource_mut::<NextState<AppState>>();
             app_state.set(AppState::WaitForPlacement);
-        })
-        .await;
-    });
+        },
+        |_ctx, err| {
+            panic!("failed to init orchestration backend: {}", err);
+        },
+    );
 }
 
 fn enter(mut game_state: ResMut<NextState<GameState>>) {
@@ -111,6 +114,7 @@ fn enter(mut game_state: ResMut<NextState<GameState>>) {
 fn exit(mut commands: Commands) {
     info!("exit game ...");
 
+    commands.remove_resource::<GameSessionInfo>();
     commands.remove_resource::<NetcodeServerTransport>();
 }
 

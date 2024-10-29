@@ -43,15 +43,16 @@ impl Plugin for ConnectServerPlugin {
 
 #[allow(clippy::never_loop)]
 fn handle_network_error(
+    mut commands: Commands,
     mut evt_error: EventReader<NetcodeTransportError>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     if !evt_error.is_empty() {
         for evt in evt_error.read() {
-            // TODO: these errors just spam forever?
-            //error!("network error: {}", evt);
-            panic!("network error: {}", evt);
+            error!("network error: {}", evt);
         }
+
+        commands.remove_resource::<NetcodeClientTransport>();
 
         app_state.set(AppState::MainMenu);
     }
