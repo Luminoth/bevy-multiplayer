@@ -23,6 +23,7 @@ pub enum AppState {
     InitServer,
     LoadAssets,
     InGame,
+    Shutdown,
 }
 
 impl From<AppState> for GameServerState {
@@ -33,7 +34,15 @@ impl From<AppState> for GameServerState {
             AppState::InitServer | AppState::LoadAssets | AppState::InGame => {
                 GameServerState::InGame
             }
+            AppState::Shutdown => GameServerState::Shutdown,
         }
+    }
+}
+
+impl AppState {
+    #[inline]
+    pub fn is_ready(&self) -> bool {
+        *self != AppState::Startup
     }
 }
 

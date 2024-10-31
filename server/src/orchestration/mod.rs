@@ -8,7 +8,7 @@ pub enum Orchestration {
     Local,
 
     #[cfg(feature = "agones")]
-    Agones(agones::AgonesSdk),
+    Agones(agones::AgonesState),
 
     #[cfg(feature = "gamelift")]
     GameLift(gamelift::GameliftApi),
@@ -44,6 +44,32 @@ impl Orchestration {
             Self::GameLift(api) => {
                 gamelift::ready(api.clone(), port, log_paths.clone()).await?;
             }
+        }
+
+        Ok(())
+    }
+
+    pub async fn health_check(&self) -> anyhow::Result<()> {
+        match self {
+            #[cfg(feature = "agones")]
+            Self::Agones(sdk) => {
+                agones::health_check(sdk.clone()).await?;
+            }
+
+            _ => (),
+        }
+
+        Ok(())
+    }
+
+    pub async fn shutdown(&self) -> anyhow::Result<()> {
+        match self {
+            #[cfg(feature = "agones")]
+            Self::Agones(sdk) => {
+                agones::shutdown(sdk.clone()).await?;
+            }
+
+            _ => (),
         }
 
         Ok(())

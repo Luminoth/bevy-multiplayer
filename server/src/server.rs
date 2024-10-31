@@ -72,7 +72,8 @@ impl Plugin for ServerPlugin {
             )
             .add_systems(OnEnter(AppState::InitServer), init_server)
             .add_systems(OnEnter(AppState::InGame), enter)
-            .add_systems(OnExit(AppState::InGame), exit);
+            .add_systems(OnExit(AppState::InGame), exit)
+            .add_systems(OnEnter(AppState::Shutdown), shutdown);
     }
 }
 
@@ -111,6 +112,21 @@ fn setup(
     );
 }
 
+fn shutdown(orchestration: ResMut<Orchestration>, mut runtime: ResMut<TokioTasksRuntime>) {
+    let orchestration = orchestration.clone();
+    tasks::spawn_task(
+        &mut runtime,
+        move || async move { orchestration.shutdown().await },
+        |ctx, _output| {
+            ctx.world.send_event(AppExit::Success);
+        },
+        |ctx, err| {
+            error!("orchestration shutdown error: {}", err);
+            ctx.world.send_event(AppExit::from_code(1));
+        },
+    );
+}
+
 fn enter(
     mut game_state: ResMut<NextState<GameState>>,
     mut client: BevyReqwest,
@@ -139,9 +155,11 @@ fn exit(mut commands: Commands) {
 
 fn heartbeat_monitor(
     mut client: BevyReqwest,
+    orchestration: ResMut<Orchestration>,
     server_info: Res<GameServerInfo>,
     state: Res<State<AppState>>,
     session_info: Option<Res<GameSessionInfo>>,
+    mut runtime: ResMut<TokioTasksRuntime>,
 ) {
     let session_info = session_info.as_deref();
     heartbeat(
@@ -150,6 +168,18 @@ fn heartbeat_monitor(
         (**state).into(),
         session_info,
     );
+
+    if state.is_ready() {
+        let orchestration = orchestration.clone();
+        tasks::spawn_task(
+            &mut runtime,
+            move || async move { orchestration.health_check().await },
+            |_ctx, _output| {},
+            |_ctx, err| {
+                error!("failed orchestration health check: {}", err);
+            },
+        );
+    }
 }
 
 fn init_server(

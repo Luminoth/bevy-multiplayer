@@ -6,6 +6,7 @@ pub enum GameServerState {
     Init,
     WaitingForPlacement,
     InGame,
+    Shutdown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

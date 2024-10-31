@@ -1,22 +1,41 @@
 #![cfg(feature = "agones")]
 
-use std::sync::Arc;
-
 use bevy::prelude::*;
-use tokio::sync::RwLock;
+use tokio::sync::mpsc::Sender;
 
-pub type AgonesSdk = Arc<RwLock<agones_api::Sdk>>;
-
-pub(super) async fn new_sdk() -> anyhow::Result<AgonesSdk> {
-    let sdk = agones_api::Sdk::new(None, None).await?;
-
-    Ok(Arc::new(RwLock::new(sdk)))
+#[derive(Clone)]
+pub struct AgonesState {
+    sdk: agones_api::Sdk,
+    health: Sender<()>,
 }
 
-pub(super) async fn ready(sdk: AgonesSdk) -> anyhow::Result<()> {
+pub(super) async fn new_sdk() -> anyhow::Result<AgonesState> {
+    let sdk = agones_api::Sdk::new(None, None).await?;
+    let health = sdk.health_check();
+
+    Ok(AgonesState { sdk, health })
+}
+
+pub(super) async fn ready(mut agones: AgonesState) -> anyhow::Result<()> {
     info!("readying agones ...");
 
-    sdk.write().await.ready().await?;
+    agones.sdk.ready().await?;
+
+    Ok(())
+}
+
+pub(super) async fn health_check(agones: AgonesState) -> anyhow::Result<()> {
+    info!("health checking agones ...");
+
+    agones.health.send(()).await?;
+
+    Ok(())
+}
+
+pub(super) async fn shutdown(mut agones: AgonesState) -> anyhow::Result<()> {
+    info!("shutdown agones ...");
+
+    agones.sdk.shutdown().await?;
 
     Ok(())
 }
