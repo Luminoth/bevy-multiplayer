@@ -25,26 +25,39 @@ impl Plugin for PlacementPlugin {
 
 fn enter(
     options: Res<Options>,
-    orchestration: ResMut<Orchestration>,
-    mut runtime: ResMut<TokioTasksRuntime>,
+    orchestration: Res<Orchestration>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
     info!("enter placement ...");
 
-    let port = options.port;
-    let log_paths = options.log_paths.clone();
-    let orchestration = orchestration.clone();
     tasks::spawn_task(
-        &mut runtime,
-        move || async move { orchestration.ready(port, log_paths).await },
-        |ctx, _output| {
-            ctx.world.run_system_once(
-                |mut client: BevyReqwest,
-                 server_info: Res<GameServerInfo>,
-                 state: Res<State<AppState>>| {
-                    // let the backend know we're available for placement
-                    heartbeat(&mut client, server_info.server_id, (**state).into(), None);
-                },
-            );
+        &runtime,
+        {
+            let port = options.port;
+            let log_paths = options.log_paths.clone();
+            let orchestration = orchestration.clone();
+            move || async move { orchestration.ready(port, log_paths).await }
+        },
+        {
+            |ctx, _output| {
+                ctx.world.run_system_once(
+                    |mut client: BevyReqwest,
+                     server_info: Res<GameServerInfo>,
+                     state: Res<State<AppState>>| {
+                        // let the backend know we're available for placement
+                        heartbeat(&mut client, server_info.server_id, (**state).into(), None);
+                    },
+                );
+
+                // TODO: can't do this because the runtime gets removed
+                // before the main thread calls happen
+                /*ctx.world.run_system_once(
+                    |orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>| {
+                        // TODO: need to store this sender and notify on exit
+                        let _ = orchestration.start_watcher(&runtime);
+                    },
+                );*/
+            }
         },
         |_ctx, err| {
             panic!("failed to ready orchestration backend: {}", err);

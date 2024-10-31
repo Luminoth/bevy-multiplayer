@@ -81,7 +81,7 @@ fn setup(
     mut commands: Commands,
     options: Res<Options>,
     mut client: BevyReqwest,
-    mut runtime: ResMut<TokioTasksRuntime>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
@@ -98,7 +98,7 @@ fn setup(
 
     let orchestration_type = options.orchestration;
     tasks::spawn_task(
-        &mut runtime,
+        &runtime,
         move || async move { Orchestration::new(orchestration_type).await },
         |ctx, output| {
             ctx.world.insert_resource(output);
@@ -112,10 +112,10 @@ fn setup(
     );
 }
 
-fn shutdown(orchestration: ResMut<Orchestration>, mut runtime: ResMut<TokioTasksRuntime>) {
+fn shutdown(orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>) {
     let orchestration = orchestration.clone();
     tasks::spawn_task(
-        &mut runtime,
+        &runtime,
         move || async move { orchestration.shutdown().await },
         |ctx, _output| {
             ctx.world.send_event(AppExit::Success);
@@ -155,11 +155,11 @@ fn exit(mut commands: Commands) {
 
 fn heartbeat_monitor(
     mut client: BevyReqwest,
-    orchestration: ResMut<Orchestration>,
+    orchestration: Res<Orchestration>,
     server_info: Res<GameServerInfo>,
     state: Res<State<AppState>>,
     session_info: Option<Res<GameSessionInfo>>,
-    mut runtime: ResMut<TokioTasksRuntime>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
     let session_info = session_info.as_deref();
     heartbeat(
@@ -172,7 +172,7 @@ fn heartbeat_monitor(
     if state.is_ready() {
         let orchestration = orchestration.clone();
         tasks::spawn_task(
-            &mut runtime,
+            &runtime,
             move || async move { orchestration.health_check().await },
             |_ctx, _output| {},
             |_ctx, err| {

@@ -2,6 +2,8 @@ mod agones;
 mod gamelift;
 
 use bevy::prelude::*;
+use bevy_tokio_tasks::TokioTasksRuntime;
+use tokio::sync::oneshot;
 
 #[derive(Clone, Resource)]
 pub enum Orchestration {
@@ -47,6 +49,16 @@ impl Orchestration {
         }
 
         Ok(())
+    }
+
+    #[must_use]
+    pub fn start_watcher(&self, runtime: &TokioTasksRuntime) -> Option<oneshot::Sender<()>> {
+        match self {
+            #[cfg(feature = "agones")]
+            Self::Agones(sdk) => Some(agones::start_watcher(sdk.clone(), runtime)),
+
+            _ => None,
+        }
     }
 
     pub async fn health_check(&self) -> anyhow::Result<()> {

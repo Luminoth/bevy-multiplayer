@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 // TODO: on_success / on_failure should be systems
 // either run with ctx.world.run_system_once() or through observers
 pub fn spawn_task<Output, Task, Spawnable, S, F>(
-    runtime: &mut TokioTasksRuntime,
+    runtime: &TokioTasksRuntime,
     task: Spawnable,
     on_success: S,
     on_failure: F,
