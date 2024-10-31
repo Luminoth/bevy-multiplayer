@@ -21,6 +21,6 @@ pub struct Options {
     #[arg(short, long, default_value = "vec![\"logs\"]")]
     pub log_paths: Vec<String>,
 
-    #[arg(short, long, default_value_t = 8000)]
+    #[arg(short, long, default_value_t = 5576)]
     pub port: u16,
 }
