@@ -25,7 +25,7 @@ pub(super) async fn ready(mut agones: AgonesState) -> anyhow::Result<()> {
 }
 
 pub(super) async fn health_check(agones: AgonesState) -> anyhow::Result<()> {
-    info!("health checking agones ...");
+    debug!("health checking agones ...");
 
     agones.health.send(()).await?;
 
