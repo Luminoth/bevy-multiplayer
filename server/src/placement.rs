@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     options::Options,
-    orchestration::Orchestration,
+    orchestration::{start_watcher, Orchestration, StartWatcherEvent},
     server::{heartbeat, GameServerInfo, GameSessionInfo},
     tasks, AppState,
 };
@@ -15,11 +15,15 @@ pub struct PlacementPlugin;
 
 impl Plugin for PlacementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (update.run_if(in_state(AppState::WaitForPlacement)),),
-        )
-        .add_systems(OnEnter(AppState::WaitForPlacement), enter);
+        app.add_event::<StartWatcherEvent>()
+            .add_systems(
+                Update,
+                (
+                    update.run_if(in_state(AppState::WaitForPlacement)),
+                    start_watcher,
+                ),
+            )
+            .add_systems(OnEnter(AppState::WaitForPlacement), enter);
     }
 }
 
@@ -49,14 +53,10 @@ fn enter(
                     },
                 );
 
-                // TODO: can't do this because the runtime gets removed
-                // before the main thread calls happen
-                /*ctx.world.run_system_once(
-                    |orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>| {
-                        // TODO: need to store this sender and notify on exit
-                        let _ = orchestration.start_watcher(&runtime);
-                    },
-                );*/
+                // have to do this with an event
+                // because the runtime resource is removed while
+                // the main thread callback is running
+                ctx.world.send_event(StartWatcherEvent);
             }
         },
         |_ctx, err| {

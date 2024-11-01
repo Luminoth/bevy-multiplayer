@@ -3,7 +3,22 @@ mod gamelift;
 
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
-use tokio::sync::oneshot;
+
+#[derive(Event)]
+pub struct StartWatcherEvent;
+
+pub fn start_watcher(
+    mut evt: EventReader<StartWatcherEvent>,
+    orchestration: Option<Res<Orchestration>>,
+    runtime: Res<TokioTasksRuntime>,
+) {
+    if evt.is_empty() {
+        return;
+    }
+    evt.clear();
+
+    orchestration.unwrap().start_watcher(&runtime);
+}
 
 #[derive(Clone, Resource)]
 pub enum Orchestration {
@@ -51,13 +66,21 @@ impl Orchestration {
         Ok(())
     }
 
-    #[must_use]
-    pub fn start_watcher(&self, runtime: &TokioTasksRuntime) -> Option<oneshot::Sender<()>> {
+    pub fn start_watcher(&self, runtime: &TokioTasksRuntime) {
         match self {
             #[cfg(feature = "agones")]
-            Self::Agones(sdk) => Some(agones::start_watcher(sdk.clone(), runtime)),
+            Self::Agones(sdk) => agones::start_watcher(sdk.clone(), runtime),
 
-            _ => None,
+            _ => (),
+        }
+    }
+
+    pub fn stop_watcher(&self) {
+        match self {
+            #[cfg(feature = "agones")]
+            Self::Agones(sdk) => agones::stop_watcher(sdk.clone()),
+
+            _ => (),
         }
     }
 

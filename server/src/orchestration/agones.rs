@@ -1,5 +1,7 @@
 #![cfg(feature = "agones")]
 
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
 use tokio::sync::{mpsc, oneshot};
@@ -10,13 +12,18 @@ use crate::tasks;
 pub struct AgonesState {
     sdk: agones_api::Sdk,
     health: mpsc::Sender<()>,
+    watcher: Option<Arc<oneshot::Sender<()>>>,
 }
 
 pub(super) async fn new_sdk() -> anyhow::Result<AgonesState> {
     let sdk = agones_api::Sdk::new(None, None).await?;
     let health = sdk.health_check();
 
-    Ok(AgonesState { sdk, health })
+    Ok(AgonesState {
+        sdk,
+        health,
+        watcher: None,
+    })
 }
 
 pub(super) async fn ready(mut agones: AgonesState) -> anyhow::Result<()> {
@@ -27,11 +34,7 @@ pub(super) async fn ready(mut agones: AgonesState) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[must_use]
-pub(super) fn start_watcher(
-    agones: AgonesState,
-    runtime: &TokioTasksRuntime,
-) -> oneshot::Sender<()> {
+pub(super) fn start_watcher(mut agones: AgonesState, runtime: &TokioTasksRuntime) {
     let mut watch_client = agones.sdk.clone();
     let (tx, mut rx) = oneshot::channel::<()>();
     tasks::spawn_task(
@@ -59,8 +62,12 @@ pub(super) fn start_watcher(
                         }
 
                     }
-                    _ = &mut rx => {
-                        info!("shutting down GameServer watch loop ...");
+                    r = &mut rx => {
+                        match r {
+                            Ok(()) => info!("shutting down GameServer watch loop ..."),
+                            // TODO: we need to shut down or something off this
+                            Err(err) => error!("GameServer watch loop select error: {}", err),
+                        }
                         break;
                     }
                 }
@@ -75,7 +82,13 @@ pub(super) fn start_watcher(
         },
     );
 
-    tx
+    agones.watcher = Some(Arc::new(tx));
+}
+
+pub(super) fn stop_watcher(mut agones: AgonesState) {
+    info!("stopping GameServer watch loop ...");
+
+    agones.watcher = None;
 }
 
 pub(super) async fn health_check(agones: AgonesState) -> anyhow::Result<()> {

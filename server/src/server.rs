@@ -114,6 +114,8 @@ fn setup(
 
 fn shutdown(orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>) {
     let orchestration = orchestration.clone();
+    orchestration.stop_watcher();
+
     tasks::spawn_task(
         &runtime,
         move || async move { orchestration.shutdown().await },
