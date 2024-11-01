@@ -1,6 +1,6 @@
 #![cfg(feature = "agones")]
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
@@ -12,7 +12,10 @@ use crate::tasks;
 pub struct AgonesState {
     sdk: agones_api::Sdk,
     health: mpsc::Sender<()>,
-    watcher: Option<Arc<oneshot::Sender<()>>>,
+
+    // TODO: it's dumb this needs a mutex
+    // this should probably be a parking_lot mutex at least
+    watcher: Arc<Mutex<Option<oneshot::Sender<()>>>>,
 }
 
 pub(super) async fn new_sdk() -> anyhow::Result<AgonesState> {
@@ -22,7 +25,7 @@ pub(super) async fn new_sdk() -> anyhow::Result<AgonesState> {
     Ok(AgonesState {
         sdk,
         health,
-        watcher: None,
+        watcher: Arc::new(Mutex::new(None)),
     })
 }
 
@@ -34,7 +37,7 @@ pub(super) async fn ready(mut agones: AgonesState) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(super) fn start_watcher(mut agones: AgonesState, runtime: &TokioTasksRuntime) {
+pub(super) fn start_watcher(agones: AgonesState, runtime: &TokioTasksRuntime) {
     let mut watch_client = agones.sdk.clone();
     let (tx, mut rx) = oneshot::channel::<()>();
     tasks::spawn_task(
@@ -82,13 +85,13 @@ pub(super) fn start_watcher(mut agones: AgonesState, runtime: &TokioTasksRuntime
         },
     );
 
-    agones.watcher = Some(Arc::new(tx));
+    agones.watcher.lock().unwrap().replace(tx);
 }
 
-pub(super) fn stop_watcher(mut agones: AgonesState) {
+pub(super) fn stop_watcher(agones: AgonesState) {
     info!("stopping GameServer watch loop ...");
 
-    agones.watcher = None;
+    agones.watcher.lock().unwrap().take();
 }
 
 pub(super) async fn health_check(agones: AgonesState) -> anyhow::Result<()> {
