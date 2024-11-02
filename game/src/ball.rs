@@ -14,6 +14,8 @@ pub fn spawn_ball(
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
 ) {
+    info!("spawning ball at {} ...", position);
+
     commands.spawn((
         MaterialMeshBundle {
             transform: Transform::from_xyz(position.x, position.y, position.z),
