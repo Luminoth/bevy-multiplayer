@@ -95,7 +95,7 @@ impl Plugin for PlayerPlugin {
 fn update_player_physics(
     physics_config: Res<RapierConfiguration>,
     time: Res<Time<Fixed>>,
-    input_state: Res<InputState>,
+    mut input_state: ResMut<InputState>,
     mut evw_jump: EventReader<JumpEvent>,
     mut player_query: Query<
         (
@@ -124,6 +124,9 @@ fn update_player_physics(
     if player_physics.is_grounded() {
         let direction =
             player_transform.rotation * Vec3::new(input_state.r#move.x, 0.0, -input_state.r#move.y);
+        // TODO: we may want to just max() each value instead of normalizing
+        let direction = direction.normalize_or_zero();
+
         if direction.length_squared() > 0.0 {
             player_physics.velocity.x = direction.x * MOVE_SPEED;
             player_physics.velocity.z = direction.z * MOVE_SPEED;
@@ -137,6 +140,8 @@ fn update_player_physics(
             evw_jump.clear();
         }
     }
+
+    input_state.r#move = Vec2::default();
 
     // apply gravity
     player_physics.velocity.y += physics_config.gravity.y * gravity_scale.0 * time.delta_seconds();

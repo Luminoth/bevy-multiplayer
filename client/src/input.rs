@@ -18,11 +18,17 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, list_gamepads).add_systems(
-            Update,
-            (update_mnk, (handle_gamepad_events, update_gamepad).chain())
-                .run_if(in_state(GameState::InGame)),
-        );
+        app
+            // TODO: this is running before bevy picks up the set of gamepads
+            .add_systems(Startup, list_gamepads)
+            .add_systems(
+                Update,
+                (
+                    handle_gamepad_events,
+                    (update_mnk, (update_gamepad.after(handle_gamepad_events)))
+                        .run_if(in_state(GameState::InGame)),
+                ),
+            );
     }
 }
 
@@ -55,6 +61,7 @@ fn handle_gamepad_events(
                 );
 
                 if gamepad.is_none() {
+                    info!("using gamepad {:?}", evt_conn.gamepad);
                     commands.insert_resource(ConnectedGamepad(evt_conn.gamepad));
                 }
             }
@@ -92,7 +99,7 @@ fn update_mnk(
         r#move.x += 1.0;
     }
 
-    input_state.r#move = r#move;
+    input_state.r#move += r#move;
 
     if keys.just_pressed(KeyCode::Space) {
         evw_jump.send(JumpEvent);
@@ -105,7 +112,8 @@ fn update_mnk(
             if settings.mnk.invert_look { -1.0 } else { 1.0 } * -evt.delta.y,
         ) * settings.mnk.mouse_sensitivity;
     }
-    input_state.look = look;
+
+    input_state.look += look;
 }
 
 fn update_gamepad(
@@ -131,9 +139,7 @@ fn update_gamepad(
     };
 
     if let (Some(x), Some(y)) = (axes.get(axis_lx), axes.get(axis_ly)) {
-        input_state.r#move = Vec2::new(x, y);
-    } else {
-        input_state.r#move = Vec2::default();
+        input_state.r#move += Vec2::new(x, y);
     }
 
     // right stick (look)
@@ -147,7 +153,7 @@ fn update_gamepad(
     };
 
     if let (Some(x), Some(y)) = (axes.get(axis_rx), axes.get(axis_ry)) {
-        input_state.look = Vec2::new(
+        input_state.look += Vec2::new(
             x,
             if settings.gamepad.invert_look {
                 -1.0
@@ -155,8 +161,6 @@ fn update_gamepad(
                 1.0
             } * y,
         ) * settings.gamepad.look_sensitivity;
-    } else {
-        input_state.look = Vec2::default();
     }
 
     let south_button = GamepadButton {

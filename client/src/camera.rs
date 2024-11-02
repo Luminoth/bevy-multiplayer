@@ -19,12 +19,13 @@ impl Plugin for FpsCameraPlugin {
 #[allow(clippy::type_complexity)]
 fn update_fps_camera(
     time: Res<Time>,
-    input_state: Res<InputState>,
+    mut input_state: ResMut<InputState>,
     mut transforms_query: ParamSet<(
         Query<&mut Transform, With<PlayerCamera>>,
         Query<&mut Transform, With<LocalPlayer>>,
     )>,
 ) {
+    // TODO: should the rate of change here be maxed?
     let delta_yaw = -input_state.look.x * time.delta_seconds();
     let delta_pitch = input_state.look.y * time.delta_seconds();
 
@@ -44,4 +45,6 @@ fn update_fps_camera(
         let pitch = (pitch + delta_pitch).clamp(-PITCH_MAX, PITCH_MAX);
         camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
+
+    input_state.look = Vec2::default();
 }
