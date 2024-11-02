@@ -1,7 +1,7 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::{ball, cleanup_state, player, world, GameState, InputState};
+use crate::{ball, cleanup_state, player, spawn, world, GameState, InputState};
 
 #[derive(Debug, Component)]
 pub(crate) struct OnInGame;
@@ -192,6 +192,11 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         assets.ball_mesh.clone(),
         assets.ball_material.clone(),
     );
+
+    // player spawns
+    commands.spawn(spawn::SpawnPointBundle::from_translation(Vec3::new(
+        -5.0, 2.1, 5.0,
+    )));
 
     // player
     player::spawn_local_player(

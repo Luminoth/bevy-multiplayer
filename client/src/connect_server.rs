@@ -12,7 +12,7 @@ use bevy_replicon_renet::renet::transport::{
 use common::gameclient::*;
 use game::{cleanup_state, PROTOCOL_ID};
 
-use crate::{api, ui, AppState};
+use crate::{api, client, ui, AppState};
 
 #[derive(Debug, Component)]
 struct OnConnectServer;
@@ -134,15 +134,19 @@ fn connect_to_server(mut commands: Commands, address: impl AsRef<str>, port: u16
         user_data: None,
     };
 
-    info!("connecting to {} ...", server_addr);
+    info!("connecting to {} as {} ...", server_addr, client_id);
 
     let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
 
+    commands.insert_resource(client::ClientState::new_remote(
+        address,
+        transport.client_id(),
+    ));
     commands.insert_resource(transport);
 }
 
-fn connected(mut app_state: ResMut<NextState<AppState>>) {
-    info!("connected!");
+fn connected(client: Res<client::ClientState>, mut app_state: ResMut<NextState<AppState>>) {
+    info!("connected to server!");
 
-    app_state.set(AppState::InGame);
+    client::on_connected_server(&client, &mut app_state);
 }
