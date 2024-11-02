@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, ClientId};
 
-use game::GameState;
+use game_common::GameState;
 
-use crate::{camera, connect_server, input, main_menu, ui, AppState, Settings};
+use crate::{camera, connect_server, game, input, main_menu, ui, AppState, Settings};
 
 #[derive(Debug, Default, Resource)]
 pub struct ClientState {
@@ -47,6 +47,7 @@ impl Plugin for ClientPlugin {
             camera::FpsCameraPlugin,
             input::InputPlugin,
             ui::UiPlugin,
+            game::GamePlugin,
         ))
         .insert_resource(bevy_replicon_renet::renet::RenetClient::new(
             bevy_replicon_renet::renet::ConnectionConfig::default(),
@@ -59,13 +60,13 @@ impl Plugin for ClientPlugin {
 }
 
 fn enter(mut game_state: ResMut<NextState<GameState>>) {
-    info!("enter game ...");
+    info!("enter client game ...");
 
     game_state.set(GameState::LoadAssets);
 }
 
 fn exit(mut commands: Commands) {
-    info!("exit game ...");
+    info!("exit client game ...");
 
     commands.remove_resource::<ClientState>();
     commands.remove_resource::<NetcodeClientTransport>();

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use game::cleanup_state;
+use game_common::cleanup_state;
 
 use crate::{client, ui, AppState};
 

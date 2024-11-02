@@ -1,24 +1,10 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::{ball, cleanup_state, player, spawn, world, GameState, InputState};
+use crate::{ball, cleanup_state, player, spawn, world, GameAssetState, GameState, InputState};
 
 #[derive(Debug, Component)]
 pub(crate) struct OnInGame;
-
-#[derive(Debug, Resource)]
-struct GameAssetState {
-    floor_mesh: Handle<Mesh>,
-    floor_material: Handle<StandardMaterial>,
-
-    wall_material: Handle<StandardMaterial>,
-
-    ball_mesh: Handle<Mesh>,
-    ball_material: Handle<StandardMaterial>,
-
-    player_mesh: Handle<Mesh>,
-    player_material: Handle<StandardMaterial>,
-}
 
 #[derive(Debug)]
 pub struct GamePlugin;
@@ -197,14 +183,6 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
     commands.spawn(spawn::SpawnPointBundle::from_translation(Vec3::new(
         -5.0, 2.1, 5.0,
     )));
-
-    // player
-    player::spawn_local_player(
-        &mut commands,
-        Vec3::new(-5.0, 2.1, 5.0),
-        assets.player_mesh.clone(),
-        assets.player_material.clone(),
-    );
 }
 
 fn exit(mut commands: Commands) {

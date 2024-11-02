@@ -10,7 +10,7 @@ use bevy_replicon_renet::renet::transport::{
 };
 
 use common::gameclient::*;
-use game::{cleanup_state, PROTOCOL_ID};
+use game_common::{cleanup_state, PROTOCOL_ID};
 
 use crate::{api, client, ui, AppState};
 

@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{game::OnInGame, InputState};
+use crate::{game::OnInGame, GameAssetState, InputState};
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
@@ -38,18 +38,15 @@ const MOVE_SPEED: f32 = 5.0;
 const JUMP_SPEED: f32 = 10.0;
 const TERMINAL_VELOCITY: f32 = 50.0;
 
-pub fn spawn_local_player(
-    commands: &mut Commands,
-    position: Vec3,
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
-) {
+pub fn spawn_local_player(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
+    info!("spawning local player at {} ...", position);
+
     commands
         .spawn((
             MaterialMeshBundle {
                 transform: Transform::from_xyz(position.x, position.y, position.z),
-                mesh,
-                material,
+                mesh: assets.player_mesh.clone(),
+                material: assets.player_material.clone(),
                 ..default()
             },
             RigidBody::KinematicPositionBased,

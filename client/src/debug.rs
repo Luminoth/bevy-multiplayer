@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_egui::{egui, EguiContexts};
 
-use game::GameState;
+use game_common::GameState;
 
 use crate::AppState;
 

@@ -3,6 +3,7 @@ mod camera;
 mod client;
 mod connect_server;
 mod debug;
+mod game;
 mod input;
 mod main_menu;
 mod options;
@@ -63,7 +64,11 @@ fn main() {
             bevy_mod_reqwest::ReqwestPlugin::default(),
         ))
         // client / game plugins
-        .add_plugins((client::ClientPlugin, game::GamePlugin, debug::DebugPlugin))
+        .add_plugins((
+            client::ClientPlugin,
+            game_common::GamePlugin,
+            debug::DebugPlugin,
+        ))
         // update continuously even while unfocused (for networking)
         .insert_resource(bevy::winit::WinitSettings {
             focused_mode: bevy::winit::UpdateMode::Continuous,

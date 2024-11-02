@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
 };
 
-use game::{player::JumpEvent, GameState, InputState};
+use game_common::{player::JumpEvent, GameState, InputState};
 
 use crate::Settings;
 

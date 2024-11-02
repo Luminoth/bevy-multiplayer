@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use game::{
+use game_common::{
     player::{LocalPlayer, PlayerCamera},
     InputState,
 };
