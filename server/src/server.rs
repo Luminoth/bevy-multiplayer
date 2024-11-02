@@ -225,8 +225,8 @@ fn init_server(
     app_state.set(AppState::InGame);
 }
 
-fn handle_network_events(mut evt_server: EventReader<ServerEvent>) {
-    for evt in evt_server.read() {
+fn handle_network_events(mut evr_server: EventReader<ServerEvent>) {
+    for evt in evr_server.read() {
         match evt {
             ServerEvent::ClientConnected { client_id } => {
                 info!("client {} connected", client_id);

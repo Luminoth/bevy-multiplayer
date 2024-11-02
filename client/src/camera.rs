@@ -5,8 +5,6 @@ use game::{
     InputState,
 };
 
-use crate::Settings;
-
 const PITCH_MAX: f32 = std::f32::consts::FRAC_PI_2 - 0.01;
 
 #[derive(Debug)]
@@ -22,14 +20,13 @@ impl Plugin for FpsCameraPlugin {
 fn update_fps_camera(
     time: Res<Time>,
     input_state: Res<InputState>,
-    settings: Res<Settings>,
     mut transforms_query: ParamSet<(
         Query<&mut Transform, With<PlayerCamera>>,
         Query<&mut Transform, With<LocalPlayer>>,
     )>,
 ) {
-    let delta_yaw = -input_state.look.x * settings.look_sensitivity * time.delta_seconds();
-    let delta_pitch = input_state.look.y * settings.look_sensitivity * time.delta_seconds();
+    let delta_yaw = -input_state.look.x * time.delta_seconds();
+    let delta_pitch = input_state.look.y * time.delta_seconds();
 
     // TODO: does this belong in a player method?
     let mut player_query = transforms_query.p1();

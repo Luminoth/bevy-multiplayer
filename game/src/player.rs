@@ -99,7 +99,7 @@ fn update_player_physics(
     physics_config: Res<RapierConfiguration>,
     time: Res<Time<Fixed>>,
     input_state: Res<InputState>,
-    mut ev_jump: EventReader<JumpEvent>,
+    mut evw_jump: EventReader<JumpEvent>,
     mut player_query: Query<
         (
             &mut KinematicCharacterController,
@@ -135,9 +135,9 @@ fn update_player_physics(
             player_physics.velocity.z = 0.0;
         }
 
-        if !ev_jump.is_empty() {
+        if !evw_jump.is_empty() {
             player_physics.velocity.y += JUMP_SPEED;
-            ev_jump.clear();
+            evw_jump.clear();
         }
     }
 
