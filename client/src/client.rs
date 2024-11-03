@@ -1,9 +1,10 @@
 use bevy::prelude::*;
+use bevy_replicon::prelude::*;
 use bevy_replicon_renet::renet::{
     transport::NetcodeClientTransport, ClientId, ConnectionConfig, RenetClient,
 };
 
-use game_common::GameState;
+use game_common::{network::MoveInputEvent, GameState, InputState};
 
 use crate::{camera, connect_server, game, input, main_menu, ui, AppState, Settings};
 
@@ -55,6 +56,13 @@ impl Plugin for ClientPlugin {
         .init_resource::<Settings>()
         .init_resource::<ClientState>()
         .add_systems(OnEnter(AppState::InGame), enter)
+        .add_systems(
+            PostUpdate,
+            send_move_input
+                .before(ClientSet::Send)
+                .run_if(in_state(AppState::InGame))
+                .run_if(client_connected),
+        )
         .add_systems(OnExit(AppState::InGame), exit);
     }
 }
@@ -80,4 +88,9 @@ pub fn on_connected_server(client: &ClientState, app_state: &mut NextState<AppSt
     }
 
     app_state.set(AppState::InGame);
+}
+
+fn send_move_input(input: Res<InputState>, mut evw_move_input: EventWriter<MoveInputEvent>) {
+    // TODO: don't update the player position in the client
+    evw_move_input.send(MoveInputEvent(input.r#move));
 }

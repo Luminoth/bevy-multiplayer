@@ -3,15 +3,16 @@ use std::time::{Duration, SystemTime};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
 use bevy_mod_reqwest::*;
-use bevy_replicon_renet::renet::transport::{
-    NetcodeServerTransport, ServerAuthentication, ServerConfig,
+use bevy_replicon::prelude::*;
+use bevy_replicon_renet::renet::{
+    transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
+    ConnectionConfig, RenetServer, ServerEvent,
 };
-use bevy_replicon_renet::renet::{ConnectionConfig, RenetServer, ServerEvent};
 use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
 use common::gameserver::GameServerState;
-use game::{GameState, PROTOCOL_ID};
+use game::{network::MoveInputEvent, GameState, PROTOCOL_ID};
 
 use crate::{api, options::Options, orchestration::Orchestration, placement, tasks, AppState};
 
@@ -61,6 +62,13 @@ impl Plugin for ServerPlugin {
             // and this is missing without rendering
             .init_asset::<Mesh>()
             .add_systems(Startup, setup)
+            .add_systems(
+                PreUpdate,
+                handle_move_input
+                    .after(ServerSet::Receive)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(server_running),
+            )
             .add_systems(
                 Update,
                 (
@@ -233,5 +241,12 @@ fn handle_network_events(mut evr_server: EventReader<ServerEvent>) {
                 info!("client {} disconnected: {}", client_id, reason);
             }
         }
+    }
+}
+
+fn handle_move_input(mut evr_move_input: EventReader<FromClient<MoveInputEvent>>) {
+    #[allow(unused_variables)]
+    for FromClient { client_id, event } in evr_move_input.read() {
+        // TODO: move the client's player
     }
 }

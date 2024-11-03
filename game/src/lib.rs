@@ -1,5 +1,6 @@
 mod ball;
 mod game;
+pub mod network;
 pub mod player;
 pub mod spawn;
 mod world;
@@ -20,7 +21,6 @@ pub enum GameState {
     InGame,
 }
 
-// TODO: should this be split into separate resources?
 #[derive(Debug, Default, Resource, Reflect)]
 pub struct InputState {
     pub look: Vec2,

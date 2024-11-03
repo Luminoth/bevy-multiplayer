@@ -1,8 +1,11 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
-use bevy_replicon::core::common_conditions::*;
+use bevy_replicon::prelude::*;
 
-use crate::{ball, cleanup_state, player, spawn, world, GameAssetState, GameState, InputState};
+use crate::{
+    ball, cleanup_state, network::MoveInputEvent, player, spawn, world, GameAssetState, GameState,
+    InputState,
+};
 
 #[derive(Debug, Component)]
 pub(crate) struct OnInGame;
@@ -21,6 +24,8 @@ impl Plugin for GamePlugin {
         ))
         .init_state::<GameState>()
         .init_resource::<InputState>()
+        // TOOD: move to a network plugin
+        .add_client_event::<MoveInputEvent>(ChannelKind::Ordered)
         .add_systems(OnEnter(GameState::LoadAssets), load_assets)
         .add_systems(
             Update,
@@ -29,9 +34,11 @@ impl Plugin for GamePlugin {
         .add_systems(
             OnEnter(GameState::InGame),
             (
-                enter,
-                enter_server.after(enter).run_if(server_running),
-                enter_client.after(enter).run_if(client_connected),
+                load_static,
+                enter_server
+                    .after(load_static)
+                    .run_if(server_or_singleplayer),
+                enter_client.after(load_static).run_if(client_connected),
             ),
         )
         .add_systems(
@@ -84,26 +91,10 @@ fn wait_for_assets(mut game_state: ResMut<NextState<GameState>>) {
     game_state.set(GameState::InGame);
 }
 
-fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
-    info!("entering game ...");
+// TODO: it would be nice if we could not load materials on the server
 
-    commands.insert_resource(ClearColor(Color::BLACK));
-
-    commands.insert_resource(AmbientLight {
-        color: WHITE.into(),
-        brightness: 80.0,
-    });
-
-    world::spawn_directional_light(
-        &mut commands,
-        ORANGE_RED.into(),
-        Transform {
-            translation: Vec3::new(0.0, 5.0, 0.0),
-            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
-            ..default()
-        },
-        "Sun",
-    );
+fn load_static(mut commands: Commands, assets: Res<GameAssetState>) {
+    info!("loading static entities ...");
 
     // floor
     world::spawn_wall(
@@ -186,9 +177,11 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
 }
 
 fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
+    info!("entering server game ...");
+
     ball::spawn_ball(
         &mut commands,
-        Vec3::new(0.0, 20.0, 5.0),
+        Vec3::new(0.0, 20.0, -5.0),
         assets.ball_mesh.clone(),
         assets.ball_material.clone(),
     );
@@ -199,6 +192,26 @@ fn enter_client(
     assets: Res<GameAssetState>,
     balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
 ) {
+    info!("entering client game ...");
+
+    commands.insert_resource(ClearColor(Color::BLACK));
+
+    commands.insert_resource(AmbientLight {
+        color: WHITE.into(),
+        brightness: 80.0,
+    });
+
+    world::spawn_directional_light(
+        &mut commands,
+        ORANGE_RED.into(),
+        Transform {
+            translation: Vec3::new(0.0, 5.0, 0.0),
+            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
+            ..default()
+        },
+        "Sun",
+    );
+
     for (entity, transform) in &balls {
         ball::init_ball(
             &mut commands,
