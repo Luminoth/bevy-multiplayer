@@ -1,5 +1,7 @@
 use bevy::prelude::*;
-use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, ClientId};
+use bevy_replicon_renet::renet::{
+    transport::NetcodeClientTransport, ClientId, ConnectionConfig, RenetClient,
+};
 
 use game_common::GameState;
 
@@ -49,9 +51,7 @@ impl Plugin for ClientPlugin {
             ui::UiPlugin,
             game::GamePlugin,
         ))
-        .insert_resource(bevy_replicon_renet::renet::RenetClient::new(
-            bevy_replicon_renet::renet::ConnectionConfig::default(),
-        ))
+        .insert_resource(RenetClient::new(ConnectionConfig::default()))
         .init_resource::<Settings>()
         .init_resource::<ClientState>()
         .add_systems(OnEnter(AppState::InGame), enter)

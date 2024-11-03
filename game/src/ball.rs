@@ -28,7 +28,32 @@ pub fn spawn_ball(
         ColliderMassProperties::Mass(0.5),
         Restitution::coefficient(0.7),
         Name::new("Ball"),
+        Replicated,
         Ball,
+        OnInGame,
+    ));
+}
+
+pub fn init_ball(
+    commands: &mut Commands,
+    entity: Entity,
+    transform: Transform,
+    mesh: Handle<Mesh>,
+    material: Handle<StandardMaterial>,
+) {
+    info!(
+        "initializing ball {} at {} ...",
+        entity, transform.translation
+    );
+
+    commands.entity(entity).insert((
+        MaterialMeshBundle {
+            transform,
+            mesh,
+            material,
+            ..default()
+        },
+        Name::new("Replicated Ball"),
         OnInGame,
     ));
 }

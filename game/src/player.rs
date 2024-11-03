@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::{game::OnInGame, GameAssetState, InputState};
 
 #[derive(Debug, Component, Serialize, Deserialize)]
+pub struct Player;
+
+#[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
 
 #[derive(Debug, Component)]
@@ -55,7 +58,9 @@ pub fn spawn_local_player(commands: &mut Commands, position: Vec3, assets: &Game
             Collider::capsule_y(1.0, 1.0),
             ColliderMassProperties::Mass(75.0),
             KinematicCharacterController::default(),
-            Name::new("Player"),
+            Name::new("Local Player"),
+            Replicated,
+            Player,
             LocalPlayer,
             OnInGame,
         ))
@@ -77,6 +82,28 @@ pub fn spawn_local_player(commands: &mut Commands, position: Vec3, assets: &Game
         });
 }
 
+pub fn spawn_remote_player(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
+    info!("spawning remote player at {} ...", position);
+
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform::from_xyz(position.x, position.y, position.z),
+            mesh: assets.player_mesh.clone(),
+            material: assets.player_material.clone(),
+            ..default()
+        },
+        RigidBody::KinematicPositionBased,
+        PlayerPhysics::default(),
+        GravityScale(2.0),
+        Collider::capsule_y(1.0, 1.0),
+        ColliderMassProperties::Mass(75.0),
+        Name::new("Remote Player"),
+        Replicated,
+        Player,
+        OnInGame,
+    ));
+}
+
 #[derive(Debug)]
 pub struct PlayerPlugin;
 
@@ -87,7 +114,7 @@ impl Plugin for PlayerPlugin {
 
         app.register_type::<PlayerPhysics>();
 
-        app.replicate_group::<(Transform, LocalPlayer)>();
+        app.replicate_group::<(Transform, Player)>();
     }
 }
 

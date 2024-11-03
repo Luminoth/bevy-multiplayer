@@ -1,5 +1,6 @@
 use bevy::{color::palettes::css::*, prelude::*};
 use bevy_rapier3d::prelude::*;
+use bevy_replicon::core::common_conditions::*;
 
 use crate::{ball, cleanup_state, player, spawn, world, GameAssetState, GameState, InputState};
 
@@ -25,7 +26,14 @@ impl Plugin for GamePlugin {
             Update,
             wait_for_assets.run_if(in_state(GameState::LoadAssets)),
         )
-        .add_systems(OnEnter(GameState::InGame), enter)
+        .add_systems(
+            OnEnter(GameState::InGame),
+            (
+                enter,
+                enter_server.after(enter).run_if(server_running),
+                enter_client.after(enter).run_if(client_connected),
+            ),
+        )
         .add_systems(
             OnExit(GameState::InGame),
             (exit, cleanup_state::<OnInGame>, cleanup_state::<Node>),
@@ -171,18 +179,35 @@ fn enter(mut commands: Commands, assets: Res<GameAssetState>) {
         "Rear Wall",
     );
 
-    // bouncing ball
-    ball::spawn_ball(
-        &mut commands,
-        Vec3::new(0.0, 20.0, 0.0),
-        assets.ball_mesh.clone(),
-        assets.ball_material.clone(),
-    );
-
     // player spawns
     commands.spawn(spawn::SpawnPointBundle::from_translation(Vec3::new(
         -5.0, 2.1, 5.0,
     )));
+}
+
+fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
+    ball::spawn_ball(
+        &mut commands,
+        Vec3::new(0.0, 20.0, 5.0),
+        assets.ball_mesh.clone(),
+        assets.ball_material.clone(),
+    );
+}
+
+fn enter_client(
+    mut commands: Commands,
+    assets: Res<GameAssetState>,
+    balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+) {
+    for (entity, transform) in &balls {
+        ball::init_ball(
+            &mut commands,
+            entity,
+            *transform,
+            assets.ball_mesh.clone(),
+            assets.ball_material.clone(),
+        );
+    }
 }
 
 fn exit(mut commands: Commands) {

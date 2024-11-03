@@ -6,7 +6,7 @@ use bevy_mod_reqwest::*;
 use bevy_replicon_renet::renet::transport::{
     NetcodeServerTransport, ServerAuthentication, ServerConfig,
 };
-use bevy_replicon_renet::renet::ServerEvent;
+use bevy_replicon_renet::renet::{ConnectionConfig, RenetServer, ServerEvent};
 use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
@@ -56,9 +56,7 @@ pub struct ServerPlugin;
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(placement::PlacementPlugin)
-            .insert_resource(bevy_replicon_renet::renet::RenetServer::new(
-                bevy_replicon_renet::renet::ConnectionConfig::default(),
-            ))
+            .insert_resource(RenetServer::new(ConnectionConfig::default()))
             // rapier makes use of Mesh assets
             // and this is missing without rendering
             .init_asset::<Mesh>()
