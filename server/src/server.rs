@@ -12,7 +12,9 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
 use common::gameserver::GameServerState;
-use game::{network::MoveInputEvent, GameState, PROTOCOL_ID};
+use game::{
+    network::MoveInputEvent, player, spawn::SpawnPoint, GameAssetState, GameState, PROTOCOL_ID,
+};
 
 use crate::{api, options::Options, orchestration::Orchestration, placement, tasks, AppState};
 
@@ -231,14 +233,26 @@ fn init_server(
     app_state.set(AppState::InGame);
 }
 
-fn handle_network_events(mut evr_server: EventReader<ServerEvent>) {
+fn handle_network_events(
+    mut commands: Commands,
+    assets: Res<GameAssetState>,
+    spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
+    mut evr_server: EventReader<ServerEvent>,
+) {
     for evt in evr_server.read() {
         match evt {
             ServerEvent::ClientConnected { client_id } => {
-                info!("client {} connected", client_id);
+                let client_id = ClientId::new(client_id.raw());
+                info!("client {:?} connected", client_id);
+
+                let spawnpoint = spawnpoints.iter().next().unwrap();
+                player::spawn_player(&mut commands, client_id, spawnpoint.translation(), &assets);
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
-                info!("client {} disconnected: {}", client_id, reason);
+                let client_id = ClientId::new(client_id.raw());
+                info!("client {:?} disconnected: {}", client_id, reason);
+
+                // TODO: despawn their player
             }
         }
     }

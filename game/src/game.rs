@@ -3,8 +3,9 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 
 use crate::{
-    ball, cleanup_state, network::MoveInputEvent, player, spawn, world, GameAssetState, GameState,
-    InputState,
+    ball, cleanup_state,
+    network::{MoveInputEvent, PlayerClientId},
+    player, spawn, world, GameAssetState, GameState, InputState,
 };
 
 #[derive(Debug, Component)]
@@ -179,18 +180,15 @@ fn load_static(mut commands: Commands, assets: Res<GameAssetState>) {
 fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("entering server game ...");
 
-    ball::spawn_ball(
-        &mut commands,
-        Vec3::new(0.0, 20.0, -5.0),
-        assets.ball_mesh.clone(),
-        assets.ball_material.clone(),
-    );
+    ball::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
 }
 
 fn enter_client(
     mut commands: Commands,
+    client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("entering client game ...");
 
@@ -213,12 +211,17 @@ fn enter_client(
     );
 
     for (entity, transform) in &balls {
-        ball::init_ball(
+        ball::finish_client_ball(&mut commands, entity, *transform, &assets);
+    }
+
+    for (entity, transform, player) in &players {
+        player::finish_client_player(
             &mut commands,
             entity,
+            *player,
             *transform,
-            assets.ball_mesh.clone(),
-            assets.ball_material.clone(),
+            &assets,
+            client_id.0,
         );
     }
 }

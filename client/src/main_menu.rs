@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use game_common::cleanup_state;
+use game_common::{cleanup_state, network::PlayerClientId};
 
 use crate::{client, ui, AppState};
 
@@ -24,6 +24,7 @@ impl Plugin for MainMenuPlugin {
 fn on_start_local(
     event: Listener<Pointer<Click>>,
     client: Res<client::ClientState>,
+    client_id: Res<PlayerClientId>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     if !ui::check_click_event(
@@ -35,7 +36,7 @@ fn on_start_local(
         return;
     }
 
-    client::on_connected_server(&client, &mut app_state);
+    client::on_connected_server(&client, client_id.0, &mut app_state);
 }
 
 fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {

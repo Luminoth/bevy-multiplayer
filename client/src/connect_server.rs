@@ -10,7 +10,7 @@ use bevy_replicon_renet::renet::transport::{
 };
 
 use common::gameclient::*;
-use game_common::{cleanup_state, PROTOCOL_ID};
+use game_common::{cleanup_state, network::PlayerClientId, PROTOCOL_ID};
 
 use crate::{api, client, ui, AppState};
 
@@ -138,15 +138,17 @@ fn connect_to_server(mut commands: Commands, address: impl AsRef<str>, port: u16
 
     let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
 
-    commands.insert_resource(client::ClientState::new_remote(
-        address,
-        transport.client_id(),
-    ));
+    commands.insert_resource(client::ClientState::new_remote(address));
+    commands.insert_resource(PlayerClientId(ClientId::new(transport.client_id().raw())));
     commands.insert_resource(transport);
 }
 
-fn connected(client: Res<client::ClientState>, mut app_state: ResMut<NextState<AppState>>) {
+fn connected(
+    client: Res<client::ClientState>,
+    client_id: Res<PlayerClientId>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
     info!("connected to server!");
 
-    client::on_connected_server(&client, &mut app_state);
+    client::on_connected_server(&client, client_id.0, &mut app_state);
 }

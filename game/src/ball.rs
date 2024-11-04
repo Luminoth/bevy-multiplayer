@@ -3,24 +3,19 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::game::OnInGame;
+use crate::{game::OnInGame, GameAssetState};
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Ball;
 
-pub fn spawn_ball(
-    commands: &mut Commands,
-    position: Vec3,
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
-) {
+pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
     info!("spawning ball at {} ...", position);
 
     commands.spawn((
         MaterialMeshBundle {
             transform: Transform::from_xyz(position.x, position.y, position.z),
-            mesh,
-            material,
+            mesh: assets.ball_mesh.clone(),
+            material: assets.ball_material.clone(),
             ..default()
         },
         RigidBody::Dynamic,
@@ -34,23 +29,19 @@ pub fn spawn_ball(
     ));
 }
 
-pub fn init_ball(
+pub fn finish_client_ball(
     commands: &mut Commands,
     entity: Entity,
     transform: Transform,
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
+    assets: &GameAssetState,
 ) {
-    info!(
-        "initializing ball {} at {} ...",
-        entity, transform.translation
-    );
+    info!("finishing ball {} at {} ...", entity, transform.translation);
 
     commands.entity(entity).insert((
         MaterialMeshBundle {
             transform,
-            mesh,
-            material,
+            mesh: assets.ball_mesh.clone(),
+            material: assets.ball_material.clone(),
             ..default()
         },
         Name::new("Replicated Ball"),

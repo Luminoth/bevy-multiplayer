@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, GameAssetState, InputState};
 
-#[derive(Debug, Component, Serialize, Deserialize)]
-pub struct Player;
+#[derive(Debug, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
+pub struct Player(ClientId);
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
@@ -14,7 +14,10 @@ pub struct LocalPlayer;
 #[derive(Debug, Component)]
 pub struct PlayerCamera;
 
-#[derive(Debug, Default, Component, Reflect)]
+#[derive(Debug, Default, Component)]
+pub struct PlayerMoveInput(pub Vec2);
+
+#[derive(Debug, Default, Component, Reflect, Serialize, Deserialize)]
 pub struct PlayerPhysics {
     pub velocity: Vec3,
     grounded: bool,
@@ -41,30 +44,68 @@ const MOVE_SPEED: f32 = 5.0;
 const JUMP_SPEED: f32 = 10.0;
 const TERMINAL_VELOCITY: f32 = 50.0;
 
-pub fn spawn_local_player(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
-    info!("spawning local player at {} ...", position);
+pub fn spawn_player(
+    commands: &mut Commands,
+    client_id: ClientId,
+    position: Vec3,
+    assets: &GameAssetState,
+) {
+    info!("spawning player {:?} at {} ...", client_id, position);
 
-    commands
-        .spawn((
-            MaterialMeshBundle {
-                transform: Transform::from_xyz(position.x, position.y, position.z),
-                mesh: assets.player_mesh.clone(),
-                material: assets.player_material.clone(),
-                ..default()
-            },
-            RigidBody::KinematicPositionBased,
-            PlayerPhysics::default(),
-            GravityScale(2.0),
-            Collider::capsule_y(1.0, 1.0),
-            ColliderMassProperties::Mass(75.0),
-            KinematicCharacterController::default(),
-            Name::new("Local Player"),
-            Replicated,
-            Player,
-            LocalPlayer,
-            OnInGame,
-        ))
-        .with_children(|parent| {
+    commands.spawn((
+        MaterialMeshBundle {
+            transform: Transform::from_xyz(position.x, position.y, position.z),
+            mesh: assets.player_mesh.clone(),
+            material: assets.player_material.clone(),
+            ..default()
+        },
+        RigidBody::KinematicPositionBased,
+        GravityScale(2.0),
+        Collider::capsule_y(1.0, 1.0),
+        ColliderMassProperties::Mass(75.0),
+        KinematicCharacterController::default(),
+        Name::new(format!("Player {:?}", client_id)),
+        Replicated,
+        PlayerMoveInput::default(),
+        PlayerPhysics::default(),
+        Player(client_id),
+        OnInGame,
+    ));
+}
+
+pub fn finish_client_player(
+    commands: &mut Commands,
+    entity: Entity,
+    player: Player,
+    transform: Transform,
+    assets: &GameAssetState,
+    client_id: ClientId,
+) {
+    info!(
+        "finishing player {} ({:?}) at {} ...",
+        entity, player.0, transform.translation
+    );
+
+    let is_local = player.0 == client_id;
+
+    let mut commands = commands.entity(entity);
+
+    commands.insert((
+        MaterialMeshBundle {
+            transform,
+            mesh: assets.player_mesh.clone(),
+            material: assets.player_material.clone(),
+            ..default()
+        },
+        Name::new(format!(
+            "Replicated Player ({})",
+            if is_local { " Local" } else { "Remote" }
+        )),
+        OnInGame,
+    ));
+
+    if is_local {
+        commands.with_children(|parent| {
             parent.spawn((
                 Camera3dBundle {
                     transform: Transform::from_xyz(0.0, 1.9, -0.9),
@@ -75,33 +116,12 @@ pub fn spawn_local_player(commands: &mut Commands, position: Vec3, assets: &Game
                     .into(),
                     ..default()
                 },
-                Name::new("Camera"),
+                Name::new("FPS Camera"),
                 PlayerCamera,
                 OnInGame,
             ));
         });
-}
-
-pub fn spawn_remote_player(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
-    info!("spawning remote player at {} ...", position);
-
-    commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform::from_xyz(position.x, position.y, position.z),
-            mesh: assets.player_mesh.clone(),
-            material: assets.player_material.clone(),
-            ..default()
-        },
-        RigidBody::KinematicPositionBased,
-        PlayerPhysics::default(),
-        GravityScale(2.0),
-        Collider::capsule_y(1.0, 1.0),
-        ColliderMassProperties::Mass(75.0),
-        Name::new("Remote Player"),
-        Replicated,
-        Player,
-        OnInGame,
-    ));
+    }
 }
 
 #[derive(Debug)]
@@ -112,9 +132,10 @@ impl Plugin for PlayerPlugin {
         app.add_event::<JumpEvent>()
             .add_systems(FixedUpdate, update_player_physics);
 
-        app.register_type::<PlayerPhysics>();
+        app.register_type::<Player>()
+            .register_type::<PlayerPhysics>();
 
-        app.replicate_group::<(Transform, Player)>();
+        app.replicate_group::<(Transform, Player, PlayerPhysics)>();
     }
 }
 
