@@ -5,8 +5,12 @@ use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_mod_reqwest::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::renet::transport::{
-    ClientAuthentication, NetcodeClientTransport, NetcodeTransportError,
+use bevy_replicon_renet::{
+    renet::{
+        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeTransportError},
+        ConnectionConfig, RenetClient,
+    },
+    RenetChannelsExt,
 };
 
 use common::gameclient::*;
@@ -52,6 +56,7 @@ fn handle_network_error(
             error!("network error: {}", evt);
         }
 
+        commands.remove_resource::<RenetClient>();
         commands.remove_resource::<NetcodeClientTransport>();
 
         app_state.set(AppState::MainMenu);
@@ -96,11 +101,15 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>, mut client: Bev
     });
 
     api::find_server(&mut client, "test_player")
-        .on_response(|req: Trigger<ReqwestResponseEvent>, commands: Commands| {
-            let resp = req.event().as_str().unwrap();
-            let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
-            connect_to_server(commands, resp.address, resp.port);
-        })
+        .on_response(
+            |req: Trigger<ReqwestResponseEvent>,
+             mut commands: Commands,
+             channels: Res<RepliconChannels>| {
+                let resp = req.event().as_str().unwrap();
+                let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
+                connect_to_server(&mut commands, &channels, resp.address, resp.port);
+            },
+        )
         .on_error(
             |trigger: Trigger<ReqwestErrorEvent>, mut app_state: ResMut<NextState<AppState>>| {
                 let e = &trigger.event().0;
@@ -117,7 +126,12 @@ fn exit(mut commands: Commands) {
     commands.remove_resource::<ClearColor>();
 }
 
-fn connect_to_server(mut commands: Commands, address: impl AsRef<str>, port: u16) {
+fn connect_to_server(
+    commands: &mut Commands,
+    channels: &RepliconChannels,
+    address: impl AsRef<str>,
+    port: u16,
+) {
     info!("connect to server ...");
 
     let address = address.as_ref();
@@ -136,11 +150,19 @@ fn connect_to_server(mut commands: Commands, address: impl AsRef<str>, port: u16
 
     info!("connecting to {} as {} ...", server_addr, client_id);
 
+    let client = RenetClient::new(ConnectionConfig {
+        server_channels_config: channels.get_server_configs(),
+        client_channels_config: channels.get_client_configs(),
+        ..Default::default()
+    });
+    commands.insert_resource(client);
+
     let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
+    let client_id = transport.client_id();
+    commands.insert_resource(transport);
 
     commands.insert_resource(client::ClientState::new_remote(address));
-    commands.insert_resource(PlayerClientId(ClientId::new(transport.client_id().raw())));
-    commands.insert_resource(transport);
+    commands.insert_resource(PlayerClientId(ClientId::new(client_id.raw())));
 }
 
 fn connected(

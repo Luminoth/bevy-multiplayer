@@ -78,7 +78,6 @@ pub fn finish_client_player(
     entity: Entity,
     transform: Transform,
     player: Player,
-    player_physics: PlayerPhysics,
     assets: &GameAssetState,
     client_id: ClientId,
 ) {
@@ -102,7 +101,6 @@ pub fn finish_client_player(
             "Replicated Player ({})",
             if is_local { " Local" } else { "Remote" }
         )),
-        player_physics,
         OnInGame,
     ));
 

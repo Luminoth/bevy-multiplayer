@@ -189,10 +189,7 @@ fn enter_client(
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
-    players: Query<
-        (Entity, &Transform, &player::Player, &player::PlayerPhysics),
-        Without<GlobalTransform>,
-    >,
+    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("entering client game ...");
 
@@ -218,13 +215,12 @@ fn enter_client(
         ball::finish_client_ball(&mut commands, entity, *transform, &assets);
     }
 
-    for (entity, transform, player, player_physics) in &players {
+    for (entity, transform, player) in &players {
         player::finish_client_player(
             &mut commands,
             entity,
             *transform,
             *player,
-            *player_physics,
             &assets,
             client_id.0,
         );

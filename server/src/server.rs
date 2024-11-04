@@ -4,9 +4,12 @@ use std::time::{Duration, SystemTime};
 use bevy::{prelude::*, time::common_conditions::on_timer};
 use bevy_mod_reqwest::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::renet::{
-    transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
-    ConnectionConfig, RenetServer, ServerEvent,
+use bevy_replicon_renet::{
+    renet::{
+        transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
+        ConnectionConfig, RenetServer, ServerEvent,
+    },
+    RenetChannelsExt,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
@@ -62,7 +65,6 @@ pub struct ServerPlugin;
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(placement::PlacementPlugin)
-            .insert_resource(RenetServer::new(ConnectionConfig::default()))
             // rapier makes use of Mesh assets
             // and this is missing without rendering
             .init_asset::<Mesh>()
@@ -163,6 +165,7 @@ fn exit(mut commands: Commands) {
     info!("exit game ...");
 
     commands.remove_resource::<GameSessionInfo>();
+    commands.remove_resource::<RenetServer>();
     commands.remove_resource::<NetcodeServerTransport>();
 }
 
@@ -199,6 +202,7 @@ fn init_server(
     mut commands: Commands,
     mut client: BevyReqwest,
     options: Res<Options>,
+    channels: Res<RepliconChannels>,
     server_info: Res<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
     current_state: Res<State<AppState>>,
@@ -229,6 +233,13 @@ fn init_server(
     };
 
     info!("listening at {} ...", server_addr);
+
+    let server = RenetServer::new(ConnectionConfig {
+        server_channels_config: channels.get_server_configs(),
+        client_channels_config: channels.get_client_configs(),
+        ..Default::default()
+    });
+    commands.insert_resource(server);
 
     let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
     commands.insert_resource(transport);

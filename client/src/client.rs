@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::renet::{
-    transport::NetcodeClientTransport, ConnectionConfig, RenetClient,
-};
+use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use game_common::{
     network::{MoveInputEvent, PlayerClientId, PlayerJumpEvent},
@@ -49,7 +47,6 @@ impl Plugin for ClientPlugin {
             ui::UiPlugin,
             game::GamePlugin,
         ))
-        .insert_resource(RenetClient::new(ConnectionConfig::default()))
         .init_resource::<Settings>()
         .init_resource::<ClientState>()
         .add_systems(OnEnter(AppState::InGame), enter)
@@ -75,6 +72,7 @@ fn exit(mut commands: Commands) {
 
     commands.remove_resource::<PlayerClientId>();
     commands.remove_resource::<ClientState>();
+    commands.remove_resource::<RenetClient>();
     commands.remove_resource::<NetcodeClientTransport>();
 }
 
