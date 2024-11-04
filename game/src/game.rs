@@ -4,7 +4,7 @@ use bevy_replicon::prelude::*;
 
 use crate::{
     ball, cleanup_state,
-    network::{MoveInputEvent, PlayerClientId},
+    network::{MoveInputEvent, PlayerClientId, PlayerJumpEvent},
     player, spawn, world, GameAssetState, GameState, InputState,
 };
 
@@ -27,6 +27,7 @@ impl Plugin for GamePlugin {
         .init_resource::<InputState>()
         // TOOD: move to a network plugin
         .add_client_event::<MoveInputEvent>(ChannelKind::Ordered)
+        .add_client_event::<PlayerJumpEvent>(ChannelKind::Unordered)
         .add_systems(OnEnter(GameState::LoadAssets), load_assets)
         .add_systems(
             Update,
@@ -188,7 +189,10 @@ fn enter_client(
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
-    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+    players: Query<
+        (Entity, &Transform, &player::Player, &player::PlayerPhysics),
+        Without<GlobalTransform>,
+    >,
 ) {
     info!("entering client game ...");
 
@@ -214,12 +218,13 @@ fn enter_client(
         ball::finish_client_ball(&mut commands, entity, *transform, &assets);
     }
 
-    for (entity, transform, player) in &players {
+    for (entity, transform, player, player_physics) in &players {
         player::finish_client_player(
             &mut commands,
             entity,
-            *player,
             *transform,
+            *player,
+            *player_physics,
             &assets,
             client_id.0,
         );

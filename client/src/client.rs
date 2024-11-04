@@ -5,7 +5,8 @@ use bevy_replicon_renet::renet::{
 };
 
 use game_common::{
-    network::{MoveInputEvent, PlayerClientId},
+    network::{MoveInputEvent, PlayerClientId, PlayerJumpEvent},
+    player::JumpEvent,
     GameState, InputState,
 };
 
@@ -54,7 +55,7 @@ impl Plugin for ClientPlugin {
         .add_systems(OnEnter(AppState::InGame), enter)
         .add_systems(
             PostUpdate,
-            send_move_input
+            (send_move_input, send_jump_event)
                 .before(ClientSet::Send)
                 .run_if(in_state(AppState::InGame))
                 .run_if(client_connected),
@@ -94,4 +95,15 @@ pub fn on_connected_server(
 fn send_move_input(input: Res<InputState>, mut evw_move_input: EventWriter<MoveInputEvent>) {
     // TODO: don't update the player position in the client
     evw_move_input.send(MoveInputEvent(input.r#move));
+}
+
+fn send_jump_event(
+    mut evr_jump: EventReader<JumpEvent>,
+    mut evw_jump: EventWriter<PlayerJumpEvent>,
+) {
+    // TODO: only send if the player is grounded
+    if !evr_jump.is_empty() {
+        evw_jump.send(PlayerJumpEvent);
+        evr_jump.clear();
+    }
 }

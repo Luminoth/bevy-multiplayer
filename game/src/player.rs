@@ -17,7 +17,7 @@ pub struct PlayerCamera;
 #[derive(Debug, Default, Component)]
 pub struct PlayerMoveInput(pub Vec2);
 
-#[derive(Debug, Default, Component, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct PlayerPhysics {
     pub velocity: Vec3,
     grounded: bool,
@@ -76,8 +76,9 @@ pub fn spawn_player(
 pub fn finish_client_player(
     commands: &mut Commands,
     entity: Entity,
-    player: Player,
     transform: Transform,
+    player: Player,
+    player_physics: PlayerPhysics,
     assets: &GameAssetState,
     client_id: ClientId,
 ) {
@@ -101,6 +102,7 @@ pub fn finish_client_player(
             "Replicated Player ({})",
             if is_local { " Local" } else { "Remote" }
         )),
+        player_physics,
         OnInGame,
     ));
 
@@ -124,6 +126,13 @@ pub fn finish_client_player(
     }
 }
 
+pub fn jump(player_physics: &mut PlayerPhysics) {
+    if player_physics.is_grounded() {
+        player_physics.velocity.y += JUMP_SPEED;
+        player_physics.update_grounded(false);
+    }
+}
+
 #[derive(Debug)]
 pub struct PlayerPlugin;
 
@@ -144,7 +153,6 @@ fn update_player_physics(
     physics_config: Res<RapierConfiguration>,
     time: Res<Time<Fixed>>,
     mut input_state: ResMut<InputState>,
-    mut evw_jump: EventReader<JumpEvent>,
     mut player_query: Query<
         (
             &mut KinematicCharacterController,
@@ -181,11 +189,6 @@ fn update_player_physics(
         } else {
             player_physics.velocity.x = 0.0;
             player_physics.velocity.z = 0.0;
-        }
-
-        if !evw_jump.is_empty() {
-            player_physics.velocity.y += JUMP_SPEED;
-            evw_jump.clear();
         }
     }
 

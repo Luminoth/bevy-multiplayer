@@ -7,3 +7,6 @@ pub struct PlayerClientId(pub ClientId);
 
 #[derive(Debug, Event, Serialize, Deserialize)]
 pub struct MoveInputEvent(pub Vec2);
+
+#[derive(Debug, Event, Serialize, Deserialize)]
+pub struct PlayerJumpEvent;
