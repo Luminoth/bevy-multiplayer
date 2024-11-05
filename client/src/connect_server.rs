@@ -157,11 +157,10 @@ fn connect_to_server(
     commands.insert_resource(client);
 
     let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
-    let client_id = transport.client_id();
     commands.insert_resource(transport);
 
     commands.insert_resource(client::ClientState::new_remote(address));
-    commands.insert_resource(PlayerClientId(ClientId::new(client_id.raw())));
+    commands.insert_resource(PlayerClientId(ClientId::new(client_id)));
 }
 
 fn connected(

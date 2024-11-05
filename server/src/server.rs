@@ -7,7 +7,7 @@ use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
     renet::{
         transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
-        ConnectionConfig, RenetServer, ServerEvent,
+        ConnectionConfig, RenetServer,
     },
     RenetChannelsExt,
 };
@@ -257,14 +257,12 @@ fn handle_network_events(
     for evt in evr_server.read() {
         match evt {
             ServerEvent::ClientConnected { client_id } => {
-                let client_id = ClientId::new(client_id.raw());
                 info!("client {:?} connected", client_id);
 
                 let spawnpoint = spawnpoints.iter().next().unwrap();
-                player::spawn_player(&mut commands, client_id, spawnpoint.translation(), &assets);
+                player::spawn_player(&mut commands, *client_id, spawnpoint.translation(), &assets);
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
-                let client_id = ClientId::new(client_id.raw());
                 info!("client {:?} disconnected: {}", client_id, reason);
 
                 // TODO: despawn their player
