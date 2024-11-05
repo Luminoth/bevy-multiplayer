@@ -89,6 +89,10 @@ fn update_mnk(
     settings: Res<Settings>,
     mut evw_jump: EventWriter<JumpEvent>,
 ) {
+    if !settings.mnk.enabled {
+        return;
+    }
+
     let mut r#move = Vec2::default();
     if keys.pressed(KeyCode::KeyW) {
         r#move.y += 1.0;
@@ -128,6 +132,10 @@ fn update_gamepad(
     mut input_state: ResMut<InputState>,
     mut evw_jump: EventWriter<JumpEvent>,
 ) {
+    if !settings.gamepad.enabled {
+        return;
+    }
+
     let Some(&ConnectedGamepad(gamepad)) = gamepad.as_deref() else {
         return;
     };

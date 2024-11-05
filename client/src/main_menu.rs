@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
+use bevy_replicon::prelude::*;
 
 use game_common::{cleanup_state, network::PlayerClientId};
 
@@ -22,9 +23,9 @@ impl Plugin for MainMenuPlugin {
 }
 
 fn on_start_local(
+    mut commands: Commands,
     event: Listener<Pointer<Click>>,
     client: Res<client::ClientState>,
-    client_id: Res<PlayerClientId>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     if !ui::check_click_event(
@@ -36,7 +37,9 @@ fn on_start_local(
         return;
     }
 
-    client::on_connected_server(&client, client_id.0, &mut app_state);
+    let client_id = ClientId::SERVER;
+    commands.insert_resource(PlayerClientId(client_id));
+    client::on_connected_server(&client, client_id, &mut app_state);
 }
 
 fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
