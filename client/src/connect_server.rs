@@ -160,7 +160,7 @@ fn connect_to_server(
     commands.insert_resource(transport);
 
     commands.insert_resource(client::ClientState::new_remote(address));
-    commands.insert_resource(PlayerClientId(ClientId::new(client_id)));
+    commands.insert_resource(PlayerClientId::new(ClientId::new(client_id)));
 }
 
 fn connected(
@@ -170,5 +170,5 @@ fn connected(
 ) {
     info!("connected to server!");
 
-    client::on_connected_server(&client, client_id.0, &mut app_state);
+    client::on_connected_server(&client, *client_id, &mut app_state);
 }

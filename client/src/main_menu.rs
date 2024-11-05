@@ -37,8 +37,8 @@ fn on_start_local(
         return;
     }
 
-    let client_id = ClientId::SERVER;
-    commands.insert_resource(PlayerClientId(client_id));
+    let client_id = PlayerClientId::new(ClientId::SERVER);
+    commands.insert_resource(client_id);
     client::on_connected_server(&client, client_id, &mut app_state);
 }
 

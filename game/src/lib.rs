@@ -1,4 +1,4 @@
-mod ball;
+pub mod ball;
 mod game;
 pub mod network;
 pub mod player;
@@ -8,7 +8,7 @@ mod world;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-pub use game::GamePlugin;
+pub use game::{spawn_client_world, GamePlugin};
 
 pub const PROTOCOL_ID: u64 = 0;
 
@@ -19,6 +19,7 @@ pub enum GameState {
     #[default]
     WaitingForApp,
     LoadAssets,
+    SpawnWorld,
     InGame,
 }
 

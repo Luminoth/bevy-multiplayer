@@ -138,11 +138,11 @@ fn shutdown(orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>) 
 }
 
 fn enter(
-    mut game_state: ResMut<NextState<GameState>>,
     mut client: BevyReqwest,
     server_info: Res<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
     state: Res<State<AppState>>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
     info!("enter game ...");
 
@@ -243,6 +243,8 @@ fn init_server(
     app_state.set(AppState::InGame);
 }
 
+// TODO: we shouldn't allow connections until we've loaded assets
+// (otherwise spawning the player will probably fail)
 fn handle_network_events(
     mut commands: Commands,
     assets: Res<GameAssetState>,

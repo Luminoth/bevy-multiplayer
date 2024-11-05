@@ -21,7 +21,6 @@ pub enum AppState {
     Startup,
     WaitForPlacement,
     InitServer,
-    LoadAssets,
     InGame,
     Shutdown,
 }
@@ -31,9 +30,7 @@ impl From<AppState> for GameServerState {
         match state {
             AppState::Startup => GameServerState::Init,
             AppState::WaitForPlacement => GameServerState::WaitingForPlacement,
-            AppState::InitServer | AppState::LoadAssets | AppState::InGame => {
-                GameServerState::InGame
-            }
+            AppState::InitServer | AppState::InGame => GameServerState::InGame,
             AppState::Shutdown => GameServerState::Shutdown,
         }
     }

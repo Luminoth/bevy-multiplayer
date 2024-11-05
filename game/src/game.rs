@@ -33,14 +33,16 @@ impl Plugin for GamePlugin {
             Update,
             wait_for_assets.run_if(in_state(GameState::LoadAssets)),
         )
+        .add_systems(OnEnter(GameState::SpawnWorld), spawn_world)
+        .add_systems(
+            Update,
+            wait_for_world.run_if(in_state(GameState::SpawnWorld)),
+        )
         .add_systems(
             OnEnter(GameState::InGame),
             (
-                load_static,
-                enter_server
-                    .after(load_static)
-                    .run_if(server_or_singleplayer),
-                enter_client.after(load_static).run_if(client_connected),
+                enter_server.run_if(server_or_singleplayer),
+                enter_client.run_if(client_connected),
             ),
         )
         .add_systems(
@@ -90,13 +92,13 @@ fn load_assets(
 }
 
 fn wait_for_assets(mut game_state: ResMut<NextState<GameState>>) {
-    game_state.set(GameState::InGame);
+    game_state.set(GameState::SpawnWorld);
 }
 
 // TODO: it would be nice if we could not load materials on the server
 
-fn load_static(mut commands: Commands, assets: Res<GameAssetState>) {
-    info!("loading static entities ...");
+fn spawn_world(mut commands: Commands, assets: Res<GameAssetState>) {
+    info!("spawning world ...");
 
     // floor
     world::spawn_wall(
@@ -178,10 +180,50 @@ fn load_static(mut commands: Commands, assets: Res<GameAssetState>) {
     )));
 }
 
+fn wait_for_world(mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::InGame);
+}
+
 fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("entering server game ...");
 
     ball::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
+}
+
+pub fn spawn_client_world(
+    commands: &mut Commands,
+    client_id: ClientId,
+    assets: &GameAssetState,
+    balls: &Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+    players: &Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+) {
+    info!("spawning client world ...");
+
+    commands.insert_resource(ClearColor(Color::BLACK));
+
+    commands.insert_resource(AmbientLight {
+        color: WHITE.into(),
+        brightness: 80.0,
+    });
+
+    world::spawn_directional_light(
+        commands,
+        ORANGE_RED.into(),
+        Transform {
+            translation: Vec3::new(0.0, 5.0, 0.0),
+            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
+            ..default()
+        },
+        "Sun",
+    );
+
+    for (entity, transform) in balls {
+        ball::finish_client_ball(commands, entity, *transform, &assets);
+    }
+
+    for (entity, transform, player) in players {
+        player::finish_client_player(commands, entity, *transform, *player, &assets, client_id);
+    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -194,38 +236,13 @@ fn enter_client(
 ) {
     info!("entering client game ...");
 
-    commands.insert_resource(ClearColor(Color::BLACK));
-
-    commands.insert_resource(AmbientLight {
-        color: WHITE.into(),
-        brightness: 80.0,
-    });
-
-    world::spawn_directional_light(
+    spawn_client_world(
         &mut commands,
-        ORANGE_RED.into(),
-        Transform {
-            translation: Vec3::new(0.0, 5.0, 0.0),
-            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
-            ..default()
-        },
-        "Sun",
+        client_id.get_client_id(),
+        &assets,
+        &balls,
+        &players,
     );
-
-    for (entity, transform) in &balls {
-        ball::finish_client_ball(&mut commands, entity, *transform, &assets);
-    }
-
-    for (entity, transform, player) in &players {
-        player::finish_client_player(
-            &mut commands,
-            entity,
-            *transform,
-            *player,
-            &assets,
-            client_id.0,
-        );
-    }
 }
 
 fn exit(mut commands: Commands) {
