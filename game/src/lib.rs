@@ -8,7 +8,7 @@ mod world;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-pub use game::{spawn_client_world, GamePlugin};
+pub use game::{spawn_client_world, GamePlugin, ServerSet};
 
 pub const PROTOCOL_ID: u64 = 0;
 

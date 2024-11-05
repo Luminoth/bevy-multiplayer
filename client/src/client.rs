@@ -8,7 +8,7 @@ use game_common::{
     player,
     player::JumpEvent,
     spawn::SpawnPoint,
-    GameAssetState, GameState, InputState,
+    GameAssetState, GameState, InputState, ServerSet,
 };
 
 use crate::{camera, connect_server, input, main_menu, ui, AppState, Settings};
@@ -55,7 +55,10 @@ impl Plugin for ClientPlugin {
                 .run_if(client_connected),
         )
         .add_systems(OnExit(AppState::InGame), exit)
-        .add_systems(OnEnter(GameState::InGame), enter_game);
+        .add_systems(
+            OnEnter(GameState::InGame),
+            (enter_game.after(ServerSet), finish_game.after(enter_game)),
+        );
     }
 }
 
@@ -80,11 +83,9 @@ fn enter_game(
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
-    balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
-    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     if client_id.is_local() {
-        info!("finishing local game ...");
+        info!("finishing local game (1) ...");
 
         let spawnpoint = spawnpoints.iter().next().unwrap();
         player::spawn_player(
@@ -93,6 +94,18 @@ fn enter_game(
             spawnpoint.translation(),
             &assets,
         );
+    }
+}
+
+fn finish_game(
+    mut commands: Commands,
+    client_id: Res<PlayerClientId>,
+    assets: Res<GameAssetState>,
+    balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+) {
+    if client_id.is_local() {
+        info!("finishing local game (2) ...");
 
         game_common::spawn_client_world(
             &mut commands,

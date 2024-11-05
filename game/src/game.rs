@@ -8,6 +8,9 @@ use crate::{
     player, spawn, world, GameAssetState, GameState, InputState,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+pub struct ServerSet;
+
 #[derive(Debug, Component)]
 pub(crate) struct OnInGame;
 
@@ -41,7 +44,9 @@ impl Plugin for GamePlugin {
         .add_systems(
             OnEnter(GameState::InGame),
             (
-                enter_server.run_if(server_or_singleplayer),
+                enter_server
+                    .run_if(server_or_singleplayer)
+                    .in_set(ServerSet),
                 enter_client.run_if(client_connected),
             ),
         )
