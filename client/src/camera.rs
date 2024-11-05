@@ -2,6 +2,8 @@ use bevy::prelude::*;
 
 use game_common::{player::PlayerCamera, InputState};
 
+use crate::input;
+
 const PITCH_MAX: f32 = std::f32::consts::FRAC_PI_2 - 0.01;
 
 #[derive(Debug)]
@@ -9,7 +11,7 @@ pub struct FpsCameraPlugin;
 
 impl Plugin for FpsCameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_fps_camera);
+        app.add_systems(Update, update_fps_camera.after(input::InputSet));
     }
 }
 

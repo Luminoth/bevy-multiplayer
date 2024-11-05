@@ -13,6 +13,9 @@ use crate::Settings;
 #[derive(Debug, Resource)]
 struct ConnectedGamepad(Gamepad);
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+pub struct InputSet;
+
 #[derive(Debug)]
 pub struct InputPlugin;
 
@@ -27,7 +30,8 @@ impl Plugin for InputPlugin {
                     handle_gamepad_events,
                     (update_mnk, (update_gamepad.after(handle_gamepad_events)))
                         .run_if(in_state(GameState::InGame)),
-                ),
+                )
+                    .in_set(InputSet),
             );
     }
 }
