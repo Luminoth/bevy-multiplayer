@@ -89,8 +89,14 @@ pub fn on_connected_server(
     app_state.set(AppState::InGame);
 }
 
-fn send_input_update(input: Res<InputState>, mut evw_input_update: EventWriter<InputUpdateEvent>) {
+fn send_input_update(
+    mut input: ResMut<InputState>,
+    mut evw_input_update: EventWriter<InputUpdateEvent>,
+) {
     evw_input_update.send(InputUpdateEvent(*input));
+
+    input.look = Vec2::default();
+    input.r#move = Vec2::default();
 }
 
 fn send_jump_event(

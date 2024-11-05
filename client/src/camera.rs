@@ -15,7 +15,7 @@ impl Plugin for FpsCameraPlugin {
 
 fn update_fps_camera(
     time: Res<Time>,
-    mut input_state: ResMut<InputState>,
+    input_state: Res<InputState>,
     mut camera_query: Query<&mut Transform, With<PlayerCamera>>,
 ) {
     // TODO: should the rate of change here be maxed?
@@ -29,6 +29,4 @@ fn update_fps_camera(
         let pitch = (pitch + delta_pitch).clamp(-PITCH_MAX, PITCH_MAX);
         camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
-
-    input_state.look.y = 0.0;
 }

@@ -112,7 +112,7 @@ pub fn finish_client_player(
                     .into(),
                     ..default()
                 },
-                Name::new("FPS Camera"),
+                Name::new("Player Camera"),
                 PlayerCamera,
                 OnInGame,
             ));
