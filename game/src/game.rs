@@ -4,7 +4,7 @@ use bevy_replicon::prelude::*;
 
 use crate::{
     ball, cleanup_state,
-    network::{MoveInputEvent, PlayerClientId, PlayerJumpEvent},
+    network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     player, spawn, world, GameAssetState, GameState, InputState,
 };
 
@@ -26,7 +26,7 @@ impl Plugin for GamePlugin {
         .init_state::<GameState>()
         .init_resource::<InputState>()
         // TOOD: move to a network plugin
-        .add_client_event::<MoveInputEvent>(ChannelKind::Ordered)
+        .add_client_event::<InputUpdateEvent>(ChannelKind::Ordered)
         .add_client_event::<PlayerJumpEvent>(ChannelKind::Unordered)
         .add_systems(OnEnter(GameState::LoadAssets), load_assets)
         .add_systems(
@@ -184,6 +184,7 @@ fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     ball::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
 }
 
+#[allow(clippy::type_complexity)]
 fn enter_client(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,

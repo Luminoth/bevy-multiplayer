@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use common::gameserver::GameServerState;
 use game::{
-    network::{MoveInputEvent, PlayerJumpEvent},
+    network::{InputUpdateEvent, PlayerJumpEvent},
     player,
     spawn::SpawnPoint,
     GameAssetState, GameState, PROTOCOL_ID,
@@ -71,7 +71,7 @@ impl Plugin for ServerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 PreUpdate,
-                (handle_move_input, handle_jump_event)
+                (handle_input_update, handle_jump_event)
                     .after(ServerSet::Receive)
                     .run_if(in_state(AppState::InGame))
                     .run_if(server_running),
@@ -198,6 +198,7 @@ fn heartbeat_monitor(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn init_server(
     mut commands: Commands,
     mut client: BevyReqwest,
@@ -272,9 +273,9 @@ fn handle_network_events(
     }
 }
 
-fn handle_move_input(mut evr_move_input: EventReader<FromClient<MoveInputEvent>>) {
+fn handle_input_update(mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>) {
     #[allow(unused_variables)]
-    for FromClient { client_id, event } in evr_move_input.read() {
+    for FromClient { client_id, event } in evr_input_update.read() {
         // TODO: move the client's player
     }
 }

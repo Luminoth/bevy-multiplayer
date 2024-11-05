@@ -3,12 +3,12 @@ use bevy_replicon::prelude::*;
 use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use game_common::{
-    network::{MoveInputEvent, PlayerClientId, PlayerJumpEvent},
+    network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     player::JumpEvent,
     GameState, InputState,
 };
 
-use crate::{camera, connect_server, game, input, main_menu, ui, AppState, Settings};
+use crate::{camera, connect_server, input, main_menu, ui, AppState, Settings};
 
 #[derive(Debug, Default, Resource)]
 pub struct ClientState {
@@ -45,14 +45,13 @@ impl Plugin for ClientPlugin {
             camera::FpsCameraPlugin,
             input::InputPlugin,
             ui::UiPlugin,
-            game::GamePlugin,
         ))
         .init_resource::<Settings>()
         .init_resource::<ClientState>()
         .add_systems(OnEnter(AppState::InGame), enter)
         .add_systems(
             PostUpdate,
-            (send_move_input, send_jump_event)
+            (send_input_update, send_jump_event)
                 .before(ClientSet::Send)
                 .run_if(in_state(AppState::InGame))
                 .run_if(client_connected),
@@ -90,9 +89,8 @@ pub fn on_connected_server(
     app_state.set(AppState::InGame);
 }
 
-fn send_move_input(input: Res<InputState>, mut evw_move_input: EventWriter<MoveInputEvent>) {
-    // TODO: don't update the player position in the client
-    evw_move_input.send(MoveInputEvent(input.r#move));
+fn send_input_update(input: Res<InputState>, mut evw_input_update: EventWriter<InputUpdateEvent>) {
+    evw_input_update.send(InputUpdateEvent(*input));
 }
 
 fn send_jump_event(

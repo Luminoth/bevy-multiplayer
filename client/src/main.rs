@@ -3,7 +3,6 @@ mod camera;
 mod client;
 mod connect_server;
 mod debug;
-mod game;
 mod input;
 mod main_menu;
 mod options;

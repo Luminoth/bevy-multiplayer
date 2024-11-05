@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use game_common::{
-    player::{LocalPlayer, PlayerCamera},
-    InputState,
-};
+use game_common::{player::PlayerCamera, InputState};
 
 const PITCH_MAX: f32 = std::f32::consts::FRAC_PI_2 - 0.01;
 
@@ -16,27 +13,14 @@ impl Plugin for FpsCameraPlugin {
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn update_fps_camera(
     time: Res<Time>,
     mut input_state: ResMut<InputState>,
-    mut transforms_query: ParamSet<(
-        Query<&mut Transform, With<PlayerCamera>>,
-        Query<&mut Transform, With<LocalPlayer>>,
-    )>,
+    mut camera_query: Query<&mut Transform, With<PlayerCamera>>,
 ) {
     // TODO: should the rate of change here be maxed?
-    let delta_yaw = -input_state.look.x * time.delta_seconds();
     let delta_pitch = input_state.look.y * time.delta_seconds();
 
-    // TODO: does this belong in a player method?
-    let mut player_query = transforms_query.p1();
-    if let Ok(mut player_transform) = player_query.get_single_mut() {
-        // TODO: should this be done on the physics step?
-        player_transform.rotate_y(delta_yaw);
-    }
-
-    let mut camera_query = transforms_query.p0();
     if let Ok(mut camera_transform) = camera_query.get_single_mut() {
         // can't do this because we need to clamp the pitch
         //camera_transform.rotate_x(delta_pitch);
@@ -46,5 +30,5 @@ fn update_fps_camera(
         camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
 
-    input_state.look = Vec2::default();
+    input_state.look.y = 0.0;
 }

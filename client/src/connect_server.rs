@@ -45,7 +45,6 @@ impl Plugin for ConnectServerPlugin {
     }
 }
 
-#[allow(clippy::never_loop)]
 fn handle_network_error(
     mut commands: Commands,
     mut evr_error: EventReader<NetcodeTransportError>,

@@ -6,6 +6,7 @@ pub mod spawn;
 mod world;
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub use game::GamePlugin;
 
@@ -21,7 +22,7 @@ pub enum GameState {
     InGame,
 }
 
-#[derive(Debug, Default, Resource, Reflect)]
+#[derive(Debug, Default, Copy, Clone, Resource, Reflect, Serialize, Deserialize)]
 pub struct InputState {
     pub look: Vec2,
     pub r#move: Vec2,

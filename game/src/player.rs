@@ -14,9 +14,6 @@ pub struct LocalPlayer;
 #[derive(Debug, Component)]
 pub struct PlayerCamera;
 
-#[derive(Debug, Default, Component)]
-pub struct PlayerMoveInput(pub Vec2);
-
 #[derive(Debug, Default, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct PlayerPhysics {
     pub velocity: Vec3,
@@ -66,7 +63,6 @@ pub fn spawn_player(
         KinematicCharacterController::default(),
         Name::new(format!("Player {:?}", client_id)),
         Replicated,
-        PlayerMoveInput::default(),
         PlayerPhysics::default(),
         Player(client_id),
         OnInGame,
@@ -136,14 +132,33 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<JumpEvent>()
-            .add_systems(FixedUpdate, update_player_physics);
+        app.add_event::<JumpEvent>().add_systems(
+            FixedUpdate,
+            (rotate_player, update_player_physics)
+                .chain()
+                .run_if(server_or_singleplayer),
+        );
 
         app.register_type::<Player>()
             .register_type::<PlayerPhysics>();
 
         app.replicate_group::<(Transform, Player, PlayerPhysics)>();
     }
+}
+
+fn rotate_player(
+    time: Res<Time>,
+    mut input_state: ResMut<InputState>,
+    mut player_query: Query<&mut Transform, With<LocalPlayer>>,
+) {
+    // TODO: should the rate of change here be maxed?
+    let delta_yaw = -input_state.look.x * time.delta_seconds();
+
+    if let Ok(mut player_transform) = player_query.get_single_mut() {
+        player_transform.rotate_y(delta_yaw);
+    }
+
+    input_state.look.x = 0.0;
 }
 
 #[allow(clippy::type_complexity)]
