@@ -15,12 +15,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
 use common::gameserver::GameServerState;
-use game::{
-    network::{InputUpdateEvent, PlayerJumpEvent},
-    player,
-    spawn::SpawnPoint,
-    GameAssetState, GameState, PROTOCOL_ID,
-};
+use game::{player, spawn::SpawnPoint, GameAssetState, GameState, PROTOCOL_ID};
 
 use crate::{api, options::Options, orchestration::Orchestration, placement, tasks, AppState};
 
@@ -71,7 +66,7 @@ impl Plugin for ServerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 PreUpdate,
-                (handle_input_update, handle_jump_event)
+                (player::handle_input_update, player::handle_jump_event)
                     .after(ServerSet::Receive)
                     .run_if(in_state(AppState::InGame))
                     .run_if(server_running),
@@ -268,21 +263,5 @@ fn handle_network_events(
                 // TODO: despawn their player
             }
         }
-    }
-}
-
-fn handle_input_update(mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>) {
-    #[allow(unused_variables)]
-    for FromClient { client_id, event } in evr_input_update.read() {
-        // TODO: move the client's player
-    }
-}
-
-fn handle_jump_event(mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>) {
-    #[allow(unused_variables)]
-    for FromClient { client_id, event } in evr_jump.read() {
-        // TODO:
-        println!("jump from {:?}", client_id);
-        //player::jump();
     }
 }

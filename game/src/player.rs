@@ -3,10 +3,21 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{game::OnInGame, GameAssetState, InputState};
+use crate::{
+    game::OnInGame,
+    network::{InputUpdateEvent, PlayerJumpEvent},
+    GameAssetState, InputState,
+};
 
 #[derive(Debug, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct Player(ClientId);
+
+impl Player {
+    #[inline]
+    pub fn client_id(&self) -> ClientId {
+        self.0
+    }
+}
 
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct LocalPlayer;
@@ -120,70 +131,25 @@ pub fn finish_client_player(
     }
 }
 
-pub fn jump(player_physics: &mut PlayerPhysics) {
-    if player_physics.is_grounded() {
-        player_physics.velocity.y += JUMP_SPEED;
-        player_physics.update_grounded(false);
-    }
-}
-
-#[derive(Debug)]
-pub struct PlayerPlugin;
-
-impl Plugin for PlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_event::<JumpEvent>().add_systems(
-            FixedUpdate,
-            (rotate_player, update_player_physics)
-                .chain()
-                .run_if(server_or_singleplayer),
-        );
-
-        app.register_type::<Player>()
-            .register_type::<PlayerPhysics>();
-
-        app.replicate_group::<(Transform, Player, PlayerPhysics)>();
-    }
-}
-
-fn rotate_player(
-    time: Res<Time>,
-    mut input_state: ResMut<InputState>,
-    mut player_query: Query<&mut Transform, With<LocalPlayer>>,
-) {
+fn rotate_player(time: &Time, input_state: &InputState, transform: &mut Transform) {
     // TODO: should the rate of change here be maxed?
     let delta_yaw = -input_state.look.x * time.delta_seconds();
 
-    if let Ok(mut player_transform) = player_query.get_single_mut() {
-        player_transform.rotate_y(delta_yaw);
-    }
-
-    input_state.look.x = 0.0;
+    transform.rotate_y(delta_yaw);
 }
 
 #[allow(clippy::type_complexity)]
 fn update_player_physics(
-    physics_config: Res<RapierConfiguration>,
-    time: Res<Time<Fixed>>,
-    mut input_state: ResMut<InputState>,
-    mut player_query: Query<
-        (
-            &mut KinematicCharacterController,
-            Option<&KinematicCharacterControllerOutput>,
-            &GlobalTransform,
-            &mut PlayerPhysics,
-            &GravityScale,
-        ),
-        With<LocalPlayer>,
-    >,
+    physics_config: &RapierConfiguration,
+    time: &Time<Fixed>,
+    input_state: &InputState,
+    character_controller: &mut KinematicCharacterController,
+    output: Option<&KinematicCharacterControllerOutput>,
+    global_transform: &GlobalTransform,
+    player_physics: &mut PlayerPhysics,
+    gravity_scale: &GravityScale,
 ) {
-    let Ok((mut character_controller, output, player_transform, mut player_physics, gravity_scale)) =
-        player_query.get_single_mut()
-    else {
-        return;
-    };
-
-    let player_transform = player_transform.compute_transform();
+    let global_transform = global_transform.compute_transform();
 
     // update grounded
     let grounded = output.map(|output| output.grounded).unwrap_or_default();
@@ -192,7 +158,7 @@ fn update_player_physics(
     // handle move input
     if player_physics.is_grounded() {
         let direction =
-            player_transform.rotation * Vec3::new(input_state.r#move.x, 0.0, -input_state.r#move.y);
+            global_transform.rotation * Vec3::new(input_state.r#move.x, 0.0, -input_state.r#move.y);
         // TODO: we may want to just max() each value instead of normalizing
         let direction = direction.normalize_or_zero();
 
@@ -204,8 +170,6 @@ fn update_player_physics(
             player_physics.velocity.z = 0.0;
         }
     }
-
-    input_state.r#move = Vec2::default();
 
     // apply gravity
     player_physics.velocity.y += physics_config.gravity.y * gravity_scale.0 * time.delta_seconds();
@@ -219,4 +183,86 @@ fn update_player_physics(
         .translation
         .get_or_insert(Vec3::default());
     *translation += player_physics.velocity * time.delta_seconds();
+}
+
+pub fn handle_input_update(
+    time: Res<Time>,
+    fixed_time: Res<Time<Fixed>>,
+    physics_config: Res<RapierConfiguration>,
+    mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>,
+    mut player_query: Query<(
+        &mut KinematicCharacterController,
+        Option<&KinematicCharacterControllerOutput>,
+        &GlobalTransform,
+        &mut Transform,
+        &mut PlayerPhysics,
+        &GravityScale,
+        &Player,
+    )>,
+) {
+    for FromClient { client_id, event } in evr_input_update.read() {
+        for (
+            mut character_controller,
+            output,
+            global_transform,
+            mut transform,
+            mut player_physics,
+            gravity_scale,
+            player,
+        ) in &mut player_query
+        {
+            if player.client_id() == *client_id {
+                rotate_player(&time, &event.0, &mut transform);
+
+                update_player_physics(
+                    &physics_config,
+                    &fixed_time,
+                    &event.0,
+                    &mut character_controller,
+                    output,
+                    global_transform,
+                    &mut player_physics,
+                    gravity_scale,
+                );
+            }
+        }
+    }
+}
+
+fn jump(player_physics: &mut PlayerPhysics) {
+    if player_physics.is_grounded() {
+        player_physics.velocity.y += JUMP_SPEED;
+        player_physics.update_grounded(false);
+    }
+}
+
+pub fn handle_jump_event(
+    mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>,
+    mut player_query: Query<(&mut PlayerPhysics, &Player)>,
+) {
+    for FromClient {
+        client_id,
+        event: _,
+    } in evr_jump.read()
+    {
+        for (mut player_physics, player) in &mut player_query {
+            if player.client_id() == *client_id {
+                jump(&mut player_physics);
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<JumpEvent>();
+
+        app.register_type::<Player>()
+            .register_type::<PlayerPhysics>();
+
+        app.replicate_group::<(Transform, Player, PlayerPhysics)>();
+    }
 }
