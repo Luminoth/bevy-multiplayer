@@ -131,6 +131,12 @@ pub fn finish_client_player(
     }
 }
 
+pub fn despawn_player(commands: &mut Commands, entity: Entity) {
+    info!("despawning player {} ...", entity);
+
+    commands.entity(entity).despawn_recursive();
+}
+
 #[derive(Debug)]
 pub struct PlayerPlugin;
 

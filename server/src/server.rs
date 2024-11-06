@@ -254,6 +254,7 @@ fn handle_network_events(
     mut commands: Commands,
     assets: Res<GameAssetState>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
+    players: Query<(Entity, &player::Player)>,
     mut evr_server: EventReader<ServerEvent>,
 ) {
     for evt in evr_server.read() {
@@ -267,7 +268,11 @@ fn handle_network_events(
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 info!("client {:?} disconnected: {}", client_id, reason);
 
-                // TODO: despawn their player
+                for (entity, player) in players.iter() {
+                    if player.client_id() == *client_id {
+                        player::despawn_player(&mut commands, entity);
+                    }
+                }
             }
         }
     }
