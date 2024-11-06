@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
 };
 
-use game_common::{player::JumpEvent, GameState, InputState};
+use game_common::{GameState, InputState};
 
 use crate::Settings;
 
@@ -16,12 +16,15 @@ struct ConnectedGamepad(Gamepad);
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
 pub struct InputSet;
 
+#[derive(Debug, Event)]
+pub struct JumpPressedEvent;
+
 #[derive(Debug)]
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app
+        app.add_event::<JumpPressedEvent>()
             // TODO: this is running before bevy picks up the set of gamepads
             .add_systems(Startup, list_gamepads)
             .add_systems(
@@ -87,7 +90,7 @@ fn update_mnk(
     mut evr_motion: EventReader<MouseMotion>,
     mut input_state: ResMut<InputState>,
     settings: Res<Settings>,
-    mut evw_jump: EventWriter<JumpEvent>,
+    mut evw_jump: EventWriter<JumpPressedEvent>,
 ) {
     if !settings.mnk.enabled {
         return;
@@ -110,7 +113,7 @@ fn update_mnk(
     input_state.r#move += r#move;
 
     if keys.just_pressed(KeyCode::Space) {
-        evw_jump.send(JumpEvent);
+        evw_jump.send(JumpPressedEvent);
     }
 
     let mut look = Vec2::default();
@@ -130,7 +133,7 @@ fn update_gamepad(
     settings: Res<Settings>,
     gamepad: Option<Res<ConnectedGamepad>>,
     mut input_state: ResMut<InputState>,
-    mut evw_jump: EventWriter<JumpEvent>,
+    mut evw_jump: EventWriter<JumpPressedEvent>,
 ) {
     if !settings.gamepad.enabled {
         return;
@@ -181,6 +184,6 @@ fn update_gamepad(
     };
 
     if buttons.just_pressed(south_button) {
-        evw_jump.send(JumpEvent);
+        evw_jump.send(JumpPressedEvent);
     }
 }

@@ -6,7 +6,6 @@ use game_common::{
     ball,
     network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     player,
-    player::JumpEvent,
     spawn::SpawnPoint,
     GameAssetState, GameState, InputState, ServerSet,
 };
@@ -146,7 +145,7 @@ fn send_input_update(
 }
 
 fn send_jump_event(
-    mut evr_jump: EventReader<JumpEvent>,
+    mut evr_jump: EventReader<input::JumpPressedEvent>,
     mut evw_jump: EventWriter<PlayerJumpEvent>,
 ) {
     // TODO: only send if the player is grounded
