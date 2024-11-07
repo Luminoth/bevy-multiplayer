@@ -15,7 +15,7 @@ pub fn heartbeat<'a>(
 ) -> BevyReqwestBuilder<'a> {
     debug!("heartbeat");
 
-    let url = "http://localhost:8080/gameserver/heartbeat/v1";
+    let url = "http://localhost:8000/gameserver/heartbeat/v1";
 
     let req = client
         .post(url)

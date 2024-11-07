@@ -8,7 +8,7 @@ pub fn find_server<'a>(
     info!("finding server ...");
 
     let url = format!(
-        "http://localhost:8080/gameclient/find_server/v1?player_id=\"{}\"",
+        "http://localhost:8000/gameclient/find_server/v1?player_id=\"{}\"",
         player_id.as_ref()
     );
 
