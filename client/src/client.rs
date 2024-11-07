@@ -148,10 +148,13 @@ fn send_input_update(
 fn send_jump_event(
     mut evr_jump: EventReader<input::JumpPressedEvent>,
     mut evw_jump: EventWriter<PlayerJumpEvent>,
+    player_query: Query<&player::PlayerPhysics, With<player::LocalPlayer>>,
 ) {
-    // TODO: only send if the player is grounded
     if !evr_jump.is_empty() {
-        evw_jump.send(PlayerJumpEvent);
-        evr_jump.clear();
+        let player_physics = player_query.single();
+        if player_physics.is_grounded() {
+            evw_jump.send(PlayerJumpEvent);
+            evr_jump.clear();
+        }
     }
 }

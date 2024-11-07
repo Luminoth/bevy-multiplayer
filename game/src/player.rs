@@ -112,6 +112,8 @@ pub fn finish_client_player(
     ));
 
     if is_local {
+        commands.insert(LocalPlayer);
+
         commands.with_children(|parent| {
             parent.spawn((
                 Camera3dBundle {

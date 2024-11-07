@@ -4,6 +4,7 @@ use bevy::{
         mouse::MouseMotion,
     },
     prelude::*,
+    window::PrimaryWindow,
 };
 
 use game_common::{GameState, InputState};
@@ -91,8 +92,17 @@ fn update_mnk(
     mut input_state: ResMut<InputState>,
     settings: Res<Settings>,
     mut evw_jump: EventWriter<JumpPressedEvent>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     if !settings.mnk.enabled {
+        return;
+    }
+
+    if let Ok(window) = window_query.get_single() {
+        if !window.focused {
+            return;
+        }
+    } else {
         return;
     }
 
@@ -128,6 +138,7 @@ fn update_mnk(
 }
 
 fn update_gamepad(
+    window_query: Query<&Window, With<PrimaryWindow>>,
     axes: Res<Axis<GamepadAxis>>,
     buttons: Res<ButtonInput<GamepadButton>>,
     settings: Res<Settings>,
@@ -136,6 +147,14 @@ fn update_gamepad(
     mut evw_jump: EventWriter<JumpPressedEvent>,
 ) {
     if !settings.gamepad.enabled {
+        return;
+    }
+
+    if let Ok(window) = window_query.get_single() {
+        if !window.focused {
+            return;
+        }
+    } else {
         return;
     }
 
