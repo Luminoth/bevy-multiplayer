@@ -1,3 +1,3 @@
 #! /bin/sh
 
-docker run --network=host --rm {TODO: image}
+docker run --network=host --rm bevy-multiplayer-server --local

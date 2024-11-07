@@ -283,8 +283,7 @@ fn init_server(
         Some(&session_info),
     );
 
-    // TODO: this should bind a specific address
-    let server_addr = format!("0.0.0.0:{}", options.port).parse().unwrap();
+    let server_addr = options.address().parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)

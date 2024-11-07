@@ -3,6 +3,10 @@ name = "client"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "bevy-multiplayer"
+path = "src/main.rs"
+
 [dependencies]
 bevy = "0.14"
 bevy_egui = "0.30"

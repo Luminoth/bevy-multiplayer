@@ -68,6 +68,12 @@ async fn main() -> anyhow::Result<()> {
 
     let app_state = AppState::new(options, redis_connection_pool);
 
+    let addr = app_state
+        .options
+        .address()
+        .parse::<SocketAddr>()
+        .unwrap_or_else(|_| panic!("Invalid address: {}", app_state.options.address()));
+
     let app = routes::init_routes(Router::new())
         .layer(init_cors_layer()?)
         .layer(
@@ -88,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(app_state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    let listener = tokio::net::TcpListener::bind(addr).await?;
     info!("listening on {}", listener.local_addr()?);
     Ok(axum::serve(
         listener,
