@@ -348,7 +348,7 @@ fn handle_input_update(
     for FromClient { client_id, event } in evr_input_update.read() {
         for (mut last_input, player) in &mut player_query {
             if player.client_id() == *client_id {
-                last_input.0 = event.0;
+                last_input.input_state = event.0;
             }
         }
     }
@@ -356,13 +356,17 @@ fn handle_input_update(
 
 fn handle_jump_event(
     mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>,
-    mut evw_jump: EventWriter<player::JumpEvent>,
+    mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient {
         client_id,
         event: _,
     } in evr_jump.read()
     {
-        evw_jump.send(player::JumpEvent(*client_id));
+        for (mut last_input, player) in &mut player_query {
+            if player.client_id() == *client_id {
+                last_input.jump = true;
+            }
+        }
     }
 }

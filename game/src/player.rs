@@ -33,7 +33,7 @@ impl PlayerPhysics {
         self.grounded
     }
 
-    pub fn update_grounded(&mut self, grounded: bool) {
+    fn update_grounded(&mut self, grounded: bool) {
         self.grounded = grounded;
         if self.grounded {
             self.velocity.y = 0.0;
@@ -42,10 +42,10 @@ impl PlayerPhysics {
 }
 
 #[derive(Debug, Default, Component)]
-pub struct LastInput(pub InputState);
-
-#[derive(Debug, Event)]
-pub struct JumpEvent(pub ClientId);
+pub struct LastInput {
+    pub input_state: InputState,
+    pub jump: bool,
+}
 
 const MOVE_SPEED: f32 = 5.0;
 const JUMP_SPEED: f32 = 10.0;
@@ -142,9 +142,8 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<JumpEvent>()
-            .add_systems(Update, rotate_player)
-            .add_systems(FixedUpdate, (update_player_physics, handle_jump_event));
+        app.add_systems(Update, rotate_player)
+            .add_systems(FixedUpdate, update_player_physics);
 
         app.register_type::<Player>()
             .register_type::<PlayerPhysics>();
@@ -159,11 +158,11 @@ fn rotate_player(
 ) {
     for (mut last_input, mut transform) in &mut player_query {
         // TODO: should the rate of change here be maxed?
-        let delta_yaw = -last_input.0.look.x * time.delta_seconds();
+        let delta_yaw = -last_input.input_state.look.x * time.delta_seconds();
 
         transform.rotate_y(delta_yaw);
 
-        last_input.0.look = Vec2::default();
+        last_input.input_state.look = Vec2::default();
     }
 }
 
@@ -171,17 +170,14 @@ fn rotate_player(
 fn update_player_physics(
     time: Res<Time<Fixed>>,
     physics_config: Res<RapierConfiguration>,
-    mut player_query: Query<
-        (
-            &mut LastInput,
-            &mut KinematicCharacterController,
-            Option<&KinematicCharacterControllerOutput>,
-            &GlobalTransform,
-            &mut PlayerPhysics,
-            &GravityScale,
-        ),
-        With<Player>,
-    >,
+    mut player_query: Query<(
+        &mut LastInput,
+        &mut KinematicCharacterController,
+        Option<&KinematicCharacterControllerOutput>,
+        &GlobalTransform,
+        &mut PlayerPhysics,
+        &GravityScale,
+    )>,
 ) {
     for (
         mut last_input,
@@ -201,7 +197,11 @@ fn update_player_physics(
         // handle move input
         if player_physics.is_grounded() {
             let direction = global_transform.rotation
-                * Vec3::new(last_input.0.r#move.x, 0.0, -last_input.0.r#move.y);
+                * Vec3::new(
+                    last_input.input_state.r#move.x,
+                    0.0,
+                    -last_input.input_state.r#move.y,
+                );
             // TODO: we may want to just max() each value instead of normalizing
             let direction = direction.normalize_or_zero();
 
@@ -211,6 +211,10 @@ fn update_player_physics(
             } else {
                 player_physics.velocity.x = 0.0;
                 player_physics.velocity.z = 0.0;
+            }
+
+            if last_input.jump {
+                player_physics.velocity.y += JUMP_SPEED;
             }
         }
 
@@ -228,20 +232,7 @@ fn update_player_physics(
             .get_or_insert(Vec3::default());
         *translation += player_physics.velocity * time.delta_seconds();
 
-        last_input.0.r#move = Vec2::default();
-    }
-}
-
-fn handle_jump_event(
-    mut evr_jump: EventReader<JumpEvent>,
-    mut player_query: Query<(&mut PlayerPhysics, &Player)>,
-) {
-    for evt in evr_jump.read() {
-        for (mut player_physics, player) in &mut player_query {
-            if player.client_id() == evt.0 && player_physics.is_grounded() {
-                player_physics.velocity.y += JUMP_SPEED;
-                player_physics.update_grounded(false);
-            }
-        }
+        last_input.input_state.r#move = Vec2::default();
+        last_input.jump = false;
     }
 }
