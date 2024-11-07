@@ -96,6 +96,7 @@ fn enter_game(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn finish_game(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,

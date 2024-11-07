@@ -211,6 +211,7 @@ fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     ball::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
 }
 
+#[allow(clippy::type_complexity)]
 pub fn spawn_client_world(
     commands: &mut Commands,
     client_id: ClientId,
@@ -223,11 +224,11 @@ pub fn spawn_client_world(
     commands.insert_resource(ClearColor(Color::BLACK));
 
     for (entity, transform) in balls {
-        ball::finish_client_ball(commands, entity, *transform, &assets);
+        ball::finish_client_ball(commands, entity, *transform, assets);
     }
 
     for (entity, transform, player) in players {
-        player::finish_client_player(commands, entity, *transform, *player, &assets, client_id);
+        player::finish_client_player(commands, entity, *transform, *player, assets, client_id);
     }
 }
 

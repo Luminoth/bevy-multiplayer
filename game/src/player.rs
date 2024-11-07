@@ -238,11 +238,9 @@ fn handle_jump_event(
 ) {
     for evt in evr_jump.read() {
         for (mut player_physics, player) in &mut player_query {
-            if player.client_id() == evt.0 {
-                if player_physics.is_grounded() {
-                    player_physics.velocity.y += JUMP_SPEED;
-                    player_physics.update_grounded(false);
-                }
+            if player.client_id() == evt.0 && player_physics.is_grounded() {
+                player_physics.velocity.y += JUMP_SPEED;
+                player_physics.update_grounded(false);
             }
         }
     }
