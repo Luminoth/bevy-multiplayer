@@ -15,6 +15,9 @@ pub enum OrchestrationType {
 
 #[derive(Parser, Debug, Resource)]
 pub struct Options {
+    #[arg(long)]
+    pub headless: bool,
+
     #[arg(value_enum, default_value_t = OrchestrationType::Local)]
     pub orchestration: OrchestrationType,
 

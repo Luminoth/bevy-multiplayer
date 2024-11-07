@@ -19,7 +19,7 @@ use game::{
     network::{InputUpdateEvent, PlayerJumpEvent},
     player,
     spawn::SpawnPoint,
-    GameAssetState, GameState, PROTOCOL_ID,
+    GameAssetState, GameState, OnInGame, PROTOCOL_ID,
 };
 
 use crate::{api, options::Options, orchestration::Orchestration, placement, tasks, AppState};
@@ -86,6 +86,7 @@ impl Plugin for ServerPlugin {
             .add_systems(OnEnter(AppState::InitServer), init_server)
             .add_systems(OnEnter(AppState::InGame), enter)
             .add_systems(OnExit(AppState::InGame), exit)
+            .add_systems(OnEnter(GameState::InGame), enter_game)
             .add_systems(OnEnter(AppState::Shutdown), shutdown);
     }
 }
@@ -149,7 +150,7 @@ fn enter(
     state: Res<State<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    info!("enter game ...");
+    info!("enter server game ...");
 
     heartbeat(
         &mut client,
@@ -162,11 +163,74 @@ fn enter(
 }
 
 fn exit(mut commands: Commands) {
-    info!("exit game ...");
+    info!("exit server game ...");
 
     commands.remove_resource::<GameSessionInfo>();
     commands.remove_resource::<RenetServer>();
     commands.remove_resource::<NetcodeServerTransport>();
+}
+
+// TODO: move to a game module
+fn enter_game(
+    mut commands: Commands,
+    server_info: Res<GameServerInfo>,
+    session_info: Res<GameSessionInfo>,
+    options: Res<Options>,
+) {
+    if !options.headless {
+        commands.insert_resource(ClearColor(Color::BLACK));
+
+        commands.spawn((
+            Camera3dBundle {
+                transform: Transform::from_xyz(0.0, 5.0, 0.0),
+                projection: PerspectiveProjection {
+                    fov: 90.0_f32.to_radians(),
+                    ..default()
+                }
+                .into(),
+                ..default()
+            },
+            Name::new("Server Camera"),
+            OnInGame,
+        ));
+
+        commands
+            .spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Start,
+                        justify_content: JustifyContent::Start,
+                        ..default()
+                    },
+                    ..default()
+                },
+                Name::new("Server UI"),
+            ))
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    format!("Server: {}", server_info.server_id),
+                    TextStyle {
+                        font_size: 24.0,
+                        color: Color::WHITE,
+                        ..default()
+                    },
+                ));
+
+                parent.spawn(TextBundle::from_section(
+                    format!("Session: {}", session_info.session_id),
+                    TextStyle {
+                        font_size: 24.0,
+                        color: Color::WHITE,
+                        ..default()
+                    },
+                ));
+
+                // TODO: connection info
+            });
+    }
 }
 
 fn heartbeat_monitor(

@@ -54,9 +54,10 @@ fn main() {
     println!("initializing server ...");
 
     let mut app = App::new();
-    app
-        // bevy plugins
-        .add_plugins((
+
+    // bevy plugins
+    if options.headless {
+        app.add_plugins((
             // TODO: replace with HeadlessPlugins in 0.15
             // (it includes all the plugins that Minimal is missing)
             MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
@@ -71,7 +72,29 @@ fn main() {
             bevy::scene::ScenePlugin,
             bevy::animation::AnimationPlugin,
             bevy::state::app::StatesPlugin,
-        ))
+        ));
+    } else {
+        app.add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Bevy Multiplayer Jam - Server".into(),
+                        resolution: (1280.0, 720.0).into(),
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(bevy::log::LogPlugin {
+                    // default bevy filter plus silence some spammy 3rd party crates
+                    filter: "wgpu=error,naga=warn,symphonia_core=error,symphonia_bundle_mp3=error"
+                        .to_string(),
+                    ..default()
+                }),
+        );
+    }
+
+    app
+        // bevy plugins
         // third-party plugins
         .add_plugins((
             RepliconPlugins,

@@ -12,7 +12,7 @@ use crate::{
 pub struct ServerSet;
 
 #[derive(Debug, Component)]
-pub(crate) struct OnInGame;
+pub struct OnInGame;
 
 #[derive(Debug)]
 pub struct GamePlugin;
@@ -104,6 +104,22 @@ fn wait_for_assets(mut game_state: ResMut<NextState<GameState>>) {
 
 fn spawn_world(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("spawning world ...");
+
+    commands.insert_resource(AmbientLight {
+        color: WHITE.into(),
+        brightness: 80.0,
+    });
+
+    world::spawn_directional_light(
+        &mut commands,
+        ORANGE_RED.into(),
+        Transform {
+            translation: Vec3::new(0.0, 5.0, 0.0),
+            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
+            ..default()
+        },
+        "Sun",
+    );
 
     // floor
     world::spawn_wall(
@@ -205,22 +221,6 @@ pub fn spawn_client_world(
     info!("spawning client world ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
-
-    commands.insert_resource(AmbientLight {
-        color: WHITE.into(),
-        brightness: 80.0,
-    });
-
-    world::spawn_directional_light(
-        commands,
-        ORANGE_RED.into(),
-        Transform {
-            translation: Vec3::new(0.0, 5.0, 0.0),
-            rotation: Quat::from_rotation_x(-45.0f32.to_radians()),
-            ..default()
-        },
-        "Sun",
-    );
 
     for (entity, transform) in balls {
         ball::finish_client_ball(commands, entity, *transform, &assets);
