@@ -47,9 +47,14 @@ pub struct LastInput {
     pub jump: bool,
 }
 
-const MOVE_SPEED: f32 = 5.0;
-const JUMP_SPEED: f32 = 10.0;
+// TODO: if these moved to a resource
+// they'd be easier to fudge for testing
+const MOVE_SPEED: f32 = 10.0;
+const JUMP_SPEED: f32 = 15.0;
 const TERMINAL_VELOCITY: f32 = 50.0;
+const GRAVITY_SCALE: f32 = 4.0;
+const HEIGHT: f32 = 2.0;
+const MASS: f32 = 75.0;
 
 pub fn spawn_player(
     commands: &mut Commands,
@@ -67,9 +72,9 @@ pub fn spawn_player(
             ..default()
         },
         RigidBody::KinematicPositionBased,
-        GravityScale(2.0),
-        Collider::capsule_y(1.0, 1.0),
-        ColliderMassProperties::Mass(75.0),
+        GravityScale(GRAVITY_SCALE),
+        Collider::capsule_y(HEIGHT * 0.5, HEIGHT * 0.5),
+        ColliderMassProperties::Mass(MASS),
         KinematicCharacterController::default(),
         Name::new(format!("Player {:?}", client_id)),
         Replicated,
