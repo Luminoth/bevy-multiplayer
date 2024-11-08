@@ -224,11 +224,11 @@ pub fn spawn_client_world(
     commands.insert_resource(ClearColor(Color::BLACK));
 
     for (entity, transform) in balls {
-        ball::finish_client_ball(commands, entity, *transform, assets);
+        ball::finish_client_ball(commands, assets, entity, *transform);
     }
 
     for (entity, transform, player) in players {
-        player::finish_client_player(commands, entity, *transform, *player, assets, client_id);
+        player::finish_client_player(commands, client_id, assets, entity, *transform, *player);
     }
 }
 

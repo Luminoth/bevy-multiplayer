@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{game::OnInGame, GameAssetState, InputState};
+use crate::{game::OnInGame, network, GameAssetState, InputState};
 
 #[derive(Debug, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct Player(ClientId);
@@ -80,13 +80,19 @@ pub fn spawn_player(
     ));
 }
 
+pub fn despawn_player(commands: &mut Commands, entity: Entity) {
+    info!("despawning player {} ...", entity);
+
+    commands.entity(entity).despawn_recursive();
+}
+
 pub fn finish_client_player(
     commands: &mut Commands,
+    client_id: ClientId,
+    assets: &GameAssetState,
     entity: Entity,
     transform: Transform,
     player: Player,
-    assets: &GameAssetState,
-    client_id: ClientId,
 ) {
     info!(
         "finishing player {} ({:?}) at {} ...",
@@ -133,24 +139,46 @@ pub fn finish_client_player(
     }
 }
 
-pub fn despawn_player(commands: &mut Commands, entity: Entity) {
-    info!("despawning player {} ...", entity);
-
-    commands.entity(entity).despawn_recursive();
-}
-
 #[derive(Debug)]
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, rotate_player)
-            .add_systems(FixedUpdate, update_player_physics);
+        app.add_systems(
+            PreUpdate,
+            finish_client_players
+                .after(ClientSet::Receive)
+                .run_if(client_connected),
+        )
+        .add_systems(Update, rotate_player)
+        .add_systems(FixedUpdate, update_player_physics);
 
         app.register_type::<Player>()
             .register_type::<PlayerPhysics>();
 
         app.replicate_group::<(Transform, Player, PlayerPhysics)>();
+    }
+}
+
+fn finish_client_players(
+    mut commands: Commands,
+    client_id: Res<network::PlayerClientId>,
+    assets: Option<Res<GameAssetState>>,
+    players: Query<(Entity, &Transform, &Player), Without<GlobalTransform>>,
+) {
+    let Some(assets) = assets else {
+        return;
+    };
+
+    for (entity, transform, player) in &players {
+        finish_client_player(
+            &mut commands,
+            client_id.get_client_id(),
+            &assets,
+            entity,
+            *transform,
+            *player,
+        );
     }
 }
 

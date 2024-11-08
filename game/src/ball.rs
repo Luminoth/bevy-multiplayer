@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, GameAssetState};
 
+// TODO: generalize this, instead of just the bouncing ball
+// make it handle any server-authoritative dynamic thing
+
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Ball;
 
@@ -31,9 +34,9 @@ pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetSta
 
 pub fn finish_client_ball(
     commands: &mut Commands,
+    assets: &GameAssetState,
     entity: Entity,
     transform: Transform,
-    assets: &GameAssetState,
 ) {
     info!("finishing ball {} at {} ...", entity, transform.translation);
 
@@ -54,6 +57,28 @@ pub struct BallPlugin;
 
 impl Plugin for BallPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(
+            PreUpdate,
+            finish_client_balls
+                .after(ClientSet::Receive)
+                .run_if(client_connected),
+        );
+
         app.replicate_group::<(Transform, Ball)>();
+    }
+}
+
+#[allow(clippy::type_complexity)]
+fn finish_client_balls(
+    mut commands: Commands,
+    assets: Option<Res<GameAssetState>>,
+    balls: Query<(Entity, &Transform), (With<Ball>, Without<GlobalTransform>)>,
+) {
+    let Some(assets) = assets else {
+        return;
+    };
+
+    for (entity, transform) in &balls {
+        finish_client_ball(&mut commands, &assets, entity, *transform);
     }
 }
