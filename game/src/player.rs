@@ -100,8 +100,8 @@ pub fn finish_client_player(
     player: Player,
 ) {
     info!(
-        "finishing player {} ({:?}) at {} ...",
-        entity, player.0, transform.translation
+        "finishing player {} ({:?}:{:?}) at {} ...",
+        entity, player.0, client_id, transform.translation
     );
 
     let is_local = player.0 == client_id;

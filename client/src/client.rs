@@ -84,7 +84,7 @@ fn enter_game(
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
 ) {
     if client_id.is_local() {
-        info!("finishing local game (1) ...");
+        info!("finishing local game (player) ...");
 
         let spawnpoint = spawnpoints.iter().next().unwrap();
         player::spawn_player(
@@ -105,7 +105,7 @@ fn finish_game(
     players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     if client_id.is_local() {
-        info!("finishing local game (2) ...");
+        info!("finishing local game (world) ...");
 
         game_common::spawn_client_world(
             &mut commands,
