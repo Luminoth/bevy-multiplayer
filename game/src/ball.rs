@@ -11,25 +11,45 @@ use crate::{game::OnInGame, GameAssetState};
 #[derive(Debug, Component, Serialize, Deserialize)]
 pub struct Ball;
 
+#[derive(Bundle)]
+pub struct ServerBallBundle {
+    material_mesh: MaterialMeshBundle<StandardMaterial>,
+    rigidbody: RigidBody,
+    collider: Collider,
+    mass: ColliderMassProperties,
+    restitution: Restitution,
+    name: Name,
+    replicated: Replicated,
+    ball: Ball,
+    tag: OnInGame,
+}
+
+#[derive(Bundle)]
+pub struct ClientBallBundle {
+    material_mesh: MaterialMeshBundle<StandardMaterial>,
+    name: Name,
+    tag: OnInGame,
+}
+
 pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
     info!("spawning ball at {} ...", position);
 
-    commands.spawn((
-        MaterialMeshBundle {
+    commands.spawn(ServerBallBundle {
+        material_mesh: MaterialMeshBundle {
             transform: Transform::from_xyz(position.x, position.y, position.z),
             mesh: assets.ball_mesh.clone(),
             material: assets.ball_material.clone(),
             ..default()
         },
-        RigidBody::Dynamic,
-        Collider::ball(0.5),
-        ColliderMassProperties::Mass(0.5),
-        Restitution::coefficient(0.7),
-        Name::new("Ball"),
-        Replicated,
-        Ball,
-        OnInGame,
-    ));
+        rigidbody: RigidBody::Dynamic,
+        collider: Collider::ball(0.5),
+        mass: ColliderMassProperties::Mass(0.5),
+        restitution: Restitution::coefficient(0.7),
+        name: Name::new("Ball"),
+        replicated: Replicated,
+        ball: Ball,
+        tag: OnInGame,
+    });
 }
 
 pub fn finish_client_ball(
@@ -40,16 +60,16 @@ pub fn finish_client_ball(
 ) {
     info!("finishing ball {} at {} ...", entity, transform.translation);
 
-    commands.entity(entity).insert((
-        MaterialMeshBundle {
+    commands.entity(entity).insert(ClientBallBundle {
+        material_mesh: MaterialMeshBundle {
             transform,
             mesh: assets.ball_mesh.clone(),
             material: assets.ball_material.clone(),
             ..default()
         },
-        Name::new("Replicated Ball"),
-        OnInGame,
-    ));
+        name: Name::new("Replicated Ball"),
+        tag: OnInGame,
+    });
 }
 
 #[derive(Debug)]
