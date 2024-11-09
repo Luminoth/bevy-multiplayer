@@ -17,7 +17,7 @@ impl Plugin for GameMenuPlugin {
     }
 }
 
-fn on_quit_game(
+fn on_leave_game(
     event: Listener<Pointer<Click>>,
     mut app_state: ResMut<NextState<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
@@ -36,18 +36,18 @@ fn on_quit_game(
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    info!("creating pause menu ...");
+    info!("creating game menu ...");
 
     // TODO: this canvas should be transparent grey
-    ui::spawn_canvas(&mut commands, "Pause Menu")
+    ui::spawn_canvas(&mut commands, "Game Menu")
         .insert(GameMenu)
         .insert(Visibility::Hidden)
         .with_children(|parent| {
             ui::spawn_button(
                 parent,
                 &asset_server,
-                "Quit Game",
-                On::<Pointer<Click>>::run(on_quit_game),
+                "Leave Game",
+                On::<Pointer<Click>>::run(on_leave_game),
             );
         });
 }
