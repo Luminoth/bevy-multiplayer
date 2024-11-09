@@ -12,7 +12,7 @@ pub struct MnkSettings {
 impl Default for MnkSettings {
     fn default() -> Self {
         Self {
-            enabled: false, //true,
+            enabled: true,
             mouse_sensitivity: 0.5,
             invert_look: false,
         }

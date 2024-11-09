@@ -23,6 +23,18 @@ pub struct JumpPressedEvent;
 #[derive(Debug)]
 pub struct InputPlugin;
 
+fn should_update_input(window_query: Query<&Window, With<PrimaryWindow>>) -> bool {
+    if let Ok(window) = window_query.get_single() {
+        if !window.focused {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<JumpPressedEvent>()
@@ -33,6 +45,7 @@ impl Plugin for InputPlugin {
                 (
                     handle_gamepad_events,
                     (update_mnk, (update_gamepad.after(handle_gamepad_events)))
+                        .run_if(should_update_input)
                         .run_if(in_state(GameState::InGame)),
                 )
                     .in_set(InputSet),
@@ -92,17 +105,8 @@ fn update_mnk(
     mut input_state: ResMut<InputState>,
     settings: Res<Settings>,
     mut evw_jump: EventWriter<JumpPressedEvent>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     if !settings.mnk.enabled {
-        return;
-    }
-
-    if let Ok(window) = window_query.get_single() {
-        if !window.focused {
-            return;
-        }
-    } else {
         return;
     }
 
@@ -138,7 +142,6 @@ fn update_mnk(
 }
 
 fn update_gamepad(
-    window_query: Query<&Window, With<PrimaryWindow>>,
     axes: Res<Axis<GamepadAxis>>,
     buttons: Res<ButtonInput<GamepadButton>>,
     settings: Res<Settings>,
@@ -147,14 +150,6 @@ fn update_gamepad(
     mut evw_jump: EventWriter<JumpPressedEvent>,
 ) {
     if !settings.gamepad.enabled {
-        return;
-    }
-
-    if let Ok(window) = window_query.get_single() {
-        if !window.focused {
-            return;
-        }
-    } else {
         return;
     }
 
