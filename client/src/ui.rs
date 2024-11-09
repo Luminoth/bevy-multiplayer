@@ -72,6 +72,7 @@ pub fn spawn_canvas<'a>(commands: &'a mut Commands, name: impl AsRef<str>) -> En
     ))
 }
 
+#[allow(dead_code)]
 pub fn spawn_vbox<'a>(parent: &'a mut ChildBuilder) -> EntityCommands<'a> {
     parent.spawn((
         NodeBundle {
@@ -88,39 +89,45 @@ pub fn spawn_vbox<'a>(parent: &'a mut ChildBuilder) -> EntityCommands<'a> {
     ))
 }
 
-pub fn spawn_button(
-    parent: &mut ChildBuilder,
+pub fn spawn_button<'a>(
+    parent: &'a mut ChildBuilder,
     asset_server: &AssetServer,
     text: impl Into<String>,
     on_click: On<Pointer<Click>>,
-) {
+) -> EntityCommands<'a> {
     let text = text.into();
 
-    parent
-        .spawn((
-            ButtonBundle {
-                style: Style {
-                    width: Val::Px(BUTTON_WIDTH),
-                    height: Val::Px(BUTTON_HEIGHT),
-                    border: UiRect::all(Val::Px(BUTTON_BORDER)),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                border_color: BorderColor(Color::BLACK),
-                border_radius: BorderRadius::MAX,
-                background_color: BUTTON_NORMAL.into(),
+    let mut commands = parent.spawn((
+        ButtonBundle {
+            style: Style {
+                width: Val::Px(BUTTON_WIDTH),
+                height: Val::Px(BUTTON_HEIGHT),
+                border: UiRect::all(Val::Px(BUTTON_BORDER)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
-            on_click,
-            Name::new(text.clone()),
-        ))
-        .with_children(|parent| {
-            spawn_label(parent, asset_server, text);
-        });
+            border_color: BorderColor(Color::BLACK),
+            border_radius: BorderRadius::MAX,
+            background_color: BUTTON_NORMAL.into(),
+            ..default()
+        },
+        on_click,
+        Name::new(text.clone()),
+    ));
+
+    commands.with_children(|parent| {
+        spawn_label(parent, asset_server, text);
+    });
+
+    commands
 }
 
-pub fn spawn_label(parent: &mut ChildBuilder, asset_server: &AssetServer, text: impl Into<String>) {
+pub fn spawn_label<'a>(
+    parent: &'a mut ChildBuilder,
+    asset_server: &AssetServer,
+    text: impl Into<String>,
+) -> EntityCommands<'a> {
     parent.spawn((
         TextBundle::from_section(
             text,
@@ -131,5 +138,5 @@ pub fn spawn_label(parent: &mut ChildBuilder, asset_server: &AssetServer, text: 
             },
         ),
         Pickable::IGNORE,
-    ));
+    ))
 }

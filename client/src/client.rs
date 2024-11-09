@@ -1,16 +1,13 @@
-use bevy::{input::common_conditions::*, prelude::*};
+use bevy::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use game_common::{
-    ball,
     network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
-    player,
-    spawn::SpawnPoint,
-    GameAssetState, GameState, InputState, ServerSet,
+    player, GameState, InputState,
 };
 
-use crate::{camera, connect_server, game_menu, input, main_menu, ui, AppState, Settings};
+use crate::{camera, connect_server, game, game_menu, input, main_menu, ui, AppState, Settings};
 
 #[derive(Debug, Default, Resource)]
 pub struct ClientState {
@@ -43,6 +40,7 @@ impl Plugin for ClientPlugin {
             camera::FpsCameraPlugin,
             input::InputPlugin,
             ui::UiPlugin,
+            game::GamePlugin,
         ))
         .init_resource::<Settings>()
         .init_resource::<ClientState>()
@@ -54,17 +52,7 @@ impl Plugin for ClientPlugin {
                 .run_if(in_state(AppState::InGame))
                 .run_if(client_connected),
         )
-        .add_systems(OnExit(AppState::InGame), exit)
-        .add_systems(
-            OnEnter(GameState::InGame),
-            (enter_game.after(ServerSet), finish_game.after(enter_game)),
-        )
-        .add_systems(
-            Update,
-            toggle_game_menu
-                .run_if(in_state(GameState::InGame))
-                .run_if(input_just_released(KeyCode::Escape)),
-        );
+        .add_systems(OnExit(AppState::InGame), exit);
     }
 }
 
@@ -77,51 +65,11 @@ fn enter(mut game_state: ResMut<NextState<GameState>>) {
 fn exit(mut commands: Commands) {
     info!("exit client game ...");
 
+    commands.init_resource::<ClientState>();
+
     commands.remove_resource::<PlayerClientId>();
-    commands.remove_resource::<ClientState>();
     commands.remove_resource::<RenetClient>();
     commands.remove_resource::<NetcodeClientTransport>();
-}
-
-// TODO: move to a game module
-fn enter_game(
-    mut commands: Commands,
-    client_id: Res<PlayerClientId>,
-    assets: Res<GameAssetState>,
-    spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
-) {
-    if client_id.is_local() {
-        info!("finishing local game (player) ...");
-
-        let spawnpoint = spawnpoints.iter().next().unwrap();
-        player::spawn_player(
-            &mut commands,
-            client_id.get_client_id(),
-            spawnpoint.translation(),
-            &assets,
-        );
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn finish_game(
-    mut commands: Commands,
-    client_id: Res<PlayerClientId>,
-    assets: Res<GameAssetState>,
-    balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
-    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
-) {
-    if client_id.is_local() {
-        info!("finishing local game (world) ...");
-
-        game_common::spawn_client_world(
-            &mut commands,
-            client_id.get_client_id(),
-            &assets,
-            &balls,
-            &players,
-        );
-    }
 }
 
 pub fn on_connected_server(
@@ -140,15 +88,6 @@ pub fn on_connected_server(
     }
 
     app_state.set(AppState::InGame);
-}
-
-fn toggle_game_menu(mut visibility: Query<&mut Visibility, With<game_menu::GameMenu>>) {
-    let mut current = visibility.single_mut();
-    if *current == Visibility::Visible {
-        *current = Visibility::Hidden;
-    } else {
-        *current = Visibility::Visible;
-    }
 }
 
 fn send_input_update(

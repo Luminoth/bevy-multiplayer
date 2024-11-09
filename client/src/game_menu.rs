@@ -38,7 +38,6 @@ fn on_leave_game(
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     info!("creating game menu ...");
 
-    // TODO: this canvas should be transparent grey
     ui::spawn_canvas(&mut commands, "Game Menu")
         .insert(GameMenu)
         .insert(Visibility::Hidden)

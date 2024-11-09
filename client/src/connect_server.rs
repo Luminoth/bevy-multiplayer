@@ -16,7 +16,10 @@ use bevy_replicon_renet::{
 use common::gameclient::*;
 use game_common::{cleanup_state, network::PlayerClientId, PROTOCOL_ID};
 
-use crate::{api, client, ui, AppState};
+use crate::{api, client, options::Options, ui, AppState};
+
+#[derive(Debug, Component)]
+struct Status;
 
 #[derive(Debug, Component)]
 struct OnConnectServer;
@@ -75,7 +78,12 @@ fn on_cancel(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<Ap
     app_state.set(AppState::MainMenu);
 }
 
-fn enter(mut commands: Commands, asset_server: Res<AssetServer>, mut client: BevyReqwest) {
+fn enter(
+    mut commands: Commands,
+    options: Res<Options>,
+    asset_server: Res<AssetServer>,
+    mut client: BevyReqwest,
+) {
     info!("entering connect server ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
@@ -87,26 +95,31 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>, mut client: Bev
     ));
 
     ui::spawn_canvas(&mut commands, "Connect Server").with_children(|parent| {
-        ui::spawn_vbox(parent).with_children(|parent| {
-            ui::spawn_label(parent, &asset_server, "Connecting to server ...");
+        ui::spawn_label(parent, &asset_server, "Finding server ...").insert(Status);
 
-            ui::spawn_button(
-                parent,
-                &asset_server,
-                "Cancel",
-                On::<Pointer<Click>>::run(on_cancel),
-            );
-        });
+        ui::spawn_button(
+            parent,
+            &asset_server,
+            "Cancel",
+            On::<Pointer<Click>>::run(on_cancel),
+        );
     });
 
-    api::find_server(&mut client, "test_player")
+    api::find_server(&mut client, &options.player_id)
         .on_response(
             |req: Trigger<ReqwestResponseEvent>,
              mut commands: Commands,
-             channels: Res<RepliconChannels>| {
+             channels: Res<RepliconChannels>,
+             mut status_query: Query<&mut Text, With<Status>>| {
                 let resp = req.event().as_str().unwrap();
                 let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
-                connect_to_server(&mut commands, &channels, resp.address, resp.port);
+                connect_to_server(
+                    &mut commands,
+                    &channels,
+                    resp.address,
+                    resp.port,
+                    &mut status_query,
+                );
             },
         )
         .on_error(
@@ -130,8 +143,11 @@ fn connect_to_server(
     channels: &RepliconChannels,
     address: impl AsRef<str>,
     port: u16,
+    status_query: &mut Query<&mut Text, With<Status>>,
 ) {
     info!("connect to server ...");
+
+    status_query.single_mut().sections[0].value = "Connecting to server ...".to_owned();
 
     let address = address.as_ref();
     let server_addr = format!("{}:{}", address, port).parse().unwrap();
