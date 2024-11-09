@@ -6,6 +6,8 @@ use common::gameserver::*;
 
 use crate::server::GameSessionInfo;
 
+const HOST: &str = "http://localhost:8000";
+
 pub fn heartbeat<'a>(
     client: &'a mut BevyReqwest,
     server_id: Uuid,
@@ -15,7 +17,7 @@ pub fn heartbeat<'a>(
 ) -> BevyReqwestBuilder<'a> {
     debug!("heartbeat");
 
-    let url = "http://localhost:8000/gameserver/heartbeat/v1";
+    let url = format!("{}/gameserver/heartbeat/v1", HOST);
 
     let req = client
         .post(url)

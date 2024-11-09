@@ -1,4 +1,5 @@
 mod api;
+mod game;
 mod options;
 mod orchestration;
 mod placement;
@@ -73,6 +74,10 @@ fn main() {
             bevy::animation::AnimationPlugin,
             bevy::state::app::StatesPlugin,
         ));
+
+        // rapier makes use of Mesh assets
+        // and this is missing without rendering
+        app.init_asset::<Mesh>();
     } else {
         app.add_plugins(
             DefaultPlugins
@@ -103,7 +108,7 @@ fn main() {
             TokioTasksPlugin::default(),
         ))
         // server / game plugins
-        .add_plugins((server::ServerPlugin, game::GamePlugin))
+        .add_plugins((server::ServerPlugin, game_common::GamePlugin))
         .insert_resource(options)
         .init_state::<AppState>();
 
