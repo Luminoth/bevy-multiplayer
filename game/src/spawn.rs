@@ -1,13 +1,16 @@
 use bevy::prelude::*;
 
+use crate::OnInGame;
+
 #[derive(Debug, Default, Component)]
 pub struct SpawnPoint;
 
-#[derive(Debug, Default, Bundle)]
+#[derive(Debug, Bundle)]
 pub struct SpawnPointBundle {
     pub spawn_point: SpawnPoint,
     pub spatial: SpatialBundle,
     pub name: Name,
+    pub tag: OnInGame,
 }
 
 impl SpawnPointBundle {
@@ -20,6 +23,7 @@ impl SpawnPointBundle {
                 ..Default::default()
             },
             name: Name::new("Spawn Point"),
+            tag: OnInGame,
         }
     }
 
@@ -32,6 +36,7 @@ impl SpawnPointBundle {
                 ..Default::default()
             },
             name: Name::new("Spawn Point"),
+            tag: OnInGame,
         }
     }
 }

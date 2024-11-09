@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::game::OnInGame;
+use crate::OnInGame;
 
 const ENABLE_SHADOWS: bool = true;
 

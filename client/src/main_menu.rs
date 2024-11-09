@@ -76,28 +76,26 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((Camera2dBundle::default(), IsDefaultUiCamera, OnMainMenu));
 
     ui::spawn_canvas(&mut commands, "Main Menu").with_children(|parent| {
-        ui::spawn_vbox(parent).with_children(|parent| {
-            ui::spawn_button(
-                parent,
-                &asset_server,
-                "Start Local",
-                On::<Pointer<Click>>::run(on_start_local),
-            );
+        ui::spawn_button(
+            parent,
+            &asset_server,
+            "Start Local",
+            On::<Pointer<Click>>::run(on_start_local),
+        );
 
-            ui::spawn_button(
-                parent,
-                &asset_server,
-                "Find Server",
-                On::<Pointer<Click>>::run(on_find_server),
-            );
+        ui::spawn_button(
+            parent,
+            &asset_server,
+            "Find Server",
+            On::<Pointer<Click>>::run(on_find_server),
+        );
 
-            ui::spawn_button(
-                parent,
-                &asset_server,
-                "Exit",
-                On::<Pointer<Click>>::run(on_exit_game),
-            );
-        });
+        ui::spawn_button(
+            parent,
+            &asset_server,
+            "Exit",
+            On::<Pointer<Click>>::run(on_exit_game),
+        );
     });
 }
 

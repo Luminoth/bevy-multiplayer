@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::common_conditions::*, prelude::*};
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
@@ -10,7 +10,7 @@ use game_common::{
     GameAssetState, GameState, InputState, ServerSet,
 };
 
-use crate::{camera, connect_server, input, main_menu, ui, AppState, Settings};
+use crate::{camera, connect_server, game_menu, input, main_menu, ui, AppState, Settings};
 
 #[derive(Debug, Default, Resource)]
 pub struct ClientState {
@@ -38,6 +38,7 @@ impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             main_menu::MainMenuPlugin,
+            game_menu::GameMenuPlugin,
             connect_server::ConnectServerPlugin,
             camera::FpsCameraPlugin,
             input::InputPlugin,
@@ -57,6 +58,12 @@ impl Plugin for ClientPlugin {
         .add_systems(
             OnEnter(GameState::InGame),
             (enter_game.after(ServerSet), finish_game.after(enter_game)),
+        )
+        .add_systems(
+            Update,
+            toggle_game_menu
+                .run_if(in_state(GameState::InGame))
+                .run_if(input_just_released(KeyCode::Escape)),
         );
     }
 }
@@ -133,6 +140,15 @@ pub fn on_connected_server(
     }
 
     app_state.set(AppState::InGame);
+}
+
+fn toggle_game_menu(mut visibility: Query<&mut Visibility, With<game_menu::GameMenu>>) {
+    let mut current = visibility.single_mut();
+    if *current == Visibility::Visible {
+        *current = Visibility::Hidden;
+    } else {
+        *current = Visibility::Visible;
+    }
 }
 
 fn send_input_update(

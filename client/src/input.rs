@@ -9,7 +9,7 @@ use bevy::{
 
 use game_common::{GameState, InputState};
 
-use crate::Settings;
+use crate::{game_menu, Settings};
 
 #[derive(Debug, Resource)]
 struct ConnectedGamepad(Gamepad);
@@ -23,7 +23,10 @@ pub struct JumpPressedEvent;
 #[derive(Debug)]
 pub struct InputPlugin;
 
-fn should_update_input(window_query: Query<&Window, With<PrimaryWindow>>) -> bool {
+fn should_update_input(
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    game_menu_query: Query<&Visibility, With<game_menu::GameMenu>>,
+) -> bool {
     if let Ok(window) = window_query.get_single() {
         if !window.focused {
             return false;
@@ -32,7 +35,13 @@ fn should_update_input(window_query: Query<&Window, With<PrimaryWindow>>) -> boo
         return false;
     }
 
-    return true;
+    if let Ok(visibility) = game_menu_query.get_single() {
+        if *visibility == Visibility::Visible {
+            return false;
+        }
+    }
+
+    true
 }
 
 impl Plugin for InputPlugin {
