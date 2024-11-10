@@ -27,6 +27,9 @@ pub fn heartbeat<'a>(
                 addrs: connection_info.addrs,
                 port: connection_info.port,
                 state,
+                max_players: session_info
+                    .map(|session_info| session_info.max_players)
+                    .unwrap_or_default(),
                 game_session_id: session_info.map(|session_info| session_info.session_id),
                 player_session_ids: session_info
                     .map(|session_info| session_info.player_session_ids.clone()),

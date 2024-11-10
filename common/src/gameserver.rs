@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GameServerState {
     Init,
     WaitingForPlacement,
@@ -20,6 +20,8 @@ pub struct GameServerInfo {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_session_id: Option<Uuid>,
+
+    pub max_players: usize,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub player_session_ids: Option<Vec<Uuid>>,

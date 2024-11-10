@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     options::Options,
     orchestration::{start_watcher, Orchestration, StartWatcherEvent},
-    server::{heartbeat, GameServerInfo, GameSessionInfo},
+    server::{heartbeat, GameServerInfo, GameSessionInfo, MAX_PLAYERS},
     tasks, AppState,
 };
 
@@ -71,17 +71,18 @@ fn enter(
     );
 }
 
-fn update(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
-    warn!("faking placement!");
+fn update(mut _commands: Commands, mut _app_state: ResMut<NextState<AppState>>) {
+    /*warn!("faking placement!");
 
     let session_info = GameSessionInfo {
         session_id: Uuid::new_v4(),
+        max_players: MAX_PLAYERS,
         player_session_ids: vec![],
-        pending_player_ids: vec!["test_player".into()],
+        pending_player_ids: vec![],
     };
     info!("starting session {}", session_info.session_id);
 
     commands.insert_resource(session_info);
 
-    app_state.set(AppState::InitServer);
+    app_state.set(AppState::InitServer);*/
 }

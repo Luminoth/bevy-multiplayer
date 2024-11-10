@@ -26,6 +26,7 @@ impl From<common::gameserver::GameServerInfo> for GameServerInfo {
 }
 
 impl GameServerInfo {
+    #[inline]
     pub fn get_key(&self) -> String {
         format!("gameserver:{}", self.server_id)
     }
@@ -36,13 +37,21 @@ pub struct GameSessionInfo {
     pub game_session_id: Uuid,
     pub server_id: Uuid,
 
+    pub max_players: usize,
     pub player_session_ids: Vec<Uuid>,
     pub pending_player_ids: Vec<String>,
 }
 
 impl GameSessionInfo {
+    #[inline]
     pub fn get_key(&self) -> String {
         format!("gamesession:{}", self.game_session_id)
+    }
+
+    #[inline]
+    pub fn needs_players(&self) -> usize {
+        // TODO: this isn't safe if we mess up and have more players than max_players
+        self.max_players - (self.player_session_ids.len() + self.pending_player_ids.len())
     }
 }
 
@@ -55,6 +64,7 @@ impl TryFrom<common::gameserver::GameServerInfo> for GameSessionInfo {
                 .game_session_id
                 .ok_or_else(|| anyhow::anyhow!("missing game session id"))?,
             server_id: server_info.server_id,
+            max_players: server_info.max_players,
             player_session_ids: server_info
                 .player_session_ids
                 .ok_or_else(|| anyhow::anyhow!("missing player session ids"))?,

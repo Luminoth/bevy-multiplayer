@@ -27,6 +27,8 @@ use crate::{
     api, game, options::Options, orchestration::Orchestration, placement, tasks, AppState,
 };
 
+pub const MAX_PLAYERS: usize = 3;
+
 #[derive(Debug, Clone, Default)]
 pub struct ConnectionInfo {
     pub addrs: Vec<String>,
@@ -82,6 +84,7 @@ impl GameServerInfo {
 #[derive(Debug, Resource)]
 pub struct GameSessionInfo {
     pub session_id: Uuid,
+    pub max_players: usize,
     pub player_session_ids: Vec<Uuid>,
     pub pending_player_ids: Vec<String>,
 }
@@ -269,7 +272,7 @@ fn init_server(
         .unwrap();
     let server_config = ServerConfig {
         current_time,
-        max_clients: 3,
+        max_clients: MAX_PLAYERS,
         protocol_id: PROTOCOL_ID,
         public_addresses: vec![server_addr],
         authentication: ServerAuthentication::Unsecure,
