@@ -13,6 +13,9 @@ pub enum GameServerState {
 pub struct GameServerInfo {
     pub server_id: Uuid,
 
+    pub addrs: Vec<String>,
+    pub port: u16,
+
     pub state: GameServerState,
 
     #[serde(skip_serializing_if = "Option::is_none")]

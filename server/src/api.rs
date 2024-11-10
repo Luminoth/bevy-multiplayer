@@ -4,15 +4,15 @@ use uuid::Uuid;
 
 use common::gameserver::*;
 
-use crate::server::GameSessionInfo;
+use crate::server::{ConnectionInfo, GameSessionInfo};
 
 const HOST: &str = "http://localhost:8000";
 
 pub fn heartbeat<'a>(
     client: &'a mut BevyReqwest,
     server_id: Uuid,
+    connection_info: ConnectionInfo,
     state: GameServerState,
-    // TODO: connection info
     session_info: Option<&GameSessionInfo>,
 ) -> BevyReqwestBuilder<'a> {
     debug!("heartbeat");
@@ -24,8 +24,9 @@ pub fn heartbeat<'a>(
         .json(&PostHeartbeatRequestV1 {
             server_info: GameServerInfo {
                 server_id,
+                addrs: connection_info.addrs,
+                port: connection_info.port,
                 state,
-                // TODO: connection info
                 game_session_id: session_info.map(|session_info| session_info.session_id),
                 player_session_ids: session_info
                     .map(|session_info| session_info.player_session_ids.clone()),

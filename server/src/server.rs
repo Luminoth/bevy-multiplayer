@@ -1,4 +1,4 @@
-use std::net::UdpSocket;
+use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
@@ -12,6 +12,7 @@ use bevy_replicon_renet::{
     RenetChannelsExt,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
+use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use uuid::Uuid;
 
 use common::gameserver::GameServerState;
@@ -26,15 +27,54 @@ use crate::{
     api, game, options::Options, orchestration::Orchestration, placement, tasks, AppState,
 };
 
+#[derive(Debug, Clone, Default)]
+pub struct ConnectionInfo {
+    pub addrs: Vec<String>,
+    pub port: u16,
+}
+
+impl ConnectionInfo {
+    pub fn update(&mut self, addr: SocketAddr) {
+        let ip = addr.ip();
+        if ip.is_unspecified() {
+            self.addrs.clear();
+
+            let ifaces = NetworkInterface::show().unwrap();
+            for iface in ifaces {
+                for ip in iface.addr {
+                    let ip = ip.ip();
+                    match ip {
+                        IpAddr::V4(ip) => {
+                            if !ip.is_loopback() && !ip.is_link_local() {
+                                self.addrs.push(ip.to_string());
+                            }
+                        }
+                        IpAddr::V6(ip) => {
+                            if !ip.is_loopback() {
+                                self.addrs.push(ip.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            self.addrs.push(ip.to_string());
+        }
+        self.port = addr.port();
+    }
+}
+
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {
     pub server_id: Uuid,
+    pub connection_info: ConnectionInfo,
 }
 
 impl GameServerInfo {
     pub fn new() -> Self {
         Self {
             server_id: Uuid::new_v4(),
+            connection_info: ConnectionInfo::default(),
         }
     }
 }
@@ -49,11 +89,11 @@ pub struct GameSessionInfo {
 pub fn heartbeat(
     client: &mut BevyReqwest,
     server_id: Uuid,
+    connection_info: ConnectionInfo,
     state: GameServerState,
-    // TODO: connection info
     session_info: Option<&GameSessionInfo>,
 ) {
-    api::heartbeat(client, server_id, state, session_info).on_error(
+    api::heartbeat(client, server_id, connection_info, state, session_info).on_error(
         |trigger: Trigger<ReqwestErrorEvent>| {
             let e = &trigger.event().0;
             error!("heartbeat error: {:?}", e);
@@ -102,6 +142,7 @@ fn setup(
     heartbeat(
         &mut client,
         server_info.server_id,
+        server_info.connection_info.clone(),
         AppState::Startup.into(),
         None,
     );
@@ -153,6 +194,7 @@ fn enter(
     heartbeat(
         &mut client,
         server_info.server_id,
+        server_info.connection_info.clone(),
         (**state).into(),
         Some(&session_info),
     );
@@ -180,6 +222,7 @@ fn heartbeat_monitor(
     heartbeat(
         &mut client,
         server_info.server_id,
+        server_info.connection_info.clone(),
         (**state).into(),
         session_info,
     );
@@ -203,7 +246,7 @@ fn init_server(
     mut client: BevyReqwest,
     options: Res<Options>,
     channels: Res<RepliconChannels>,
-    server_info: Res<GameServerInfo>,
+    mut server_info: ResMut<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
     current_state: Res<State<AppState>>,
     mut app_state: ResMut<NextState<AppState>>,
@@ -214,6 +257,7 @@ fn init_server(
     heartbeat(
         &mut client,
         server_info.server_id,
+        server_info.connection_info.clone(),
         (**current_state).into(),
         Some(&session_info),
     );
@@ -242,6 +286,8 @@ fn init_server(
 
     let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
     commands.insert_resource(transport);
+
+    server_info.connection_info.update(server_addr);
 
     app_state.set(AppState::InGame);
 }

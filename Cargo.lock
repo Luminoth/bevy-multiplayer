@@ -4444,6 +4444,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "network-interface"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "433419f898328beca4f2c6c73a1b52540658d92b0a99f0269330457e0fd998d5"
+dependencies = [
+ "cc",
+ "libc",
+ "thiserror",
+ "winapi",
+]
+
+[[package]]
 name = "nix"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5972,6 +5984,7 @@ dependencies = [
  "clap",
  "common",
  "game",
+ "network-interface",
  "tokio",
  "uuid",
 ]

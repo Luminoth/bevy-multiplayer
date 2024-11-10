@@ -49,7 +49,13 @@ fn enter(
                      server_info: Res<GameServerInfo>,
                      state: Res<State<AppState>>| {
                         // let the backend know we're available for placement
-                        heartbeat(&mut client, server_info.server_id, (**state).into(), None);
+                        heartbeat(
+                            &mut client,
+                            server_info.server_id,
+                            server_info.connection_info.clone(),
+                            (**state).into(),
+                            None,
+                        );
                     },
                 );
 
