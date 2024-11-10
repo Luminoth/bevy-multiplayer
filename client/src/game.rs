@@ -35,7 +35,7 @@ fn enter_local(
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
-    dynamics: Query<(Entity, &Transform), (With<dynamic::Dynamic>, Without<GlobalTransform>)>,
+    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
     players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("finishing local game ...");

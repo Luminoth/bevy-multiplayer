@@ -5,20 +5,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, GameAssetState};
 
-// TODO: make dynamic an enum or something so we don't need generics
-// and give them a way to get their name and whatever else
+#[derive(Debug, Component, Copy, Clone, Serialize, Deserialize)]
+pub enum Dynamic {
+    Ball,
+}
 
-#[derive(Debug, Component, Serialize, Deserialize)]
-pub struct Dynamic;
-
-#[derive(Debug, Component, Serialize, Deserialize)]
-pub struct Ball;
+impl Dynamic {
+    pub fn get_name(&self) -> &'static str {
+        match self {
+            Dynamic::Ball => "Ball",
+        }
+    }
+}
 
 #[derive(Bundle)]
-pub struct ServerDynamicBundle<T>
-where
-    T: Component,
-{
+pub struct ServerDynamicBundle {
     material_mesh: MaterialMeshBundle<StandardMaterial>,
     rigidbody: RigidBody,
     collider: Collider,
@@ -26,7 +27,7 @@ where
     restitution: Restitution,
     name: Name,
     replicated: Replicated,
-    dynamic: T,
+    dynamic: Dynamic,
     tag: OnInGame,
 }
 
@@ -37,15 +38,11 @@ pub struct ClientDynamicBundle {
     tag: OnInGame,
 }
 
-pub fn spawn_dynamic<T>(
-    commands: &mut Commands,
-    position: Vec3,
-    assets: &GameAssetState,
-    dynamic: T,
-) where
-    T: Component,
-{
-    info!("spawning dynamic at {} ...", position);
+pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
+    info!("spawning ball at {} ...", position);
+
+    let dynamic = Dynamic::Ball;
+    let name = dynamic.get_name();
 
     commands.spawn(ServerDynamicBundle {
         material_mesh: MaterialMeshBundle {
@@ -58,7 +55,7 @@ pub fn spawn_dynamic<T>(
         collider: Collider::ball(0.5),
         mass: ColliderMassProperties::Mass(0.5),
         restitution: Restitution::coefficient(0.7),
-        name: Name::new("Dynamic"),
+        name: Name::new(name),
         replicated: Replicated,
         dynamic,
         tag: OnInGame,
@@ -70,6 +67,7 @@ pub fn finish_client_dynamic(
     assets: &GameAssetState,
     entity: Entity,
     transform: Transform,
+    dynamic: Dynamic,
 ) {
     info!(
         "finishing dynamic {} at {} ...",
@@ -83,7 +81,7 @@ pub fn finish_client_dynamic(
             material: assets.ball_material.clone(),
             ..default()
         },
-        name: Name::new("Replicated Dynamic"),
+        name: Name::new(format!("Replicated {}", dynamic.get_name())),
         tag: OnInGame,
     });
 }
@@ -108,13 +106,13 @@ impl Plugin for DynamicPlugin {
 fn finish_client_dynamics(
     mut commands: Commands,
     assets: Option<Res<GameAssetState>>,
-    dynamics: Query<(Entity, &Transform), (With<Dynamic>, Without<GlobalTransform>)>,
+    dynamics: Query<(Entity, &Transform, &Dynamic), Without<GlobalTransform>>,
 ) {
     let Some(assets) = assets else {
         return;
     };
 
-    for (entity, transform) in &dynamics {
-        finish_client_dynamic(&mut commands, &assets, entity, *transform);
+    for (entity, transform, dynamic) in &dynamics {
+        finish_client_dynamic(&mut commands, &assets, entity, *transform, *dynamic);
     }
 }

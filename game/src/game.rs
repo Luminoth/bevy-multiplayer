@@ -208,12 +208,7 @@ fn wait_for_world(mut game_state: ResMut<NextState<GameState>>) {
 fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("entering server game ...");
 
-    dynamic::spawn_dynamic(
-        &mut commands,
-        Vec3::new(0.0, 20.0, -5.0),
-        &assets,
-        dynamic::Ball,
-    );
+    dynamic::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
 }
 
 #[allow(clippy::type_complexity)]
@@ -221,15 +216,15 @@ pub fn spawn_client_world(
     commands: &mut Commands,
     client_id: ClientId,
     assets: &GameAssetState,
-    dynamics: &Query<(Entity, &Transform), (With<dynamic::Dynamic>, Without<GlobalTransform>)>,
+    dynamics: &Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
     players: &Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("spawning client world ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
-    for (entity, transform) in dynamics {
-        dynamic::finish_client_dynamic(commands, assets, entity, *transform);
+    for (entity, transform, dynamic) in dynamics {
+        dynamic::finish_client_dynamic(commands, assets, entity, *transform, *dynamic);
     }
 
     for (entity, transform, player) in players {
@@ -242,7 +237,7 @@ fn enter_client(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
-    dynamics: Query<(Entity, &Transform), (With<dynamic::Dynamic>, Without<GlobalTransform>)>,
+    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
     players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("entering client game ...");
