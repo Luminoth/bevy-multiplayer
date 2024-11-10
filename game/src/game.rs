@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 
 use crate::{
-    ball, cleanup_state,
+    cleanup_state, dynamic,
     network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     player, spawn, world, GameAssetState, GameState, InputState,
 };
@@ -24,7 +24,7 @@ impl Plugin for GamePlugin {
             RapierPhysicsPlugin::<NoUserData>::default(),
             // game plugins
             player::PlayerPlugin,
-            ball::BallPlugin,
+            dynamic::DynamicPlugin,
         ))
         .init_state::<GameState>()
         .init_resource::<InputState>()
@@ -208,7 +208,12 @@ fn wait_for_world(mut game_state: ResMut<NextState<GameState>>) {
 fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("entering server game ...");
 
-    ball::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
+    dynamic::spawn_dynamic(
+        &mut commands,
+        Vec3::new(0.0, 20.0, -5.0),
+        &assets,
+        dynamic::Ball,
+    );
 }
 
 #[allow(clippy::type_complexity)]
@@ -216,15 +221,15 @@ pub fn spawn_client_world(
     commands: &mut Commands,
     client_id: ClientId,
     assets: &GameAssetState,
-    balls: &Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+    dynamics: &Query<(Entity, &Transform), (With<dynamic::Dynamic>, Without<GlobalTransform>)>,
     players: &Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("spawning client world ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
-    for (entity, transform) in balls {
-        ball::finish_client_ball(commands, assets, entity, *transform);
+    for (entity, transform) in dynamics {
+        dynamic::finish_client_dynamic(commands, assets, entity, *transform);
     }
 
     for (entity, transform, player) in players {
@@ -237,7 +242,7 @@ fn enter_client(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
-    balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+    dynamics: Query<(Entity, &Transform), (With<dynamic::Dynamic>, Without<GlobalTransform>)>,
     players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("entering client game ...");
@@ -246,7 +251,7 @@ fn enter_client(
         &mut commands,
         client_id.get_client_id(),
         &assets,
-        &balls,
+        &dynamics,
         &players,
     );
 }

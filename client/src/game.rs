@@ -1,7 +1,8 @@
 use bevy::{input::common_conditions::*, prelude::*};
 
 use game_common::{
-    ball, network::PlayerClientId, player, spawn::SpawnPoint, GameAssetState, GameState, ServerSet,
+    dynamic, network::PlayerClientId, player, spawn::SpawnPoint, GameAssetState, GameState,
+    ServerSet,
 };
 
 use crate::game_menu;
@@ -34,7 +35,7 @@ fn enter_local(
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
-    balls: Query<(Entity, &Transform), (With<ball::Ball>, Without<GlobalTransform>)>,
+    dynamics: Query<(Entity, &Transform), (With<dynamic::Dynamic>, Without<GlobalTransform>)>,
     players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
     info!("finishing local game ...");
@@ -51,7 +52,7 @@ fn enter_local(
         &mut commands,
         client_id.get_client_id(),
         &assets,
-        &balls,
+        &dynamics,
         &players,
     );
 }

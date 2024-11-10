@@ -1,4 +1,4 @@
-pub mod ball;
+pub mod dynamic;
 mod game;
 pub mod network;
 pub mod player;
