@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use clap::Parser;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, clap::ValueEnum)]
-#[clap(rename_all = "kebab_case")]
+#[clap(rename_all = "lowercase")]
 pub enum OrchestrationType {
     Local,
 
@@ -10,7 +10,7 @@ pub enum OrchestrationType {
     Agones,
 
     #[cfg(feature = "gamelift")]
-    Gamelift,
+    GameLift,
 }
 
 #[derive(Parser, Debug, Resource)]

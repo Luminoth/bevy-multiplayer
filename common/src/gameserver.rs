@@ -2,11 +2,20 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum GameServerState {
     Init,
     WaitingForPlacement,
     InGame,
     Shutdown,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum GameServerOrchestration {
+    Local,
+    Agones,
+    GameLift,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +26,7 @@ pub struct GameServerInfo {
     pub port: u16,
 
     pub state: GameServerState,
+    pub orchestration: GameServerOrchestration,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_session_id: Option<Uuid>,

@@ -13,6 +13,7 @@ pub fn heartbeat<'a>(
     server_id: Uuid,
     connection_info: ConnectionInfo,
     state: GameServerState,
+    orchestration: GameServerOrchestration,
     session_info: Option<&GameSessionInfo>,
 ) -> BevyReqwestBuilder<'a> {
     debug!("heartbeat");
@@ -27,6 +28,7 @@ pub fn heartbeat<'a>(
                 addrs: connection_info.addrs,
                 port: connection_info.port,
                 state,
+                orchestration,
                 max_players: session_info
                     .map(|session_info| session_info.max_players)
                     .unwrap_or_default(),

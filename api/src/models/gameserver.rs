@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use common::gameserver::GameServerState;
+use common::gameserver::{GameServerOrchestration, GameServerState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
@@ -9,6 +9,7 @@ pub struct GameServerInfo {
     pub addrs: Vec<String>,
     pub port: u16,
     pub state: GameServerState,
+    pub orchestration: GameServerOrchestration,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_session_id: Option<Uuid>,
 }
@@ -20,6 +21,7 @@ impl From<common::gameserver::GameServerInfo> for GameServerInfo {
             addrs: server_info.addrs,
             port: server_info.port,
             state: server_info.state,
+            orchestration: server_info.orchestration,
             game_session_id: server_info.game_session_id,
         }
     }

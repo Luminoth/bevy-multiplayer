@@ -47,13 +47,15 @@ fn enter(
                 ctx.world.run_system_once(
                     |mut client: BevyReqwest,
                      server_info: Res<GameServerInfo>,
-                     state: Res<State<AppState>>| {
+                     state: Res<State<AppState>>,
+                     orchestration: Res<Orchestration>| {
                         // let the backend know we're available for placement
                         heartbeat(
                             &mut client,
                             server_info.server_id,
                             server_info.connection_info.clone(),
                             (**state).into(),
+                            orchestration.as_api_type(),
                             None,
                         );
                     },

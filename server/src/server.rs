@@ -15,7 +15,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use uuid::Uuid;
 
-use common::gameserver::GameServerState;
+use common::gameserver::{GameServerOrchestration, GameServerState};
 use game_common::{
     network::{InputUpdateEvent, PlayerJumpEvent},
     player,
@@ -94,14 +94,21 @@ pub fn heartbeat(
     server_id: Uuid,
     connection_info: ConnectionInfo,
     state: GameServerState,
+    orchestration: GameServerOrchestration,
     session_info: Option<&GameSessionInfo>,
 ) {
-    api::heartbeat(client, server_id, connection_info, state, session_info).on_error(
-        |trigger: Trigger<ReqwestErrorEvent>| {
-            let e = &trigger.event().0;
-            error!("heartbeat error: {:?}", e);
-        },
-    );
+    api::heartbeat(
+        client,
+        server_id,
+        connection_info,
+        state,
+        orchestration,
+        session_info,
+    )
+    .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
+        let e = &trigger.event().0;
+        error!("heartbeat error: {:?}", e);
+    });
 }
 
 #[derive(Debug)]
@@ -147,6 +154,7 @@ fn setup(
         server_info.server_id,
         server_info.connection_info.clone(),
         AppState::Startup.into(),
+        GameServerOrchestration::Local,
         None,
     );
 
@@ -187,6 +195,7 @@ fn shutdown(orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>) 
 
 fn enter(
     mut client: BevyReqwest,
+    orchestration: Res<Orchestration>,
     server_info: Res<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
     state: Res<State<AppState>>,
@@ -199,6 +208,7 @@ fn enter(
         server_info.server_id,
         server_info.connection_info.clone(),
         (**state).into(),
+        orchestration.as_api_type(),
         Some(&session_info),
     );
 
@@ -227,6 +237,7 @@ fn heartbeat_monitor(
         server_info.server_id,
         server_info.connection_info.clone(),
         (**state).into(),
+        orchestration.as_api_type(),
         session_info,
     );
 
@@ -249,6 +260,7 @@ fn init_server(
     mut client: BevyReqwest,
     options: Res<Options>,
     channels: Res<RepliconChannels>,
+    orchestration: Res<Orchestration>,
     mut server_info: ResMut<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
     current_state: Res<State<AppState>>,
@@ -262,6 +274,7 @@ fn init_server(
         server_info.server_id,
         server_info.connection_info.clone(),
         (**current_state).into(),
+        orchestration.as_api_type(),
         Some(&session_info),
     );
 

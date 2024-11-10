@@ -4,6 +4,8 @@ mod gamelift;
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
 
+use common::gameserver::GameServerOrchestration;
+
 #[derive(Event)]
 pub struct StartWatcherEvent;
 
@@ -40,9 +42,21 @@ impl Orchestration {
             crate::options::OrchestrationType::Agones => Ok(Self::Agones(agones::new_sdk().await?)),
 
             #[cfg(feature = "gamelift")]
-            crate::options::OrchestrationType::Gamelift => {
+            crate::options::OrchestrationType::GameLift => {
                 Ok(Self::GameLift(gamelift::new_api().await?))
             }
+        }
+    }
+
+    pub fn as_api_type(&self) -> GameServerOrchestration {
+        match self {
+            Self::Local => GameServerOrchestration::Local,
+
+            #[cfg(feature = "agones")]
+            Self::Agones(_) => GameServerOrchestration::Agones,
+
+            #[cfg(feature = "gamelift")]
+            Self::GameLift(_) => GameServerOrchestration::GameLift,
         }
     }
 
