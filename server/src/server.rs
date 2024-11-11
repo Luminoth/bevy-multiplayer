@@ -24,7 +24,7 @@ use game_common::{
 };
 
 use crate::{
-    api, game, options::Options, orchestration::Orchestration, placement, tasks, AppState,
+    api, game, notifs, options::Options, orchestration::Orchestration, placement, tasks, AppState,
 };
 
 pub const MAX_PLAYERS: usize = 3;
@@ -116,26 +116,30 @@ pub struct ServerPlugin;
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((placement::PlacementPlugin, game::GamePlugin))
-            .add_systems(Startup, setup)
-            .add_systems(
-                PreUpdate,
-                (handle_input_update, handle_jump_event)
-                    .after(ServerSet::Receive)
-                    .run_if(in_state(AppState::InGame))
-                    .run_if(server_running),
-            )
-            .add_systems(
-                Update,
-                (
-                    handle_network_events.run_if(in_state(GameState::InGame)),
-                    heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
-                ),
-            )
-            .add_systems(OnEnter(AppState::InitServer), init_server)
-            .add_systems(OnEnter(AppState::InGame), enter)
-            .add_systems(OnExit(AppState::InGame), exit)
-            .add_systems(OnEnter(AppState::Shutdown), shutdown);
+        app.add_plugins((
+            notifs::NotifsPlugin,
+            placement::PlacementPlugin,
+            game::GamePlugin,
+        ))
+        .add_systems(Startup, setup)
+        .add_systems(
+            PreUpdate,
+            (handle_input_update, handle_jump_event)
+                .after(ServerSet::Receive)
+                .run_if(in_state(AppState::InGame))
+                .run_if(server_running),
+        )
+        .add_systems(
+            Update,
+            (
+                handle_network_events.run_if(in_state(GameState::InGame)),
+                heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
+            ),
+        )
+        .add_systems(OnEnter(AppState::InitServer), init_server)
+        .add_systems(OnEnter(AppState::InGame), enter)
+        .add_systems(OnExit(AppState::InGame), exit)
+        .add_systems(OnEnter(AppState::Shutdown), shutdown);
     }
 }
 
@@ -158,12 +162,7 @@ fn setup(
         None,
     );
 
-    api::subscribe(&mut client, server_info.server_id).on_error(
-        |trigger: Trigger<ReqwestErrorEvent>| {
-            let e = &trigger.event().0;
-            error!("subscribe error: {:?}", e);
-        },
-    );
+    api::subscribe(&mut commands, server_info.server_id);
 
     commands.insert_resource(server_info);
 

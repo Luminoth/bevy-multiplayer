@@ -25,9 +25,12 @@ bevy_replicon_renet = { version = "0.5", default-features = false, features = [
 ] }
 bevy-tokio-tasks = "0.14"
 clap = { version = "4.5", features = ["derive"] }
+futures-lite = "2.5"
+futures-util = "0.3"
 http = "1.1"
 network-interface = "2.0"
 tokio = { version = "1.41", features = ["rt", "rt-multi-thread", "sync"] }
+tokio-tungstenite = "0.24"
 uuid = { version = "1.11", features = ["v4", "serde"] }
 
 common = { path = "../common" }

@@ -1,30 +1,31 @@
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use uuid::Uuid;
 
 use common::gameserver::*;
 
-use crate::server::{ConnectionInfo, GameSessionInfo};
+use crate::{
+    notifs::*,
+    server::{ConnectionInfo, GameSessionInfo},
+};
 
 const API_HOST: &str = "http://localhost:8000";
 const NOTIFS_HOST: &str = "ws://localhost:8001";
 
-// TODO: have to use https://docs.rs/reqwest-websocket/latest/reqwest_websocket/ to get websocket support
-pub fn subscribe<'a>(client: &'a mut BevyReqwest, server_id: Uuid) -> BevyReqwestBuilder<'a> {
-    let url = format!("{}/notifs/v1", NOTIFS_HOST);
-
-    let req: reqwest::Request = client
-        .get(url)
-        .header(
-            http::header::AUTHORIZATION,
-            // TODO: this is just hacky stuff until real auth is in
-            format!("Bearer {}", server_id.to_string()),
-        )
-        .build()
+pub fn subscribe(commands: &mut Commands, server_id: Uuid) {
+    let mut notifs_request = format!("{}/notifs/v1", NOTIFS_HOST)
+        .into_client_request()
         .unwrap();
-
-    client.send(req)
+    let headers = notifs_request.headers_mut();
+    headers.insert(
+        http::header::AUTHORIZATION,
+        format!("Bearer {}", server_id.to_string()).parse().unwrap(),
+    );
+    commands.spawn(SubscribeNotifs(Some(notifs_request)));
 }
+
+// TODO: unsubscribe
 
 pub fn heartbeat<'a>(
     client: &'a mut BevyReqwest,

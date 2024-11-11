@@ -1,5 +1,6 @@
 mod api;
 mod game;
+mod notifs;
 mod options;
 mod orchestration;
 mod placement;

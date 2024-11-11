@@ -1,5 +1,5 @@
 use axum::extract::ws::WebSocket;
-use futures_util::stream::StreamExt;
+use futures_util::StreamExt;
 use tracing::info;
 
 pub async fn handle_notifs(socket: WebSocket, server_id: impl AsRef<str>) {
