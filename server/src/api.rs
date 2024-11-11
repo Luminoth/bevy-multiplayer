@@ -6,7 +6,25 @@ use common::gameserver::*;
 
 use crate::server::{ConnectionInfo, GameSessionInfo};
 
-const HOST: &str = "http://localhost:8000";
+const API_HOST: &str = "http://localhost:8000";
+const NOTIFS_HOST: &str = "ws://localhost:8001";
+
+// TODO: have to use https://docs.rs/reqwest-websocket/latest/reqwest_websocket/ to get websocket support
+pub fn subscribe<'a>(client: &'a mut BevyReqwest, server_id: Uuid) -> BevyReqwestBuilder<'a> {
+    let url = format!("{}/notifs/v1", NOTIFS_HOST);
+
+    let req: reqwest::Request = client
+        .get(url)
+        .header(
+            http::header::AUTHORIZATION,
+            // TODO: this is just hacky stuff until real auth is in
+            format!("Bearer {}", server_id.to_string()),
+        )
+        .build()
+        .unwrap();
+
+    client.send(req)
+}
 
 pub fn heartbeat<'a>(
     client: &'a mut BevyReqwest,
@@ -18,7 +36,7 @@ pub fn heartbeat<'a>(
 ) -> BevyReqwestBuilder<'a> {
     debug!("heartbeat");
 
-    let url = format!("{}/gameserver/heartbeat/v1", HOST);
+    let url = format!("{}/gameserver/heartbeat/v1", API_HOST);
 
     let req = client
         .post(url)

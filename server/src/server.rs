@@ -158,6 +158,13 @@ fn setup(
         None,
     );
 
+    api::subscribe(&mut client, server_info.server_id).on_error(
+        |trigger: Trigger<ReqwestErrorEvent>| {
+            let e = &trigger.event().0;
+            error!("subscribe error: {:?}", e);
+        },
+    );
+
     commands.insert_resource(server_info);
 
     let orchestration_type = options.orchestration;

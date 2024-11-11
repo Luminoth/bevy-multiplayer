@@ -25,6 +25,8 @@ use internal::{axum as axum_util, redis};
 use options::Options;
 use state::AppState;
 
+// TODO: add authentication
+
 fn init_logging() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(

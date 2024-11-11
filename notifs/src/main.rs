@@ -1,4 +1,5 @@
 mod handlers;
+mod notifs;
 mod options;
 mod routes;
 mod state;
@@ -23,6 +24,8 @@ use internal::axum as axum_util;
 
 use options::Options;
 use state::AppState;
+
+// TODO: add authentication
 
 fn init_logging() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()

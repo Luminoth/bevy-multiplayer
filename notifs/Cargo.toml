@@ -10,14 +10,19 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-axum = "0.7"
+axum = { version = "0.7", features = ["ws"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
 clap = { version = "4.5", features = ["derive"] }
+futures-util = "0.3"
+headers = "0.4"
 http = "1.1"
+serde = "1.0"
 tokio = { version = "1.41", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.11", features = ["v4", "serde"] }
 
 common = { path = "../common" }
 internal = { path = "../internal" }
