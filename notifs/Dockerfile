@@ -7,10 +7,10 @@ WORKDIR /app
 # copy source
 COPY common/ common/
 COPY internal/ internal/
-COPY api/ api/
+COPY notifs/ notifs/
 
 # build
-RUN cargo install --path api/ --root .
+RUN cargo install --path notifs/ --root .
 
 # stage 2: create image
 # TODO: find a way to move this to alpine
@@ -33,4 +33,4 @@ COPY --from=builder /app/bin bin/
 
 EXPOSE 8000
 
-CMD ["bin/bevy-multiplayer-api"]
+CMD ["bin/bevy-multiplayer-notifs"]

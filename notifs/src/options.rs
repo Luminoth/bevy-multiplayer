@@ -7,9 +7,6 @@ pub struct Options {
 
     #[arg(short, long, default_value_t = 8000)]
     pub port: u16,
-
-    #[arg(long, default_value = "redis://localhost")]
-    pub redis_host: String,
 }
 
 impl Options {

@@ -1,8 +1,24 @@
+mod error;
+mod http_tracing;
+
 use std::fmt;
 use std::net::SocketAddr;
 
-use axum::extract::ConnectInfo;
+use axum::{
+    debug_handler, extract::ConnectInfo, http::StatusCode, http::Uri, response::IntoResponse,
+};
 use http::{header::AsHeaderName, Request};
+use tracing::debug;
+
+pub use error::*;
+pub use http_tracing::*;
+
+#[debug_handler]
+pub async fn handler_404(uri: Uri) -> impl IntoResponse {
+    debug!("invalid resource: {}", uri);
+
+    (StatusCode::NOT_FOUND, "Resource not found")
+}
 
 // copied from warp's log filter
 pub struct OptFmt<T>(pub Option<T>);

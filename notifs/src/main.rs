@@ -1,5 +1,4 @@
 mod handlers;
-mod models;
 mod options;
 mod routes;
 mod state;
@@ -20,7 +19,7 @@ use tower_http::{
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
-use internal::{axum as axum_util, redis};
+use internal::axum as axum_util;
 
 use options::Options;
 use state::AppState;
@@ -62,9 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
     init_logging()?;
 
-    let redis_connection_pool = redis::connect(options.redis_host.clone()).await?;
-
-    let app_state = AppState::new(options, redis_connection_pool);
+    let app_state = AppState::new(options);
 
     let addr = app_state
         .options

@@ -6,7 +6,7 @@ use axum::extract::ConnectInfo;
 use http::header;
 use tracing::info;
 
-use crate::util::{self, OptFmt};
+use super::*;
 
 // TODO: if we can get an id into the Span then we can use
 // on_request and on_response instead of tracing_wrapper
@@ -14,7 +14,7 @@ use crate::util::{self, OptFmt};
 #[allow(dead_code)]
 pub fn on_request<B>(request: &http::Request<B>, span: &tracing::Span) {
     let mut forwarded = true;
-    let mut remote_addr = util::get_forwarded_addr(request);
+    let mut remote_addr = get_forwarded_addr(request);
     if remote_addr.is_none() {
         remote_addr = request
             .extensions()
@@ -24,7 +24,7 @@ pub fn on_request<B>(request: &http::Request<B>, span: &tracing::Span) {
         forwarded = false;
     }
 
-    let user_agent = util::get_request_header(request, header::USER_AGENT);
+    let user_agent = get_request_header(request, header::USER_AGENT);
 
     // don't log AWS health check requests
     if !user_agent
@@ -40,7 +40,7 @@ pub fn on_request<B>(request: &http::Request<B>, span: &tracing::Span) {
             request.method(),
             request.uri(),
             request.version(),
-            OptFmt(util::get_request_header(request, header::REFERER)),
+            OptFmt(get_request_header(request, header::REFERER)),
             OptFmt(user_agent),
         );
     }
@@ -73,11 +73,11 @@ pub async fn tracing_wrapper(
     let method = request.method().clone();
     let uri = request.uri().clone();
     let version = request.version();
-    let referer = util::get_request_header(&request, header::REFERER).map(str::to_owned);
-    let user_agent = util::get_request_header(&request, header::USER_AGENT).map(str::to_owned);
+    let referer = get_request_header(&request, header::REFERER).map(str::to_owned);
+    let user_agent = get_request_header(&request, header::USER_AGENT).map(str::to_owned);
 
     let mut forwarded = true;
-    let mut remote_addr = util::get_forwarded_addr(&request);
+    let mut remote_addr = get_forwarded_addr(&request);
     if remote_addr.is_none() {
         remote_addr = request
             .extensions()

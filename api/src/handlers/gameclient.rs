@@ -2,8 +2,7 @@ use axum::{debug_handler, extract::Query, Json};
 use serde::Deserialize;
 
 use common::gameclient::*;
-
-use crate::error::AppError;
+use internal::axum::AppError;
 
 #[derive(Debug, Deserialize)]
 pub struct FindServerParamsV1 {

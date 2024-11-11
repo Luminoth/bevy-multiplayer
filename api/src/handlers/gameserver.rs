@@ -2,8 +2,9 @@ use axum::{debug_handler, extract::State, Json};
 use bb8_redis::redis::{self};
 
 use common::gameserver::*;
+use internal::axum::AppError;
 
-use crate::{error::AppError, models, state::AppState};
+use crate::{models, state::AppState};
 
 #[debug_handler]
 pub async fn post_heartbeat_v1(

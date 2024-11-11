@@ -1,0 +1,12 @@
+[package]
+name = "internal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+axum = { version = "0.7", features = ["macros"] }
+bb8-redis = "0.17"
+http = "1.1"
+serde = "1.0"
+tracing = "0.1"
