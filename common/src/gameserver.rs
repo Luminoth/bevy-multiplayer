@@ -20,8 +20,6 @@ pub enum GameServerOrchestration {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
-    pub server_id: Uuid,
-
     pub addrs: Vec<String>,
     pub port: u16,
 

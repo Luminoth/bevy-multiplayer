@@ -1,9 +1,9 @@
 use axum::extract::ws::WebSocket;
 use futures_util::StreamExt;
 use tracing::info;
+use uuid::Uuid;
 
-pub async fn handle_notifs(socket: WebSocket, server_id: impl AsRef<str>) {
-    let server_id = server_id.as_ref();
+pub async fn handle_notifs(socket: WebSocket, server_id: Uuid) {
     info!("{} subscribed to notifications ...", server_id);
 
     let (mut _sender, mut receiver) = socket.split();

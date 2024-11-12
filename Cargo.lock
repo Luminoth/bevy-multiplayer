@@ -277,10 +277,12 @@ dependencies = [
  "aws-config",
  "aws-sdk-gamelift",
  "axum 0.7.7",
+ "axum-extra",
  "bb8-redis",
  "chrono",
  "clap",
  "common",
+ "headers",
  "internal",
  "serde",
  "serde_json",
@@ -2541,6 +2543,7 @@ dependencies = [
  "common",
  "game",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -2617,6 +2620,7 @@ dependencies = [
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "serde",
  "uuid",
 ]

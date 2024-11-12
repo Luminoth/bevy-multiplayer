@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use clap::Parser;
 
+use common::user::UserId;
+
 #[derive(Parser, Debug, Resource)]
 pub struct Options {
-    pub player_id: String,
+    #[arg(default_value_t = UserId::new_v4())]
+    pub user_id: UserId,
 }

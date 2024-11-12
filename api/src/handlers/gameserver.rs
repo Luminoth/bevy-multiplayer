@@ -1,5 +1,8 @@
 use axum::{debug_handler, extract::State, Json};
+use axum_extra::TypedHeader;
 use bb8_redis::redis::{self};
+use headers::authorization::{Authorization, Bearer};
+use uuid::Uuid;
 
 use common::gameserver::*;
 use internal::axum::AppError;
@@ -8,9 +11,13 @@ use crate::{models, state::AppState};
 
 #[debug_handler]
 pub async fn post_heartbeat_v1(
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     State(app_state): State<AppState>,
     Json(request): Json<PostHeartbeatRequestV1>,
 ) -> Result<Json<PostHeartbeatResponseV1>, AppError> {
+    // TODO: validate the server token
+    let server_id = Uuid::parse_str(bearer.token())?;
+
     let mut conn = app_state.redis_connection_pool.get().await?;
 
     let ttl = 60;
@@ -19,7 +26,8 @@ pub async fn post_heartbeat_v1(
 
     let mut pipeline = redis::pipe();
 
-    let server_info_data = models::gameserver::GameServerInfo::from(request.server_info.clone());
+    let server_info_data =
+        models::gameserver::GameServerInfo::new(server_id, request.server_info.clone());
     let value = serde_json::to_string(&server_info_data)?;
     pipeline.set_ex(server_info_data.get_key(), value, ttl);
 
@@ -42,7 +50,7 @@ pub async fn post_heartbeat_v1(
     }
 
     if let Ok(session_info_data) =
-        models::gameserver::GameSessionInfo::try_from(request.server_info)
+        models::gameserver::GameSessionInfo::new(server_id, request.server_info)
     {
         let value = serde_json::to_string(&session_info_data)?;
         pipeline.set_ex(session_info_data.get_key(), value, ttl);

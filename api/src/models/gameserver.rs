@@ -14,10 +14,11 @@ pub struct GameServerInfo {
     pub game_session_id: Option<Uuid>,
 }
 
-impl From<common::gameserver::GameServerInfo> for GameServerInfo {
-    fn from(server_info: common::gameserver::GameServerInfo) -> Self {
+impl GameServerInfo {
+    #[inline]
+    pub fn new(server_id: Uuid, server_info: common::gameserver::GameServerInfo) -> Self {
         Self {
-            server_id: server_info.server_id,
+            server_id,
             addrs: server_info.addrs,
             port: server_info.port,
             state: server_info.state,
@@ -25,9 +26,7 @@ impl From<common::gameserver::GameServerInfo> for GameServerInfo {
             game_session_id: server_info.game_session_id,
         }
     }
-}
 
-impl GameServerInfo {
     #[inline]
     pub fn get_key(&self) -> String {
         format!("gameserver:{}", self.server_id)
@@ -46,26 +45,15 @@ pub struct GameSessionInfo {
 
 impl GameSessionInfo {
     #[inline]
-    pub fn get_key(&self) -> String {
-        format!("gamesession:{}", self.game_session_id)
-    }
-
-    #[inline]
-    pub fn needs_players(&self) -> usize {
-        // TODO: this isn't safe if we mess up and have more players than max_players
-        self.max_players - (self.player_session_ids.len() + self.pending_player_ids.len())
-    }
-}
-
-impl TryFrom<common::gameserver::GameServerInfo> for GameSessionInfo {
-    type Error = anyhow::Error;
-
-    fn try_from(server_info: common::gameserver::GameServerInfo) -> anyhow::Result<Self> {
+    pub fn new(
+        server_id: Uuid,
+        server_info: common::gameserver::GameServerInfo,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             game_session_id: server_info
                 .game_session_id
                 .ok_or_else(|| anyhow::anyhow!("missing game session id"))?,
-            server_id: server_info.server_id,
+            server_id,
             max_players: server_info.max_players,
             player_session_ids: server_info
                 .player_session_ids
@@ -74,5 +62,16 @@ impl TryFrom<common::gameserver::GameServerInfo> for GameSessionInfo {
                 .pending_player_ids
                 .ok_or_else(|| anyhow::anyhow!("missing pending players"))?,
         })
+    }
+
+    #[inline]
+    pub fn get_key(&self) -> String {
+        format!("gamesession:{}", self.game_session_id)
+    }
+
+    #[inline]
+    pub fn needs_players(&self) -> usize {
+        // TODO: this isn't safe if we mess up and have more players than max_players
+        self.max_players - (self.player_session_ids.len() + self.pending_player_ids.len())
     }
 }

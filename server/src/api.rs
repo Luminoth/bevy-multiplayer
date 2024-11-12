@@ -20,7 +20,7 @@ pub fn subscribe(commands: &mut Commands, server_id: Uuid) {
     let headers = notifs_request.headers_mut();
     headers.insert(
         http::header::AUTHORIZATION,
-        format!("Bearer {}", server_id.to_string()).parse().unwrap(),
+        format!("Bearer {}", server_id).parse().unwrap(),
     );
     commands.spawn(SubscribeNotifs(Some(notifs_request)));
 }
@@ -41,9 +41,10 @@ pub fn heartbeat<'a>(
 
     let req = client
         .post(url)
+        // TODO: should be auth JWT token
+        .bearer_auth(server_id.to_string())
         .json(&PostHeartbeatRequestV1 {
             server_info: GameServerInfo {
-                server_id,
                 addrs: connection_info.addrs,
                 port: connection_info.port,
                 state,

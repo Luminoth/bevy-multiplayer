@@ -105,7 +105,7 @@ fn enter(
         );
     });
 
-    api::find_server(&mut client, &options.player_id)
+    api::find_server(&mut client, options.user_id)
         .on_response(
             |req: Trigger<ReqwestResponseEvent>,
              mut commands: Commands,
