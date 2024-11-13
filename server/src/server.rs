@@ -24,7 +24,8 @@ use game_common::{
 };
 
 use crate::{
-    api, game, notifs, options::Options, orchestration::Orchestration, placement, tasks, AppState,
+    api, game, options::Options, orchestration::Orchestration, placement, tasks, websocket,
+    AppState,
 };
 
 pub const MAX_PLAYERS: usize = 3;
@@ -117,7 +118,7 @@ pub struct ServerPlugin;
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            notifs::NotifsPlugin,
+            websocket::WebSocketPlugin,
             placement::PlacementPlugin,
             game::GamePlugin,
         ))
@@ -147,7 +148,7 @@ fn setup(
     mut commands: Commands,
     options: Res<Options>,
     mut client: BevyReqwest,
-    mut subscriber: notifs::NotifSubscriber,
+    mut ws_client: websocket::WebSocketClient,
     runtime: Res<TokioTasksRuntime>,
 ) {
     let server_info = GameServerInfo::new();
@@ -163,24 +164,26 @@ fn setup(
         None,
     );
 
-    api::subscribe(&mut subscriber, server_info.server_id)
-        .on_success(|trigger: Trigger<notifs::NotifsSubscribeSuccess>| {
-            let evt = trigger.event();
-            info!("subscribe success: {:?}", evt);
-        })
-        .on_error(|trigger: Trigger<notifs::NotifsError>| {
+    api::subscribe(&mut ws_client, server_info.server_id)
+        .on_success(
+            |trigger: Trigger<websocket::WebSocketConnectSuccessEvent>| {
+                let evt = trigger.event();
+                info!("subscribe success: {:?}", evt);
+            },
+        )
+        .on_error(|trigger: Trigger<websocket::WebSocketErrorEvent>| {
             let evt = trigger.event();
             warn!("notifs error: {:?}", evt);
 
             // TODO: ... try again (on a timer) ?
         })
-        .on_notif(|trigger: Trigger<notifs::Notification>| {
+        .on_message(|trigger: Trigger<websocket::WebSocketMessageEvent>| {
             let evt = trigger.event();
             info!("received notif: {:?}", evt);
 
             // TODO: handle the notif
         })
-        .on_disconnect(|trigger: Trigger<notifs::NotifsDisconnected>| {
+        .on_disconnect(|trigger: Trigger<websocket::WebSocketDisconnectEvent>| {
             let evt = trigger.event();
             warn!("notifs disconnect: {:?}", evt);
 

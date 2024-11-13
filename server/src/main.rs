@@ -1,11 +1,11 @@
 mod api;
 mod game;
-mod notifs;
 mod options;
 mod orchestration;
 mod placement;
 mod server;
 mod tasks;
+mod websocket;
 
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;

@@ -6,17 +6,17 @@ use uuid::Uuid;
 use common::gameserver::*;
 
 use crate::{
-    notifs::*,
     server::{ConnectionInfo, GameSessionInfo},
+    websocket,
 };
 
 const API_HOST: &str = "http://localhost:8000";
 const NOTIFS_HOST: &str = "ws://localhost:8001";
 
 pub fn subscribe<'a>(
-    subscriber: &'a mut NotifSubscriber,
+    client: &'a mut websocket::WebSocketClient,
     server_id: Uuid,
-) -> NotifSubscriptionBuilder<'a> {
+) -> websocket::WebSocketBuilder<'a> {
     let mut notifs_request = format!("{}/notifs/v1", NOTIFS_HOST)
         .into_client_request()
         .unwrap();
@@ -26,10 +26,8 @@ pub fn subscribe<'a>(
         format!("Bearer {}", server_id).parse().unwrap(),
     );
 
-    subscriber.subscribe(notifs_request)
+    client.connect(notifs_request)
 }
-
-// TODO: unsubscribe
 
 pub fn heartbeat<'a>(
     client: &'a mut BevyReqwest,

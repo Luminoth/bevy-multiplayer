@@ -10,78 +10,82 @@ use tokio::{net::TcpStream, task};
 use tokio_tungstenite::{tungstenite::handshake::client::Request, MaybeTlsStream, WebSocketStream};
 
 #[derive(Debug, Component)]
-struct SubscribeNotifs(pub Option<Request>);
+struct ConnectWebSocket(pub Option<Request>);
 
 #[derive(Debug, Component)]
-struct SubscribeNotifsTask(pub (Uri, task::JoinHandle<Result<(), anyhow::Error>>));
-
-// TODO: unsubscribe
+struct ConnectWebSocketTask(pub (Uri, task::JoinHandle<Result<(), anyhow::Error>>));
 
 #[derive(Debug, Component)]
-struct ListenNotifs(pub (Uri, Option<WebSocketStream<MaybeTlsStream<TcpStream>>>));
+struct ListenWebSocket(pub (Uri, Option<WebSocketStream<MaybeTlsStream<TcpStream>>>));
 
 #[derive(Debug, Component)]
-struct ListenNotifsTask(pub (Uri, task::JoinHandle<Result<(), anyhow::Error>>));
+struct ListenWebSocketTask(pub (Uri, task::JoinHandle<Result<(), anyhow::Error>>));
+
+// TODO: disconnect
 
 #[allow(dead_code)]
 #[derive(Debug, Event)]
-pub struct NotifsSubscribeSuccess {
+pub struct WebSocketConnectSuccessEvent {
     pub uri: Uri,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Event)]
-pub struct NotifsError {
+pub struct WebSocketErrorEvent {
     pub uri: Uri,
     pub error: anyhow::Error,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Event)]
-pub struct NotifsDisconnected {
+pub struct WebSocketDisconnectEvent {
     pub uri: Uri,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Event)]
-pub struct Notification {
+pub struct WebSocketMessageEvent {
     pub uri: Uri,
     pub message: tokio_tungstenite::tungstenite::protocol::Message,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
-pub struct NotifsSet;
+pub struct WebSocketSet;
 
-pub struct NotifsPlugin;
+pub struct WebSocketPlugin;
 
-impl Plugin for NotifsPlugin {
+impl Plugin for WebSocketPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
             (
-                (subscribe_notifs, poll_subscribe_notifs)
+                (connect_websockets, poll_connect_websockets)
                     .chain()
-                    .in_set(NotifsSet),
-                (listen_notifs, poll_listen_notifs)
+                    .in_set(WebSocketSet),
+                (listen_websockets, poll_listen_websockets)
                     .chain()
-                    .in_set(NotifsSet),
+                    .in_set(WebSocketSet),
             ),
         );
     }
 }
 
-pub struct NotifSubscriptionBuilder<'a>(EntityCommands<'a>);
+pub struct WebSocketBuilder<'a>(EntityCommands<'a>);
 
-impl<'a> NotifSubscriptionBuilder<'a> {
-    pub fn on_success<RB: Bundle, RM, OR: IntoObserverSystem<NotifsSubscribeSuccess, RB, RM>>(
+impl<'a> WebSocketBuilder<'a> {
+    pub fn on_success<
+        RB: Bundle,
+        RM,
+        OR: IntoObserverSystem<WebSocketConnectSuccessEvent, RB, RM>,
+    >(
         mut self,
-        onsuccess: OR,
+        onconnect: OR,
     ) -> Self {
-        self.0.observe(onsuccess);
+        self.0.observe(onconnect);
         self
     }
 
-    pub fn on_error<RB: Bundle, RM, OR: IntoObserverSystem<NotifsError, RB, RM>>(
+    pub fn on_error<RB: Bundle, RM, OR: IntoObserverSystem<WebSocketErrorEvent, RB, RM>>(
         mut self,
         onerror: OR,
     ) -> Self {
@@ -89,15 +93,19 @@ impl<'a> NotifSubscriptionBuilder<'a> {
         self
     }
 
-    pub fn on_notif<RB: Bundle, RM, OR: IntoObserverSystem<Notification, RB, RM>>(
+    pub fn on_message<RB: Bundle, RM, OR: IntoObserverSystem<WebSocketMessageEvent, RB, RM>>(
         mut self,
-        onnotif: OR,
+        onmessage: OR,
     ) -> Self {
-        self.0.observe(onnotif);
+        self.0.observe(onmessage);
         self
     }
 
-    pub fn on_disconnect<RB: Bundle, RM, OR: IntoObserverSystem<NotifsDisconnected, RB, RM>>(
+    pub fn on_disconnect<
+        RB: Bundle,
+        RM,
+        OR: IntoObserverSystem<WebSocketDisconnectEvent, RB, RM>,
+    >(
         mut self,
         ondisconnect: OR,
     ) -> Self {
@@ -107,20 +115,20 @@ impl<'a> NotifSubscriptionBuilder<'a> {
 }
 
 #[derive(SystemParam)]
-pub struct NotifSubscriber<'w, 's> {
+pub struct WebSocketClient<'w, 's> {
     commands: Commands<'w, 's>,
 }
 
-impl<'w, 's> NotifSubscriber<'w, 's> {
-    pub fn subscribe(&mut self, req: Request) -> NotifSubscriptionBuilder {
-        let inflight = SubscribeNotifs(Some(req));
-        NotifSubscriptionBuilder(self.commands.spawn(inflight))
+impl<'w, 's> WebSocketClient<'w, 's> {
+    pub fn connect(&mut self, req: Request) -> WebSocketBuilder {
+        let inflight = ConnectWebSocket(Some(req));
+        WebSocketBuilder(self.commands.spawn(inflight))
     }
 }
 
-fn subscribe_notifs(
+fn connect_websockets(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut SubscribeNotifs), Added<SubscribeNotifs>>,
+    mut requests: Query<(Entity, &mut ConnectWebSocket), Added<ConnectWebSocket>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, mut request) in requests.iter_mut() {
@@ -128,21 +136,20 @@ fn subscribe_notifs(
             continue;
         }
 
-        let entity = entity.clone();
         let request = request.0.take().unwrap();
         let uri = request.uri().clone();
         let task = runtime.spawn_background_task(move |mut ctx| async move {
             let uri = request.uri().clone();
-            info!("subscribing to notifications from {}", uri);
+            info!("connecting websocket at {}", uri);
 
-            // TODO: error handle this (if it fails, trigger a NotifsError event)
+            // TODO: error handle this (if it fails, trigger a WebSocketErrorEvent)
             let (stream, _) = tokio_tungstenite::connect_async(request).await?;
 
             // start listening to the stream
             ctx.run_on_main_thread(move |ctx| {
                 ctx.world
                     .entity_mut(entity)
-                    .insert(ListenNotifs((uri, Some(stream))));
+                    .insert(ListenWebSocket((uri, Some(stream))));
             })
             .await;
 
@@ -151,14 +158,14 @@ fn subscribe_notifs(
 
         commands
             .entity(entity)
-            .insert(SubscribeNotifsTask((uri, task)))
-            .remove::<SubscribeNotifs>();
+            .insert(ConnectWebSocketTask((uri, task)))
+            .remove::<ConnectWebSocket>();
     }
 }
 
-fn poll_subscribe_notifs(
+fn poll_connect_websockets(
     mut commands: Commands,
-    mut tasks: Query<(Entity, &mut SubscribeNotifsTask)>,
+    mut tasks: Query<(Entity, &mut ConnectWebSocketTask)>,
 ) {
     for (entity, mut task) in tasks.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.0 .1)) {
@@ -169,54 +176,51 @@ fn poll_subscribe_notifs(
 
             match response {
                 Ok(_) => {
-                    debug!("subscribed to notifications from {}", uri);
-                    commands.trigger_targets(
-                        NotifsSubscribeSuccess { uri: uri.clone() },
-                        entity.clone(),
-                    );
+                    debug!("connected websocket at {}", uri);
+                    commands
+                        .trigger_targets(WebSocketConnectSuccessEvent { uri: uri.clone() }, entity);
                 }
                 Err(err) => {
-                    warn!("failed to subscribe to notifications from {}: {}", uri, err);
+                    warn!("failed to connect websocket at {}: {}", uri, err);
                     commands.trigger_targets(
-                        NotifsError {
+                        WebSocketErrorEvent {
                             uri: uri.clone(),
                             error: err,
                         },
-                        entity.clone(),
+                        entity,
                     );
                 }
             }
 
-            commands.entity(entity).remove::<SubscribeNotifsTask>();
+            commands.entity(entity).remove::<ConnectWebSocketTask>();
         }
     }
 }
 
-fn listen_notifs(
+fn listen_websockets(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut ListenNotifs), Added<ListenNotifs>>,
+    mut requests: Query<(Entity, &mut ListenWebSocket), Added<ListenWebSocket>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, mut request) in requests.iter_mut() {
-        let entity = entity.clone();
         let uri = request.0 .0.clone();
         let stream = request.0 .1.take().unwrap();
         let task = runtime.spawn_background_task(move |mut ctx| async move {
             let (_, mut read) = stream.split();
             while let Some(Ok(msg)) = read.next().await {
                 let uri = uri.clone();
-                debug!("got notification from {}: {}", uri, msg);
+                debug!("got websocket message from {}: {}", uri, msg);
                 ctx.run_on_main_thread(move |ctx| {
                     ctx.world
-                        .trigger_targets(Notification { uri, message: msg }, entity.clone());
+                        .trigger_targets(WebSocketMessageEvent { uri, message: msg }, entity);
                 })
                 .await;
             }
 
-            warn!("{} notifications connection closed", uri);
+            warn!("websocket connection {} closed!", uri);
             ctx.run_on_main_thread(move |ctx| {
                 ctx.world
-                    .trigger_targets(NotifsDisconnected { uri }, entity.clone());
+                    .trigger_targets(WebSocketDisconnectEvent { uri }, entity);
             })
             .await;
 
@@ -225,12 +229,15 @@ fn listen_notifs(
 
         commands
             .entity(entity)
-            .insert(ListenNotifsTask((request.0 .0.clone(), task)))
-            .remove::<ListenNotifs>();
+            .insert(ListenWebSocketTask((request.0 .0.clone(), task)))
+            .remove::<ListenWebSocket>();
     }
 }
 
-fn poll_listen_notifs(mut commands: Commands, mut tasks: Query<(Entity, &mut ListenNotifsTask)>) {
+fn poll_listen_websockets(
+    mut commands: Commands,
+    mut tasks: Query<(Entity, &mut ListenWebSocketTask)>,
+) {
     for (entity, mut task) in tasks.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.0 .1)) {
             // TODO: error handling
@@ -239,10 +246,7 @@ fn poll_listen_notifs(mut commands: Commands, mut tasks: Query<(Entity, &mut Lis
             // TODO: error handling
             response.unwrap();
 
-            debug!(
-                "finished listening for notifications from from {}",
-                task.0 .0
-            );
+            info!("closing websocket connection to {}", task.0 .0);
 
             commands.entity(entity).despawn();
         }
