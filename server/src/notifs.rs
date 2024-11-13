@@ -74,33 +74,33 @@ pub struct NotifSubscriptionBuilder<'a>(EntityCommands<'a>);
 
 impl<'a> NotifSubscriptionBuilder<'a> {
     pub fn on_success<RB: Bundle, RM, OR: IntoObserverSystem<NotifsSubscribeSuccess, RB, RM>>(
-        &mut self,
+        mut self,
         onsuccess: OR,
-    ) -> &mut Self {
+    ) -> Self {
         self.0.observe(onsuccess);
         self
     }
 
     pub fn on_error<RB: Bundle, RM, OR: IntoObserverSystem<NotifsError, RB, RM>>(
-        &mut self,
+        mut self,
         onerror: OR,
-    ) -> &mut Self {
+    ) -> Self {
         self.0.observe(onerror);
         self
     }
 
     pub fn on_notif<RB: Bundle, RM, OR: IntoObserverSystem<Notification, RB, RM>>(
-        &mut self,
+        mut self,
         onnotif: OR,
-    ) -> &mut Self {
+    ) -> Self {
         self.0.observe(onnotif);
         self
     }
 
     pub fn on_disconnect<RB: Bundle, RM, OR: IntoObserverSystem<NotifsDisconnected, RB, RM>>(
-        &mut self,
+        mut self,
         ondisconnect: OR,
-    ) -> &mut Self {
+    ) -> Self {
         self.0.observe(ondisconnect);
         self
     }
