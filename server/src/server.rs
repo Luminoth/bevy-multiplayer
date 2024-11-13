@@ -147,6 +147,7 @@ fn setup(
     mut commands: Commands,
     options: Res<Options>,
     mut client: BevyReqwest,
+    mut subscriber: notifs::NotifSubscriber,
     runtime: Res<TokioTasksRuntime>,
 ) {
     let server_info = GameServerInfo::new();
@@ -162,7 +163,29 @@ fn setup(
         None,
     );
 
-    api::subscribe(&mut commands, server_info.server_id);
+    api::subscribe(&mut subscriber, server_info.server_id)
+        .on_success(|trigger: Trigger<notifs::NotifsSubscribeSuccess>| {
+            let evt = trigger.event();
+            info!("subscribe success: {:?}", evt);
+        })
+        .on_error(|trigger: Trigger<notifs::NotifsError>| {
+            let evt = trigger.event();
+            warn!("notifs error: {:?}", evt);
+
+            // TODO: ... try again (on a timer) ?
+        })
+        .on_notif(|trigger: Trigger<notifs::Notification>| {
+            let evt = trigger.event();
+            info!("received notif: {:?}", evt);
+
+            // TODO: handle the notif
+        })
+        .on_disconnect(|trigger: Trigger<notifs::NotifsDisconnected>| {
+            let evt = trigger.event();
+            warn!("notifs disconnect: {:?}", evt);
+
+            // TODO: signal resubscribe (on a timer)
+        });
 
     commands.insert_resource(server_info);
 

@@ -13,7 +13,10 @@ use crate::{
 const API_HOST: &str = "http://localhost:8000";
 const NOTIFS_HOST: &str = "ws://localhost:8001";
 
-pub fn subscribe(commands: &mut Commands, server_id: Uuid) {
+pub fn subscribe<'a>(
+    subscriber: &'a mut NotifSubscriber,
+    server_id: Uuid,
+) -> NotifSubscriptionBuilder<'a> {
     let mut notifs_request = format!("{}/notifs/v1", NOTIFS_HOST)
         .into_client_request()
         .unwrap();
@@ -22,7 +25,8 @@ pub fn subscribe(commands: &mut Commands, server_id: Uuid) {
         http::header::AUTHORIZATION,
         format!("Bearer {}", server_id).parse().unwrap(),
     );
-    commands.spawn(SubscribeNotifs(Some(notifs_request)));
+
+    subscriber.subscribe(notifs_request)
 }
 
 // TODO: unsubscribe
