@@ -1,3 +1,3 @@
 pub mod axum;
-pub mod gameserver;
+pub mod notifs;
 pub mod redis;

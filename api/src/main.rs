@@ -1,5 +1,6 @@
 mod handlers;
 mod models;
+mod notifs;
 mod options;
 mod routes;
 mod state;

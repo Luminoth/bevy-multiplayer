@@ -22,6 +22,7 @@ use game_common::{
     spawn::SpawnPoint,
     GameAssetState, GameState, PROTOCOL_ID,
 };
+use internal::notifs;
 
 use crate::{
     api, game, options::Options, orchestration::Orchestration, placement, tasks, websocket,
@@ -184,6 +185,17 @@ fn setup(
                 websocket::Message::Text(value) => {
                     info!("received notif from {}: {:?}", evt.uri, value);
                     // TODO: parse out the message and handle it
+
+                    // TODO: error handling
+                    let notif = serde_json::from_str::<notifs::Notification>(value).unwrap();
+                    match notif.r#type {
+                        notifs::NotifType::PlacementRequestV1 => {
+                            // TODO: error handling
+                            let message = notif.to_message::<notifs::PlacementRequestV1>().unwrap();
+                            info!("received placement request: {:?}", message);
+                            // TODO:
+                        }
+                    }
                 }
                 _ => {
                     warn!("unexpected notif from {}: {:?}", evt.uri, evt.message);
