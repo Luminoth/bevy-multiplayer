@@ -3,12 +3,18 @@ use bevy_mod_reqwest::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
 use uuid::Uuid;
 
+use game_common::cleanup_state;
+
 use crate::{
+    is_not_headless,
     options::Options,
     orchestration::{start_watcher, Orchestration, StartWatcherEvent},
     server::{heartbeat, GameServerInfo, GameSessionInfo, MAX_PLAYERS},
     tasks, AppState,
 };
+
+#[derive(Debug, Component)]
+struct OnWaitPlacement;
 
 #[derive(Debug)]
 pub struct PlacementPlugin;
@@ -23,7 +29,18 @@ impl Plugin for PlacementPlugin {
                     start_watcher,
                 ),
             )
-            .add_systems(OnEnter(AppState::WaitForPlacement), enter);
+            .add_systems(
+                OnEnter(AppState::WaitForPlacement),
+                (enter, enter_spectate.run_if(is_not_headless)),
+            )
+            .add_systems(
+                OnExit(AppState::WaitForPlacement),
+                (
+                    exit,
+                    cleanup_state::<OnWaitPlacement>,
+                    cleanup_state::<Node>,
+                ),
+            );
     }
 }
 
@@ -71,6 +88,59 @@ fn enter(
             panic!("failed to ready orchestration backend: {}", err);
         },
     );
+}
+
+fn enter_spectate(mut commands: Commands, server_info: Res<GameServerInfo>) {
+    info!("enter placement spectate ...");
+
+    commands.insert_resource(ClearColor(Color::BLACK));
+
+    commands.spawn((
+        Camera2dBundle::default(),
+        IsDefaultUiCamera,
+        OnWaitPlacement,
+    ));
+
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Start,
+                    justify_content: JustifyContent::Start,
+                    ..default()
+                },
+                ..default()
+            },
+            Name::new("Server UI"),
+        ))
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
+                format!("Server: {}", server_info.server_id),
+                TextStyle {
+                    font_size: 24.0,
+                    color: Color::WHITE,
+                    ..default()
+                },
+            ));
+
+            parent.spawn(TextBundle::from_section(
+                "Waiting for placement ...",
+                TextStyle {
+                    font_size: 24.0,
+                    color: Color::WHITE,
+                    ..default()
+                },
+            ));
+        });
+}
+
+fn exit(mut commands: Commands) {
+    info!("exiting placement ...");
+
+    commands.remove_resource::<ClearColor>();
 }
 
 fn update(mut _commands: Commands, mut _app_state: ResMut<NextState<AppState>>) {

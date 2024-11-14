@@ -3,13 +3,9 @@ use bevy::prelude::*;
 use game_common::{GameState, OnInGame};
 
 use crate::{
-    options::Options,
+    is_not_headless,
     server::{GameServerInfo, GameSessionInfo},
 };
-
-pub fn is_not_headless(options: Res<Options>) -> bool {
-    !options.headless
-}
 
 #[derive(Debug)]
 pub struct GamePlugin;

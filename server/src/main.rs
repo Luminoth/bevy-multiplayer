@@ -50,6 +50,10 @@ impl AppState {
 // and that might need to be adjusted as well?
 const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
 
+pub fn is_not_headless(options: Res<Options>) -> bool {
+    !options.headless
+}
+
 fn main() {
     let options = Options::parse();
 
