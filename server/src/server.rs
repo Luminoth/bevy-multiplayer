@@ -173,9 +173,9 @@ fn setup(
         )
         .on_error(|trigger: Trigger<websocket::WebSocketErrorEvent>| {
             let evt = trigger.event();
-            warn!("notifs error: {:?}", evt);
-
-            // TODO: ... try again (on a timer) ?
+            // TODO: temp panic until we have retry
+            //warn!("notifs error: {:?}", evt);
+            panic!("notifs error: {:?}", evt);
         })
         .on_message(|trigger: Trigger<websocket::WebSocketMessageEvent>| {
             let evt = trigger.event();
@@ -185,9 +185,9 @@ fn setup(
         })
         .on_disconnect(|trigger: Trigger<websocket::WebSocketDisconnectEvent>| {
             let evt = trigger.event();
-            warn!("notifs disconnect: {:?}", evt);
-
-            // TODO: signal resubscribe (on a timer)
+            // TODO: temp panic until we have reconnect
+            //warn!("notifs disconnect: {:?}", evt);
+            panic!("notifs disconnect: {:?}", evt);
         });
 
     commands.insert_resource(server_info);
