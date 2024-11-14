@@ -1,6 +1,7 @@
 use bevy::{
     ecs::system::{EntityCommands, IntoObserverSystem, SystemParam},
     prelude::*,
+    utils::Duration,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
 use futures_lite::future;
@@ -10,16 +11,72 @@ use tokio::{net::TcpStream, task};
 use tokio_tungstenite::{tungstenite::handshake::client::Request, MaybeTlsStream, WebSocketStream};
 
 #[derive(Debug, Component)]
-struct ConnectWebSocket(pub Option<Request>);
+struct ConnectWebSocket {
+    request: Option<Request>,
+
+    // TODO: handling backoff (reconnects, etc) needs to be finished up
+    timer: Option<Timer>,
+}
+
+impl ConnectWebSocket {
+    #[inline]
+    fn new(request: Request) -> Self {
+        Self {
+            request: Some(request),
+            timer: None,
+        }
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    fn with_timer(request: Request, duration: Duration) -> Self {
+        Self {
+            request: Some(request),
+            timer: Some(Timer::new(duration, TimerMode::Once)),
+        }
+    }
+
+    #[inline]
+    fn tick(&mut self, time: &Time<Real>) {
+        self.timer.as_mut().map(|timer| timer.tick(time.delta()));
+    }
+
+    #[inline]
+    fn is_ready(&self) -> bool {
+        self.timer
+            .as_ref()
+            .map(|timer| timer.finished())
+            .unwrap_or(true)
+    }
+}
 
 #[derive(Debug, Component)]
-struct ConnectWebSocketTask(pub (Uri, task::JoinHandle<Result<(), anyhow::Error>>));
+struct ConnectWebSocketTask {
+    uri: Uri,
+    task: task::JoinHandle<Result<(), anyhow::Error>>,
+}
 
 #[derive(Debug, Component)]
-struct ListenWebSocket(pub (Uri, Option<WebSocketStream<MaybeTlsStream<TcpStream>>>));
+struct ListenWebSocket {
+    uri: Uri,
+    stream: Option<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+}
+
+impl ListenWebSocket {
+    #[inline]
+    fn new(uri: Uri, stream: WebSocketStream<MaybeTlsStream<TcpStream>>) -> Self {
+        Self {
+            uri,
+            stream: Some(stream),
+        }
+    }
+}
 
 #[derive(Debug, Component)]
-struct ListenWebSocketTask(pub (Uri, task::JoinHandle<Result<(), anyhow::Error>>));
+struct ListenWebSocketTask {
+    uri: Uri,
+    task: task::JoinHandle<Result<(), anyhow::Error>>,
+}
 
 // TODO: disconnect
 
@@ -121,22 +178,30 @@ pub struct WebSocketClient<'w, 's> {
 
 impl<'w, 's> WebSocketClient<'w, 's> {
     pub fn connect(&mut self, req: Request) -> WebSocketBuilder {
-        let inflight = ConnectWebSocket(Some(req));
+        let inflight = ConnectWebSocket::new(req);
         WebSocketBuilder(self.commands.spawn(inflight))
     }
 }
 
 fn connect_websockets(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut ConnectWebSocket), Added<ConnectWebSocket>>,
+    mut requests: Query<(Entity, &mut ConnectWebSocket)>,
+    rt: Res<Time<Real>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, mut request) in requests.iter_mut() {
-        if request.0.is_none() {
+        if request.request.is_none() {
+            warn!("connect websocket missing request!");
+            commands.entity(entity).remove::<ConnectWebSocket>();
             continue;
         }
 
-        let request = request.0.take().unwrap();
+        request.tick(&rt);
+        if !request.is_ready() {
+            continue;
+        }
+
+        let request = request.request.take().unwrap();
         let uri = request.uri().clone();
         let task = runtime.spawn_background_task(move |mut ctx| async move {
             let uri = request.uri().clone();
@@ -149,7 +214,7 @@ fn connect_websockets(
             ctx.run_on_main_thread(move |ctx| {
                 ctx.world
                     .entity_mut(entity)
-                    .insert(ListenWebSocket((uri, Some(stream))));
+                    .insert(ListenWebSocket::new(uri, stream));
             })
             .await;
 
@@ -158,7 +223,7 @@ fn connect_websockets(
 
         commands
             .entity(entity)
-            .insert(ConnectWebSocketTask((uri, task)))
+            .insert(ConnectWebSocketTask { uri, task })
             .remove::<ConnectWebSocket>();
     }
 }
@@ -168,8 +233,8 @@ fn poll_connect_websockets(
     mut tasks: Query<(Entity, &mut ConnectWebSocketTask)>,
 ) {
     for (entity, mut task) in tasks.iter_mut() {
-        if let Some(response) = future::block_on(future::poll_once(&mut task.0 .1)) {
-            let uri = &task.0 .0;
+        if let Some(response) = future::block_on(future::poll_once(&mut task.task)) {
+            let uri = &task.uri;
 
             // TODO: error handling
             let response = response.unwrap();
@@ -199,13 +264,21 @@ fn poll_connect_websockets(
 
 fn listen_websockets(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut ListenWebSocket), Added<ListenWebSocket>>,
+    mut requests: Query<(Entity, &mut ListenWebSocket)>,
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, mut request) in requests.iter_mut() {
-        let uri = request.0 .0.clone();
-        let stream = request.0 .1.take().unwrap();
+        if request.stream.is_none() {
+            warn!("listen websocket missing stream!");
+            commands.entity(entity).remove::<ListenWebSocket>();
+            continue;
+        }
+
+        let uri = request.uri.clone();
+        let stream = request.stream.take().unwrap();
         let task = runtime.spawn_background_task(move |mut ctx| async move {
+            info!("listening websocket at {}", uri);
+
             let (_, mut read) = stream.split();
             while let Some(Ok(msg)) = read.next().await {
                 let uri = uri.clone();
@@ -229,7 +302,10 @@ fn listen_websockets(
 
         commands
             .entity(entity)
-            .insert(ListenWebSocketTask((request.0 .0.clone(), task)))
+            .insert(ListenWebSocketTask {
+                uri: request.uri.clone(),
+                task,
+            })
             .remove::<ListenWebSocket>();
     }
 }
@@ -239,14 +315,14 @@ fn poll_listen_websockets(
     mut tasks: Query<(Entity, &mut ListenWebSocketTask)>,
 ) {
     for (entity, mut task) in tasks.iter_mut() {
-        if let Some(response) = future::block_on(future::poll_once(&mut task.0 .1)) {
+        if let Some(response) = future::block_on(future::poll_once(&mut task.task)) {
             // TODO: error handling
             let response = response.unwrap();
 
             // TODO: error handling
             response.unwrap();
 
-            info!("closing websocket connection to {}", task.0 .0);
+            info!("closing websocket connection to {}", task.uri);
 
             commands.entity(entity).despawn();
         }
