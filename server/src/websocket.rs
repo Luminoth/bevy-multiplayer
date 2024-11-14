@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::{
     ecs::system::{EntityCommands, IntoObserverSystem, SystemParam},
     prelude::*,
@@ -27,7 +29,6 @@ impl ConnectWebSocket {
         }
     }
 
-    #[allow(dead_code)]
     #[inline]
     fn with_timer(request: Request, duration: Duration) -> Self {
         Self {
@@ -80,30 +81,48 @@ struct ListenWebSocketTask {
 
 // TODO: disconnect
 
-#[allow(dead_code)]
 #[derive(Debug, Event)]
 pub struct WebSocketConnectSuccessEvent {
     pub uri: Uri,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Event)]
 pub struct WebSocketErrorEvent {
     pub uri: Uri,
     pub error: anyhow::Error,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Event)]
 pub struct WebSocketDisconnectEvent {
     pub uri: Uri,
 }
 
-#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub enum Message {
+    Text(String),
+    Binary(Vec<u8>),
+    Ping(Vec<u8>),
+    Pong(Vec<u8>),
+    Close,
+}
+
+impl From<tokio_tungstenite::tungstenite::protocol::Message> for Message {
+    fn from(message: tokio_tungstenite::tungstenite::protocol::Message) -> Self {
+        match message {
+            tokio_tungstenite::tungstenite::protocol::Message::Text(text) => Message::Text(text),
+            tokio_tungstenite::tungstenite::protocol::Message::Binary(bin) => Message::Binary(bin),
+            tokio_tungstenite::tungstenite::protocol::Message::Ping(ping) => Message::Ping(ping),
+            tokio_tungstenite::tungstenite::protocol::Message::Pong(pong) => Message::Pong(pong),
+            tokio_tungstenite::tungstenite::protocol::Message::Close(_) => Message::Close,
+            tokio_tungstenite::tungstenite::protocol::Message::Frame(_) => unreachable!(),
+        }
+    }
+}
+
 #[derive(Debug, Event)]
 pub struct WebSocketMessageEvent {
     pub uri: Uri,
-    pub message: tokio_tungstenite::tungstenite::protocol::Message,
+    pub message: Message,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
@@ -284,8 +303,13 @@ fn listen_websockets(
                 let uri = uri.clone();
                 debug!("got websocket message from {}: {}", uri, msg);
                 ctx.run_on_main_thread(move |ctx| {
-                    ctx.world
-                        .trigger_targets(WebSocketMessageEvent { uri, message: msg }, entity);
+                    ctx.world.trigger_targets(
+                        WebSocketMessageEvent {
+                            uri,
+                            message: msg.into(),
+                        },
+                        entity,
+                    );
                 })
                 .await;
             }

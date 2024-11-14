@@ -179,9 +179,16 @@ fn setup(
         })
         .on_message(|trigger: Trigger<websocket::WebSocketMessageEvent>| {
             let evt = trigger.event();
-            info!("received notif: {:?}", evt);
 
-            // TODO: handle the notif
+            match &evt.message {
+                websocket::Message::Text(value) => {
+                    info!("received notif from {}: {:?}", evt.uri, value);
+                    // TODO: parse out the message and handle it
+                }
+                _ => {
+                    warn!("unexpected notif from {}: {:?}", evt.uri, evt.message);
+                }
+            }
         })
         .on_disconnect(|trigger: Trigger<websocket::WebSocketDisconnectEvent>| {
             let evt = trigger.event();
