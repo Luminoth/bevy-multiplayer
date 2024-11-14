@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use common::gameserver::{GameServerOrchestration, GameServerState};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
     pub server_id: Uuid,
     pub addrs: Vec<String>,

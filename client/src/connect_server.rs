@@ -106,13 +106,21 @@ fn enter(
     });
 
     api::find_server(&mut client, options.user_id)
+        .unwrap()
         .on_response(
             |req: Trigger<ReqwestResponseEvent>,
              mut commands: Commands,
              channels: Res<RepliconChannels>,
-             mut status_query: Query<&mut Text, With<Status>>| {
+             mut status_query: Query<&mut Text, With<Status>>,
+             mut app_state: ResMut<NextState<AppState>>| {
                 let resp = req.event().as_str().unwrap();
                 let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
+                if resp.address.is_empty() {
+                    error!("find server failed");
+                    app_state.set(AppState::MainMenu);
+                    return;
+                }
+
                 connect_to_server(
                     &mut commands,
                     &channels,
