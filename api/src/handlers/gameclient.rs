@@ -42,7 +42,7 @@ pub async fn get_find_server_v1(
     // TODO: notify the server
 
     Ok(Json(FindServerResponseV1 {
-        address: server_info.addrs[0].clone(),
+        address: "127.0.0.1".to_string(), //server_info.addrs[0].clone(),
         port: server_info.port,
     }))
 }
