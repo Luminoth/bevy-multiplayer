@@ -1,4 +1,5 @@
 mod handlers;
+mod listener;
 mod notifs;
 mod options;
 mod routes;
@@ -22,6 +23,7 @@ use tracing_subscriber::FmtSubscriber;
 
 use internal::axum as axum_util;
 
+use listener::start_listener;
 use options::Options;
 use state::AppState;
 
@@ -63,6 +65,8 @@ async fn main() -> anyhow::Result<()> {
     let options = Options::parse();
 
     init_logging()?;
+
+    start_listener(&options.redis_host).await?;
 
     let app_state = AppState::new(options);
 

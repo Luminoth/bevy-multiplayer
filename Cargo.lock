@@ -4531,6 +4531,7 @@ dependencies = [
  "async-trait",
  "axum 0.7.7",
  "axum-extra",
+ "bb8-redis",
  "clap",
  "common",
  "futures-util",
