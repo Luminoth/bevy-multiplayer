@@ -23,7 +23,7 @@ use tracing_subscriber::FmtSubscriber;
 
 use internal::axum as axum_util;
 
-use listener::start_listener;
+use listener::start_gameserver_istener;
 use options::Options;
 use state::AppState;
 
@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
 
     init_logging()?;
 
-    start_listener(&options.redis_host).await?;
+    start_gameserver_istener(&options.redis_host).await?;
 
     let app_state = AppState::new(options);
 

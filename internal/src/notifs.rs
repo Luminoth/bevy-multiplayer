@@ -2,6 +2,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
+    pub recipient: String,
     pub r#type: NotifType,
     pub message: String,
 }
@@ -16,8 +17,9 @@ pub trait AsNotification: Serialize {
     fn get_type(&self) -> NotifType;
 
     #[inline]
-    fn as_notification(&self) -> anyhow::Result<Notification> {
+    fn as_notification(&self, recipient: impl Into<String>) -> anyhow::Result<Notification> {
         Ok(Notification {
+            recipient: recipient.into(),
             r#type: self.get_type(),
             message: serde_json::to_string(self)?,
         })
@@ -30,7 +32,7 @@ pub enum NotifType {
     PlacementRequestV1,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PlacementRequestV1 {}
 
 impl AsNotification for PlacementRequestV1 {

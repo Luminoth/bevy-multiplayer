@@ -3,25 +3,33 @@ use futures_util::StreamExt;
 use tokio::task;
 use tracing::info;
 
-pub async fn start_listener(redis_host: impl AsRef<str>) -> anyhow::Result<task::JoinHandle<()>> {
-    info!("starting listener ...");
+pub async fn start_gameserver_istener(
+    redis_host: impl AsRef<str>,
+) -> anyhow::Result<task::JoinHandle<()>> {
+    info!("starting game server notif listener ...");
 
     let client = redis::Client::open(redis_host.as_ref())?;
     let (mut sink, mut stream) = client.get_async_pubsub().await?.split();
-    sink.subscribe("blah").await.unwrap();
+    sink.subscribe(internal::GAMESERVER_NOTIFS_CHANNEL)
+        .await
+        .unwrap();
 
     Ok(task::spawn(async move {
         // TODO: error handling
         loop {
             let msg = stream.next().await.unwrap();
             let payload: String = msg.get_payload().unwrap();
-            println!("channel '{}': {}", msg.get_channel_name(), payload);
+            info!(
+                "got game server notif: {} (channel: {})",
+                payload,
+                msg.get_channel_name()
+            );
         }
     }))
 }
 
 // TODO: this doesn't work?
-/*pub async fn start_listener(redis_host: impl AsRef<str>) -> anyhow::Result<task::JoinHandle<()>> {
+/*pub async fn start_gameserver_istener(redis_host: impl AsRef<str>) -> anyhow::Result<task::JoinHandle<()>> {
     info!("starting listener ...");
 
     let client = redis::Client::open(format!("{}/?protocol=resp3", redis_host.as_ref()))?;
