@@ -1,36 +1,31 @@
-use axum::extract::ws::WebSocket;
-use futures_util::StreamExt;
+use axum::extract::ws::{Message, WebSocket};
+use futures_util::{
+    stream::{SplitSink, SplitStream},
+    StreamExt,
+};
 use tracing::info;
 use uuid::Uuid;
 
-pub async fn handle_notifs(socket: WebSocket, server_id: Uuid) {
+use crate::state::GameServerSet;
+
+pub type NotifSender = SplitSink<WebSocket, Message>;
+
+async fn idle_notifs(mut receiver: SplitStream<WebSocket>) {
+    // idle on the receiver until the connection is closed
+    while let Some(Ok(_)) = receiver.next().await {
+        // ignore whatever we received
+    }
+}
+
+pub async fn handle_notifs(socket: WebSocket, server_id: Uuid, game_servers: GameServerSet) {
     info!("{} subscribed to notifications ...", server_id);
 
-    let (mut _sender, mut receiver) = socket.split();
+    let (sender, receiver) = socket.split();
+    game_servers.write().await.insert(server_id, sender);
 
-    let mut send_task = tokio::spawn(async move {
-        loop {
-            // TODO:
+    idle_notifs(receiver).await;
 
-            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-        }
-    });
+    info!("{} closed notifications connection", server_id);
 
-    // receive task just lets us know when the connection is closed
-    let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(_)) = receiver.next().await {
-            // ignore whatever we received
-        }
-    });
-
-    tokio::select! {
-        _ = (&mut send_task) => {
-             info!("closed notifications connection from {}", server_id);
-            recv_task.abort();
-        },
-        _ = (&mut recv_task) => {
-            info!("{} closed notifications connection", server_id);
-            send_task.abort();
-        }
-    }
+    game_servers.write().await.remove(&server_id);
 }

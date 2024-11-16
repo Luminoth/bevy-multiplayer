@@ -1,52 +1,62 @@
+use axum::extract::ws::Message;
 use bb8_redis::redis;
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 use tokio::task;
-use tracing::info;
+use tracing::{debug, info};
+use uuid::Uuid;
 
-pub async fn start_gameserver_istener(
-    redis_host: impl AsRef<str>,
+use internal::notifs::Notification;
+
+use crate::AppState;
+
+/*
+TODO:
+
+A problem with this approach is that every notifier instance
+will receieve every notification, even if it's not intended for it
+
+A resolution to this could be to have a separate channel for each
+notifier and maintain a set of game servers to notifiers to look up
+where to send the notifications. This also gives some agency
+to the sender because it can know sooner in the flow if
+the recipient is available or not
+ */
+
+pub async fn start_gameserver_listener(
+    app_state: &AppState,
 ) -> anyhow::Result<task::JoinHandle<()>> {
     info!("starting game server notif listener ...");
 
-    let client = redis::Client::open(redis_host.as_ref())?;
+    let client = redis::Client::open(app_state.options.redis_host.as_str())?;
     let (mut sink, mut stream) = client.get_async_pubsub().await?.split();
     sink.subscribe(internal::GAMESERVER_NOTIFS_CHANNEL)
         .await
         .unwrap();
 
+    let game_servers = app_state.game_servers.clone();
     Ok(task::spawn(async move {
         // TODO: error handling
         loop {
             let msg = stream.next().await.unwrap();
             let payload: String = msg.get_payload().unwrap();
-            info!(
+            debug!(
                 "got game server notif: {} (channel: {})",
                 payload,
                 msg.get_channel_name()
             );
-        }
-    }))
-}
 
-// TODO: this doesn't work?
-/*pub async fn start_gameserver_istener(redis_host: impl AsRef<str>) -> anyhow::Result<task::JoinHandle<()>> {
-    info!("starting listener ...");
+            let notif: Notification = serde_json::from_str(&payload).unwrap();
+            let recipient = Uuid::parse_str(&notif.recipient).unwrap();
 
-    let client = redis::Client::open(format!("{}/?protocol=resp3", redis_host.as_ref()))?;
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-    let config = redis::AsyncConnectionConfig::new().set_push_sender(tx);
-    let mut con = client
-        .get_multiplexed_async_connection_with_config(&config)
-        .await?;
-    con.subscribe("blah").await.unwrap();
-
-    Ok(task::spawn(async move {
-        loop {
-            if let Some(msg) = rx.recv().await {
-                println!("received {:?}", msg);
-            } else {
-                println!("empty");
+            {
+                let mut game_servers = game_servers.write().await;
+                if let Some(sender) = game_servers.get_mut(&recipient) {
+                    info!("notifying game server {}", recipient);
+                    sender.send(Message::Text(payload)).await.unwrap();
+                } else {
+                    debug!("ignoring notif for {}", recipient);
+                }
             }
         }
     }))
-}*/
+}
