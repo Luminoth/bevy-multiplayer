@@ -1,7 +1,7 @@
 use axum::{debug_handler, extract::ws::WebSocketUpgrade, response::IntoResponse};
 use axum_extra::TypedHeader;
 use headers::authorization::{Authorization, Bearer};
-use tracing::info;
+use tracing::{error, info};
 use uuid::Uuid;
 
 use internal::axum::AppError;
@@ -18,5 +18,7 @@ pub async fn get_subscribe_notifs(
 
     info!("{} subscribing to notifications ...", server_id);
 
-    Ok(ws.on_upgrade(move |socket| notifs::handle_notifs(socket, server_id)))
+    Ok(ws
+        .on_failed_upgrade(move |err| error!("websocket upgrade failed for {}: {}", server_id, err))
+        .on_upgrade(move |socket| notifs::handle_notifs(socket, server_id)))
 }

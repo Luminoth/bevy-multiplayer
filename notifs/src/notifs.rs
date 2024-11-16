@@ -19,7 +19,7 @@ pub async fn handle_notifs(socket: WebSocket, server_id: Uuid) {
     // receive task just lets us know when the connection is closed
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(_)) = receiver.next().await {
-            // ignore whatver we received
+            // ignore whatever we received
         }
     });
 
