@@ -178,30 +178,46 @@ fn setup(
             //warn!("notifs error: {:?}", evt);
             panic!("notifs error: {:?}", evt);
         })
-        .on_message(|trigger: Trigger<websocket::WebSocketMessageEvent>| {
-            let evt = trigger.event();
+        .on_message(
+            |trigger: Trigger<websocket::WebSocketMessageEvent>,
+             mut commands: Commands,
+             mut app_state: ResMut<NextState<AppState>>| {
+                let evt = trigger.event();
 
-            match &evt.message {
-                websocket::Message::Text(value) => {
-                    info!("received notif from {}: {:?}", evt.uri, value);
-                    // TODO: parse out the message and handle it
+                match &evt.message {
+                    websocket::Message::Text(value) => {
+                        info!("received notif from {}: {:?}", evt.uri, value);
 
-                    // TODO: error handling
-                    let notif = serde_json::from_str::<notifs::Notification>(value).unwrap();
-                    match notif.r#type {
-                        notifs::NotifType::PlacementRequestV1 => {
-                            // TODO: error handling
-                            let message = notif.to_message::<notifs::PlacementRequestV1>().unwrap();
-                            info!("received placement request: {:?}", message);
-                            // TODO:
+                        // TODO: error handling
+                        let notif = serde_json::from_str::<notifs::Notification>(value).unwrap();
+                        match notif.r#type {
+                            notifs::NotifType::PlacementRequestV1 => {
+                                // TODO: error handling
+                                let _message =
+                                    notif.to_message::<notifs::PlacementRequestV1>().unwrap();
+
+                                warn!("faking placement!");
+
+                                let session_info = GameSessionInfo {
+                                    session_id: Uuid::new_v4(),
+                                    max_players: MAX_PLAYERS,
+                                    player_session_ids: vec![],
+                                    pending_player_ids: vec![],
+                                };
+                                info!("starting session {}", session_info.session_id);
+
+                                commands.insert_resource(session_info);
+
+                                app_state.set(AppState::InGame);
+                            }
                         }
                     }
+                    _ => {
+                        warn!("unexpected notif from {}: {:?}", evt.uri, evt.message);
+                    }
                 }
-                _ => {
-                    warn!("unexpected notif from {}: {:?}", evt.uri, evt.message);
-                }
-            }
-        })
+            },
+        )
         .on_disconnect(|trigger: Trigger<websocket::WebSocketDisconnectEvent>| {
             let evt = trigger.event();
             // TODO: temp panic until we have reconnect

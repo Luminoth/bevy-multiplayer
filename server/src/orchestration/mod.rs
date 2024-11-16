@@ -19,6 +19,8 @@ pub fn start_watcher(
     }
     evt.clear();
 
+    info!("starting orchestration watcher ...");
+
     orchestration.unwrap().start_watcher(&runtime);
 }
 

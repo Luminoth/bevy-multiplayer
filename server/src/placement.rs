@@ -1,7 +1,6 @@
 use bevy::{ecs::system::RunSystemOnce, prelude::*};
 use bevy_mod_reqwest::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
-use uuid::Uuid;
 
 use game_common::cleanup_state;
 
@@ -9,7 +8,7 @@ use crate::{
     is_not_headless,
     options::Options,
     orchestration::{start_watcher, Orchestration, StartWatcherEvent},
-    server::{heartbeat, GameServerInfo, GameSessionInfo, MAX_PLAYERS},
+    server::{heartbeat, GameServerInfo},
     tasks, AppState,
 };
 
@@ -22,13 +21,7 @@ pub struct PlacementPlugin;
 impl Plugin for PlacementPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<StartWatcherEvent>()
-            .add_systems(
-                Update,
-                (
-                    update.run_if(in_state(AppState::WaitForPlacement)),
-                    start_watcher,
-                ),
-            )
+            .add_systems(Update, start_watcher)
             .add_systems(
                 OnEnter(AppState::WaitForPlacement),
                 (enter, enter_spectate.run_if(is_not_headless)),
@@ -141,20 +134,4 @@ fn exit(mut commands: Commands) {
     info!("exiting placement ...");
 
     commands.remove_resource::<ClearColor>();
-}
-
-fn update(mut _commands: Commands, mut _app_state: ResMut<NextState<AppState>>) {
-    /*warn!("faking placement!");
-
-    let session_info = GameSessionInfo {
-        session_id: Uuid::new_v4(),
-        max_players: MAX_PLAYERS,
-        player_session_ids: vec![],
-        pending_player_ids: vec![],
-    };
-    info!("starting session {}", session_info.session_id);
-
-    commands.insert_resource(session_info);
-
-    app_state.set(AppState::InitServer);*/
 }
