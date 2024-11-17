@@ -1,5 +1,7 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+use common::user::UserId;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
     pub recipient: String,
@@ -32,12 +34,20 @@ pub enum NotifType {
     PlacementRequestV1,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct PlacementRequestV1 {}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlacementRequestV1 {
+    pub player_ids: Vec<UserId>,
+}
 
 impl AsNotification for PlacementRequestV1 {
     #[inline]
     fn get_type(&self) -> NotifType {
         NotifType::PlacementRequestV1
+    }
+}
+
+impl PlacementRequestV1 {
+    pub fn new(player_ids: Vec<UserId>) -> Self {
+        Self { player_ids }
     }
 }

@@ -64,12 +64,12 @@ pub async fn post_heartbeat_v1(
         pipeline.zrembyscore("gamesessions.index", 0, expiry);
 
         // sessions that need backfill
-        let needs_players = session_info_data.needs_players();
-        if needs_players > 0 {
+        let openslots = session_info_data.player_slots_remaining();
+        if openslots > 0 {
             pipeline.hset(
                 "gamesessions.backfill",
                 session_info_data.game_session_id.to_string(),
-                needs_players,
+                openslots,
             );
         } else {
             pipeline.hdel(

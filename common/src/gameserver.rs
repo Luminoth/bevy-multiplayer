@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::user::UserId;
+
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum GameServerState {
@@ -31,13 +33,13 @@ pub struct GameServerInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_session_id: Option<Uuid>,
 
-    pub max_players: usize,
+    pub max_players: u16,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub player_session_ids: Option<Vec<Uuid>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pending_player_ids: Option<Vec<String>>,
+    pub pending_player_ids: Option<Vec<UserId>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

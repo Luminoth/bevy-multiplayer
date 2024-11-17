@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use common::gameserver::{GameServerOrchestration, GameServerState};
+use common::{
+    gameserver::{GameServerOrchestration, GameServerState},
+    user::UserId,
+};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
@@ -38,9 +41,9 @@ pub struct GameSessionInfo {
     pub game_session_id: Uuid,
     pub server_id: Uuid,
 
-    pub max_players: usize,
+    pub max_players: u16,
     pub player_session_ids: Vec<Uuid>,
-    pub pending_player_ids: Vec<String>,
+    pub pending_player_ids: Vec<UserId>,
 }
 
 impl GameSessionInfo {
@@ -70,8 +73,9 @@ impl GameSessionInfo {
     }
 
     #[inline]
-    pub fn needs_players(&self) -> usize {
+    pub fn player_slots_remaining(&self) -> u16 {
         // TODO: this isn't safe if we mess up and have more players than max_players
-        self.max_players - (self.player_session_ids.len() + self.pending_player_ids.len())
+        let used_slots = self.player_session_ids.len() + self.pending_player_ids.len();
+        self.max_players - used_slots as u16
     }
 }

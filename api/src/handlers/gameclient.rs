@@ -71,7 +71,8 @@ pub async fn get_find_server_v1(
 
     notifs::notify_gameserver(
         &app_state,
-        internal::notifs::PlacementRequestV1::default().as_notification(server_id.clone())?,
+        internal::notifs::PlacementRequestV1::new(vec![user.user_id])
+            .as_notification(server_id.clone())?,
         Some(PLACEMENT_TIMEOUT),
     )
     .await?;
@@ -80,6 +81,8 @@ pub async fn get_find_server_v1(
     // instead what if we notified clients that are part of the session
     // when the game server heartbeat happens ?
     // that should have a faster turnaround?
+    // clients would need a mailbox poll tho (probably will anyway)
+    // or a "send messages on notifs connect" piece
 
     let res = timeout(
         Duration::from_secs(PLACEMENT_TIMEOUT),

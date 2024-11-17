@@ -15,7 +15,10 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use uuid::Uuid;
 
-use common::gameserver::{GameServerOrchestration, GameServerState};
+use common::{
+    gameserver::{GameServerOrchestration, GameServerState},
+    user::UserId,
+};
 use game_common::{
     network::{InputUpdateEvent, PlayerJumpEvent},
     player,
@@ -28,8 +31,6 @@ use crate::{
     api, game, options::Options, orchestration::Orchestration, placement, tasks, websocket,
     AppState,
 };
-
-pub const MAX_PLAYERS: usize = 3;
 
 #[derive(Debug, Clone, Default)]
 pub struct ConnectionInfo {
@@ -92,9 +93,9 @@ impl GameServerInfo {
 #[derive(Debug, Resource)]
 pub struct GameSessionInfo {
     pub session_id: Uuid,
-    pub max_players: usize,
+    pub max_players: u16,
     pub player_session_ids: Vec<Uuid>,
-    pub pending_player_ids: Vec<String>,
+    pub pending_player_ids: Vec<UserId>,
 }
 
 pub fn heartbeat(
@@ -199,18 +200,23 @@ fn setup(
                         match notif.r#type {
                             notifs::NotifType::PlacementRequestV1 => {
                                 // TODO: error handling
-                                let _message =
+                                let message =
                                     notif.to_message::<notifs::PlacementRequestV1>().unwrap();
 
                                 warn!("faking placement!");
 
+                                let game_settings = internal::GameSettings::default();
+
                                 let session_info = GameSessionInfo {
                                     session_id: Uuid::new_v4(),
-                                    max_players: MAX_PLAYERS,
+                                    max_players: game_settings.max_players,
                                     player_session_ids: vec![],
-                                    pending_player_ids: vec![],
+                                    pending_player_ids: message.player_ids.clone(),
                                 };
                                 info!("starting session {}", session_info.session_id);
+
+                                // TODO: we can't update the max clients so we need to revert
+                                // 745481e1de8ec36b1e4c89552b9cf1ccf6053b68 (init network after placement)
 
                                 commands.insert_resource(session_info);
 
@@ -279,7 +285,7 @@ fn init_server(
         .unwrap();
     let server_config = ServerConfig {
         current_time,
-        max_clients: MAX_PLAYERS,
+        max_clients: 0,
         protocol_id: PROTOCOL_ID,
         public_addresses: vec![server_addr],
         authentication: ServerAuthentication::Unsecure,
