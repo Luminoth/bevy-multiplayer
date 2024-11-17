@@ -45,6 +45,12 @@ impl ConnectionInfo {
 
             let ifaces = NetworkInterface::show().unwrap();
             for iface in ifaces {
+                // hack for now, I honestly don't know how to ignore this
+                // but we don't bind to it and shouldn't be using it
+                if iface.name.contains("docker") {
+                    continue;
+                }
+
                 for ip in iface.addr {
                     let ip = ip.ip();
                     match ip {

@@ -61,6 +61,8 @@ pub async fn get_find_server_v1(
 
     let server_info: String = conn.get(format!("gameserver:{}", server_id)).await?;
     let server_info: models::gameserver::GameServerInfo = serde_json::from_str(&server_info)?;
+
+    // TODO: if the server is already running and has room then we should just return it here
     if server_info.state != common::gameserver::GameServerState::WaitingForPlacement {
         // TODO: don't fail, try again until we can't find one
         warn!("server not waiting for placement!");
@@ -77,6 +79,7 @@ pub async fn get_find_server_v1(
     // TODO: polling for this kind of sucks,
     // instead what if we notified clients that are part of the session
     // when the game server heartbeat happens ?
+    // that should have a faster turnaround?
 
     let res = timeout(
         Duration::from_secs(PLACEMENT_TIMEOUT),
