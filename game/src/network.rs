@@ -29,6 +29,9 @@ impl PlayerClientId {
 #[derive(Debug, Event, Serialize, Deserialize)]
 pub struct ConnectEvent(pub UserId);
 
+// TODO: add a ping event and have the client send it every 10-15 seconds
+// and then have the server check for timed out clients every 30-60 seconds
+
 #[derive(Debug, Event, Serialize, Deserialize)]
 pub struct InputUpdateEvent(pub InputState);
 

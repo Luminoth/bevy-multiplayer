@@ -7,6 +7,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{egui, EguiContexts};
+use bevy_replicon_renet::renet::RenetClient;
 
 use game_common::GameState;
 
@@ -67,6 +68,7 @@ impl Plugin for DebugPlugin {
 fn debug_ui(
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
+    client: Option<Res<RenetClient>>,
     mut debug_settings: ResMut<DebugSettings>,
     mut contexts: EguiContexts,
 ) {
@@ -94,6 +96,33 @@ fn debug_ui(
                     .and_then(|memory| memory.value())
                     .unwrap_or_default()
             ));
+
+            if let Some(client) = client {
+                if client.is_connecting() {
+                    ui.label("Client connecting");
+                    // TODO: host
+                } else if client.is_connected() {
+                    ui.label("Client connected");
+                    // TODO: host
+
+                    let info = client.network_info();
+                    ui.label(format!(
+                        "{:.2}ms rtt, {:.2}% loss",
+                        info.rtt * 1000.0,
+                        info.packet_loss,
+                    ));
+                    ui.label(format!(
+                        "sent {:.2} kb/s, received {:.2} kb/s",
+                        info.bytes_sent_per_second * 0.001,
+                        info.bytes_received_per_second * 0.001,
+                    ));
+                } else {
+                    ui.label("Client disconnected");
+                }
+            } else {
+                ui.label("No client");
+            }
+
             ui.label(format!(
                 "{} entities",
                 diagnostics
