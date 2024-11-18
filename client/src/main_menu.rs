@@ -2,9 +2,12 @@ use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_replicon::prelude::*;
 
-use game_common::{cleanup_state, network::PlayerClientId};
+use game_common::{
+    cleanup_state,
+    network::{ConnectEvent, PlayerClientId},
+};
 
-use crate::{client, ui, AppState};
+use crate::{client, options::Options, ui, AppState};
 
 #[derive(Debug, Component)]
 struct OnMainMenu;
@@ -25,7 +28,9 @@ impl Plugin for MainMenuPlugin {
 fn on_start_local(
     mut commands: Commands,
     event: Listener<Pointer<Click>>,
+    options: Res<Options>,
     client: Res<client::ClientState>,
+    mut evw_connect: EventWriter<ConnectEvent>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     if !ui::check_click_event(
@@ -39,7 +44,13 @@ fn on_start_local(
 
     let client_id = PlayerClientId::new(ClientId::SERVER);
     commands.insert_resource(client_id);
-    client::on_connected_server(&client, client_id, &mut app_state);
+    client::on_connected_server(
+        &client,
+        client_id,
+        options.user_id,
+        &mut evw_connect,
+        &mut app_state,
+    );
 }
 
 fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {

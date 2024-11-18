@@ -4,7 +4,7 @@ use bevy_replicon::prelude::*;
 
 use crate::{
     cleanup_state, dynamic,
-    network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     player, spawn, world, GameAssetState, GameState, InputState,
 };
 
@@ -29,6 +29,7 @@ impl Plugin for GamePlugin {
         .init_state::<GameState>()
         .init_resource::<InputState>()
         // TOOD: move to a network plugin
+        .add_client_event::<ConnectEvent>(ChannelKind::Unordered)
         .add_client_event::<InputUpdateEvent>(ChannelKind::Ordered)
         .add_client_event::<PlayerJumpEvent>(ChannelKind::Unordered)
         .add_systems(OnEnter(GameState::LoadAssets), load_assets)

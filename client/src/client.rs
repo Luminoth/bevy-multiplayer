@@ -2,8 +2,9 @@ use bevy::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
+use common::user::UserId;
 use game_common::{
-    network::{InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     player, GameState, InputState,
 };
 
@@ -75,6 +76,8 @@ fn exit(mut commands: Commands) {
 pub fn on_connected_server(
     client: &ClientState,
     client_id: PlayerClientId,
+    user_id: UserId,
+    evw_connect: &mut EventWriter<ConnectEvent>,
     app_state: &mut NextState<AppState>,
 ) {
     if client_id.is_local() {
@@ -86,6 +89,8 @@ pub fn on_connected_server(
             client_id.get_client_id()
         );
     }
+
+    evw_connect.send(ConnectEvent(user_id));
 
     app_state.set(AppState::InGame);
 }

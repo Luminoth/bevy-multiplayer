@@ -14,7 +14,11 @@ use bevy_replicon_renet::{
 };
 
 use common::gameclient::*;
-use game_common::{cleanup_state, network::PlayerClientId, PROTOCOL_ID};
+use game_common::{
+    cleanup_state,
+    network::{ConnectEvent, PlayerClientId},
+    PROTOCOL_ID,
+};
 
 use crate::{api, client, options::Options, ui, AppState};
 
@@ -188,11 +192,19 @@ fn connect_to_server(
 }
 
 fn connected(
+    options: Res<Options>,
     client: Res<client::ClientState>,
     client_id: Res<PlayerClientId>,
+    mut evw_connect: EventWriter<ConnectEvent>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     info!("connected to server!");
 
-    client::on_connected_server(&client, *client_id, &mut app_state);
+    client::on_connected_server(
+        &client,
+        *client_id,
+        options.user_id,
+        &mut evw_connect,
+        &mut app_state,
+    );
 }

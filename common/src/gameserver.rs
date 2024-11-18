@@ -3,6 +3,8 @@ use uuid::Uuid;
 
 use crate::user::UserId;
 
+// TODO: things not shared with the client should be moved to the internal lib
+
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum GameServerState {

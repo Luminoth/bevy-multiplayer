@@ -20,7 +20,7 @@ use common::{
     user::UserId,
 };
 use game_common::{
-    network::{InputUpdateEvent, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player,
     spawn::SpawnPoint,
     GameAssetState, GameState, PROTOCOL_ID,
@@ -133,7 +133,7 @@ impl Plugin for ServerPlugin {
         .add_systems(Startup, setup)
         .add_systems(
             PreUpdate,
-            (handle_input_update, handle_jump_event)
+            (handle_connect, handle_input_update, handle_jump_event)
                 .after(ServerSet::Receive)
                 .run_if(in_state(AppState::InGame))
                 .run_if(server_running),
@@ -394,8 +394,6 @@ fn init_server(
 // (otherwise spawning the player will probably fail)
 fn handle_network_events(
     mut commands: Commands,
-    assets: Res<GameAssetState>,
-    spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
     players: Query<(Entity, &player::Player)>,
     mut evr_server: EventReader<ServerEvent>,
 ) {
@@ -403,9 +401,6 @@ fn handle_network_events(
         match evt {
             ServerEvent::ClientConnected { client_id } => {
                 info!("client {:?} connected", client_id);
-
-                let spawnpoint = spawnpoints.iter().next().unwrap();
-                player::spawn_player(&mut commands, *client_id, spawnpoint.translation(), &assets);
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 info!("client {:?} disconnected: {}", client_id, reason);
@@ -420,11 +415,39 @@ fn handle_network_events(
     }
 }
 
+fn handle_connect(
+    mut commands: Commands,
+    assets: Option<Res<GameAssetState>>,
+    spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
+    _server: ResMut<RenetServer>,
+    mut evr_connect: EventReader<FromClient<ConnectEvent>>,
+) {
+    for FromClient { client_id, event } in evr_connect.read() {
+        info!("player {} connected", event.0);
+
+        // TODO: ensure this user is in the pending list
+        // and then move them from pending to the player list
+        // and add their client to the connected player list
+
+        // if the player isn't expected, then server.disconnect(client_id) them
+
+        let spawnpoint = spawnpoints.iter().next().unwrap();
+        player::spawn_player(
+            &mut commands,
+            *client_id,
+            spawnpoint.translation(),
+            assets.as_ref().unwrap(),
+        );
+    }
+}
+
 fn handle_input_update(
     mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>,
     mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient { client_id, event } in evr_input_update.read() {
+        // TODO: ensure this client is in the connected player list
+
         for (mut last_input, player) in &mut player_query {
             if player.client_id() == *client_id {
                 last_input.input_state = event.0;
@@ -442,6 +465,8 @@ fn handle_jump_event(
         event: _,
     } in evr_jump.read()
     {
+        // TODO: ensure this client is in the connected player list
+
         for (mut last_input, player) in &mut player_query {
             if player.client_id() == *client_id {
                 last_input.jump = true;
