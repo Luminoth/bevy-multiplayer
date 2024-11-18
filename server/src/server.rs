@@ -188,6 +188,7 @@ fn setup(
         .on_message(
             |trigger: Trigger<websocket::WebSocketMessageEvent>,
              mut commands: Commands,
+             current_state: Res<State<AppState>>,
              mut app_state: ResMut<NextState<AppState>>| {
                 let evt = trigger.event();
 
@@ -199,6 +200,11 @@ fn setup(
                         let notif = serde_json::from_str::<notifs::Notification>(value).unwrap();
                         match notif.r#type {
                             notifs::NotifType::PlacementRequestV1 => {
+                                if *current_state != AppState::WaitForPlacement {
+                                    warn!("ignoring unexpected placement request!");
+                                    return;
+                                }
+
                                 // TODO: error handling
                                 let message =
                                     notif.to_message::<notifs::PlacementRequestV1>().unwrap();
@@ -208,19 +214,16 @@ fn setup(
                                 let game_settings = internal::GameSettings::default();
 
                                 let session_info = GameSessionInfo {
-                                    session_id: Uuid::new_v4(),
+                                    session_id: Uuid::new_v4(), // TODO: this should come from the placement request
                                     max_players: game_settings.max_players,
                                     player_session_ids: vec![],
                                     pending_player_ids: message.player_ids.clone(),
                                 };
                                 info!("starting session {}", session_info.session_id);
 
-                                // TODO: we can't update the max clients so we need to revert
-                                // 745481e1de8ec36b1e4c89552b9cf1ccf6053b68 (init network after placement)
-
                                 commands.insert_resource(session_info);
 
-                                app_state.set(AppState::InGame);
+                                app_state.set(AppState::InitServer);
                             }
                         }
                     }
@@ -247,7 +250,7 @@ fn setup(
             ctx.world.insert_resource(output);
 
             let mut app_state = ctx.world.resource_mut::<NextState<AppState>>();
-            app_state.set(AppState::InitServer);
+            app_state.set(AppState::WaitForPlacement);
         },
         |_ctx, err| {
             panic!("failed to init orchestration backend: {}", err);
@@ -255,67 +258,7 @@ fn setup(
     );
 }
 
-#[allow(clippy::too_many_arguments)]
-fn init_server(
-    mut commands: Commands,
-    mut client: BevyReqwest,
-    options: Res<Options>,
-    channels: Res<RepliconChannels>,
-    orchestration: Res<Orchestration>,
-    mut server_info: ResMut<GameServerInfo>,
-    current_state: Res<State<AppState>>,
-    mut app_state: ResMut<NextState<AppState>>,
-) {
-    info!("init network ...");
-
-    // let the backend know we're initializing the game
-    heartbeat(
-        &mut client,
-        server_info.server_id,
-        server_info.connection_info.clone(),
-        (**current_state).into(),
-        orchestration.as_api_type(),
-        None,
-    );
-
-    let server_addr = options.address().parse().unwrap();
-    let socket = UdpSocket::bind(server_addr).unwrap();
-    let current_time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
-    let server_config = ServerConfig {
-        current_time,
-        max_clients: 0,
-        protocol_id: PROTOCOL_ID,
-        public_addresses: vec![server_addr],
-        authentication: ServerAuthentication::Unsecure,
-    };
-
-    info!("listening at {} ...", server_addr);
-
-    let server = RenetServer::new(ConnectionConfig {
-        server_channels_config: channels.get_server_configs(),
-        client_channels_config: channels.get_client_configs(),
-        ..Default::default()
-    });
-    commands.insert_resource(server);
-
-    let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
-    commands.insert_resource(transport);
-
-    server_info.connection_info.update(server_addr);
-
-    app_state.set(AppState::WaitForPlacement);
-}
-
-fn shutdown(
-    mut commands: Commands,
-    orchestration: Res<Orchestration>,
-    runtime: Res<TokioTasksRuntime>,
-) {
-    commands.remove_resource::<RenetServer>();
-    commands.remove_resource::<NetcodeServerTransport>();
-
+fn shutdown(orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>) {
     let orchestration = orchestration.clone();
     orchestration.stop_watcher();
 
@@ -358,6 +301,8 @@ fn exit(mut commands: Commands) {
     info!("exit server game ...");
 
     commands.remove_resource::<GameSessionInfo>();
+    commands.remove_resource::<RenetServer>();
+    commands.remove_resource::<NetcodeServerTransport>();
 }
 
 fn heartbeat_monitor(
@@ -389,6 +334,60 @@ fn heartbeat_monitor(
             },
         );
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn init_server(
+    mut commands: Commands,
+    mut client: BevyReqwest,
+    options: Res<Options>,
+    channels: Res<RepliconChannels>,
+    orchestration: Res<Orchestration>,
+    mut server_info: ResMut<GameServerInfo>,
+    session_info: Res<GameSessionInfo>,
+    current_state: Res<State<AppState>>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    info!("init network ...");
+
+    // let the backend know we're initializing the game
+    heartbeat(
+        &mut client,
+        server_info.server_id,
+        server_info.connection_info.clone(),
+        (**current_state).into(),
+        orchestration.as_api_type(),
+        None,
+    );
+
+    let server_addr = options.address().parse().unwrap();
+    let socket = UdpSocket::bind(server_addr).unwrap();
+    let current_time = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
+    let server_config = ServerConfig {
+        current_time,
+        max_clients: session_info.max_players as usize,
+        protocol_id: PROTOCOL_ID,
+        public_addresses: vec![server_addr],
+        authentication: ServerAuthentication::Unsecure,
+    };
+
+    info!("listening at {} ...", server_addr);
+
+    let server = RenetServer::new(ConnectionConfig {
+        server_channels_config: channels.get_server_configs(),
+        client_channels_config: channels.get_client_configs(),
+        ..Default::default()
+    });
+    commands.insert_resource(server);
+
+    let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
+    commands.insert_resource(transport);
+
+    server_info.connection_info.update(server_addr);
+
+    app_state.set(AppState::InGame);
 }
 
 // TODO: we shouldn't allow connections until we've loaded assets

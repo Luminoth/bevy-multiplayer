@@ -21,8 +21,8 @@ use options::Options;
 pub enum AppState {
     #[default]
     Startup,
-    InitServer,
     WaitForPlacement,
+    InitServer,
     InGame,
     Shutdown,
 }
@@ -30,9 +30,9 @@ pub enum AppState {
 impl From<AppState> for GameServerState {
     fn from(state: AppState) -> Self {
         match state {
-            AppState::Startup | AppState::InitServer => GameServerState::Init,
+            AppState::Startup => GameServerState::Init,
             AppState::WaitForPlacement => GameServerState::WaitingForPlacement,
-            AppState::InGame => GameServerState::InGame,
+            AppState::InitServer | AppState::InGame => GameServerState::InGame,
             AppState::Shutdown => GameServerState::Shutdown,
         }
     }
