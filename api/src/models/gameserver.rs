@@ -29,11 +29,6 @@ impl GameServerInfo {
             game_session_id: server_info.game_session_id,
         }
     }
-
-    #[inline]
-    pub fn get_key(&self) -> String {
-        format!("gameserver:{}", self.server_id)
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,11 +60,6 @@ impl GameSessionInfo {
                 .pending_player_ids
                 .ok_or_else(|| anyhow::anyhow!("missing pending players"))?,
         })
-    }
-
-    #[inline]
-    pub fn get_key(&self) -> String {
-        format!("gamesession:{}", self.game_session_id)
     }
 
     #[inline]

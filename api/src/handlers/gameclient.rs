@@ -9,9 +9,15 @@ use headers::authorization::{Authorization, Bearer};
 use serde::Deserialize;
 use tokio::time::{sleep, timeout, Duration};
 use tracing::{info, warn};
+use uuid::Uuid;
 
 use common::{gameclient::*, user::User};
-use internal::{axum::AppError, notifs::AsNotification, redis::RedisPooledConnection};
+use internal::{
+    axum::AppError,
+    gameserver::{get_gameserver_key, WAITING_GAMESERVERS_INDEX},
+    notifs::AsNotification,
+    redis::RedisPooledConnection,
+};
 
 use crate::{models, notifs, state::AppState};
 
@@ -19,11 +25,14 @@ const PLACEMENT_TIMEOUT: u64 = 60;
 
 async fn wait_for_placement(
     conn: &mut RedisPooledConnection,
-    server_id: impl AsRef<str>,
+    server_id: Uuid,
 ) -> anyhow::Result<models::gameserver::GameServerInfo> {
-    let key = format!("gameserver:{}", server_id.as_ref());
+    info!("waiting for game session placement on {} ...", server_id);
+
+    let key = get_gameserver_key(server_id);
     loop {
-        sleep(Duration::from_secs(10)).await;
+        // TODO: back off
+        sleep(Duration::from_secs(1)).await;
 
         let server_info: String = conn.get(&key).await?;
         let server_info: models::gameserver::GameServerInfo = serde_json::from_str(&server_info)?;
@@ -46,23 +55,25 @@ pub async fn get_find_server_v1(
 ) -> Result<Json<FindServerResponseV1>, AppError> {
     let user = User::read_from_token(bearer.token()).await?;
 
-    info!("finding server for {} ...", user.user_id);
+    info!("finding game server for {} ...", user.user_id);
 
     let mut conn = app_state.redis_connection_pool.get_owned().await?;
 
-    let server_ids: Vec<(String, u64)> = conn.zpopmin("gameservers:waiting.index", 1).await?;
+    // TODO: look for not full servers before checking waiting servers
+
+    let server_ids: Vec<(String, u64)> = conn.zpopmin(WAITING_GAMESERVERS_INDEX, 1).await?;
     if server_ids.len() != 1 {
-        warn!("no servers available for placement!");
+        warn!("no game servers available for placement!");
         return Ok(Json(FindServerResponseV1::default()));
     }
 
-    let server_id = server_ids[0].0.clone();
+    let server_id = Uuid::parse_str(&server_ids[0].0)?;
     info!("found server {}", server_id);
 
-    let server_info: String = conn.get(format!("gameserver:{}", server_id)).await?;
+    let server_info: String = conn.get(get_gameserver_key(server_id)).await?;
     let server_info: models::gameserver::GameServerInfo = serde_json::from_str(&server_info)?;
 
-    // TODO: if the server is already running and has room then we should just return it here
+    // TODO: if the server is now running and has room then we should return it here
     if server_info.state != common::gameserver::GameServerState::WaitingForPlacement {
         // TODO: don't fail, try again until we can't find one
         warn!("server not waiting for placement!");
@@ -71,8 +82,7 @@ pub async fn get_find_server_v1(
 
     notifs::notify_gameserver(
         &app_state,
-        internal::notifs::PlacementRequestV1::new(vec![user.user_id])
-            .as_notification(server_id.clone())?,
+        internal::notifs::PlacementRequestV1::new(vec![user.user_id]).as_notification(server_id)?,
         Some(PLACEMENT_TIMEOUT),
     )
     .await?;

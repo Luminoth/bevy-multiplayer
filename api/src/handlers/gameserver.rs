@@ -5,7 +5,13 @@ use headers::authorization::{Authorization, Bearer};
 use uuid::Uuid;
 
 use common::gameserver::*;
-use internal::axum::AppError;
+use internal::{
+    axum::AppError,
+    gameserver::{
+        get_gameserver_key, get_gamesession_key, GAMESERVERS_INDEX, GAMESESSIONS_BACKFILL_SET,
+        GAMESESSIONS_INDEX, WAITING_GAMESERVERS_INDEX,
+    },
+};
 
 use crate::{models, state::AppState};
 
@@ -29,51 +35,55 @@ pub async fn post_heartbeat_v1(
     let server_info_data =
         models::gameserver::GameServerInfo::new(server_id, request.server_info.clone());
     let value = serde_json::to_string(&server_info_data)?;
-    pipeline.set_ex(server_info_data.get_key(), value, ttl);
+    pipeline.set_ex(get_gameserver_key(server_info_data.server_id), value, ttl);
 
     // all servers
     pipeline.zadd(
-        "gameservers.index",
+        GAMESERVERS_INDEX,
         server_info_data.server_id.to_string(),
         now,
     );
-    pipeline.zrembyscore("gameservers.index", 0, expiry);
+    pipeline.zrembyscore(GAMESERVERS_INDEX, 0, expiry);
 
     // servers waiting for placement
     if server_info_data.state == GameServerState::WaitingForPlacement {
         pipeline.zadd(
-            "gameservers:waiting.index",
+            WAITING_GAMESERVERS_INDEX,
             server_info_data.server_id.to_string(),
             now,
         );
-        pipeline.zrembyscore("gameservers:waiting.index", 0, expiry);
+        pipeline.zrembyscore(WAITING_GAMESERVERS_INDEX, 0, expiry);
     }
 
     if let Ok(session_info_data) =
         models::gameserver::GameSessionInfo::new(server_id, request.server_info)
     {
         let value = serde_json::to_string(&session_info_data)?;
-        pipeline.set_ex(session_info_data.get_key(), value, ttl);
+        pipeline.set_ex(
+            get_gamesession_key(session_info_data.game_session_id),
+            value,
+            ttl,
+        );
 
         // all sessions
         pipeline.zadd(
-            "gamesessions.index",
+            GAMESESSIONS_INDEX,
             session_info_data.game_session_id.to_string(),
             now,
         );
-        pipeline.zrembyscore("gamesessions.index", 0, expiry);
+        pipeline.zrembyscore(GAMESESSIONS_INDEX, 0, expiry);
 
         // sessions that need backfill
         let openslots = session_info_data.player_slots_remaining();
         if openslots > 0 {
             pipeline.hset(
-                "gamesessions.backfill",
+                GAMESESSIONS_BACKFILL_SET,
                 session_info_data.game_session_id.to_string(),
                 openslots,
             );
         } else {
             pipeline.hdel(
-                "gamesessions.backfill",
+                GAMESESSIONS_BACKFILL_SET,
                 session_info_data.game_session_id.to_string(),
             );
         }
