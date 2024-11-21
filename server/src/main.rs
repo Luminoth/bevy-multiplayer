@@ -32,7 +32,8 @@ impl From<AppState> for GameServerState {
         match state {
             AppState::Startup => GameServerState::Init,
             AppState::WaitForPlacement => GameServerState::WaitingForPlacement,
-            AppState::InitServer | AppState::InGame => GameServerState::InGame,
+            AppState::InitServer => GameServerState::Loading,
+            AppState::InGame => GameServerState::InGame,
             AppState::Shutdown => GameServerState::Shutdown,
         }
     }

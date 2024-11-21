@@ -11,6 +11,7 @@ pub enum GameServerState {
     #[default]
     Init,
     WaitingForPlacement,
+    Loading,
     InGame,
     Shutdown,
 }
