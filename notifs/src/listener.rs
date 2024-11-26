@@ -25,7 +25,7 @@ the recipient is available or not
 pub async fn start_gameserver_listener(
     app_state: &AppState,
 ) -> anyhow::Result<task::JoinHandle<()>> {
-    info!("starting game server notif listener ...");
+    info!("starting game server notifs listener ...");
 
     let client = redis::Client::open(app_state.options.redis_host.as_str())?;
     let (mut sink, mut stream) = client.get_async_pubsub().await?.split();

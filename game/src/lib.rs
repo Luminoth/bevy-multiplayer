@@ -12,6 +12,11 @@ pub use game::{spawn_client_world, GamePlugin, OnInGame, ServerSet};
 
 pub const PROTOCOL_ID: u64 = 0;
 
+// TODO: this sets the server "frame rate"
+// bevy FixedUpdate tho runs at 64hz
+// and that might need to be adjusted as well?
+pub const SERVER_TICK_RATE: u16 = 60;
+
 // TODO: the issue atm is that there's no way
 // to tell the app to go back to its initial state
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, States, Reflect)]

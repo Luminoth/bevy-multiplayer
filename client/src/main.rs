@@ -62,6 +62,9 @@ fn main() {
             RapierDebugRenderPlugin::default(),
             RepliconPlugins,
             RepliconRenetPlugins,
+            /*bevy_replicon_snap::SnapshotInterpolationPlugin {
+                max_tick_rate: game_common::SERVER_TICK_RATE,
+            },*/
             bevy_mod_reqwest::ReqwestPlugin::default(),
         ))
         // client / game plugins

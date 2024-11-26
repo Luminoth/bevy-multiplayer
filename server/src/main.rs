@@ -14,6 +14,7 @@ use bevy_tokio_tasks::TokioTasksPlugin;
 use clap::Parser;
 
 use common::gameserver::GameServerState;
+use game_common::SERVER_TICK_RATE;
 
 use options::Options;
 
@@ -46,11 +47,6 @@ impl AppState {
     }
 }
 
-// TODO: this sets the server "frame rate"
-// bevy FixedUpdate tho runs at 64hz
-// and that might need to be adjusted as well?
-const SERVER_TICK_RATE: f64 = 1.0 / 60.0;
-
 pub fn is_not_headless(options: Res<Options>) -> bool {
     !options.headless
 }
@@ -68,7 +64,7 @@ fn main() {
             // TODO: replace with HeadlessPlugins in 0.15
             // (it includes all the plugins that Minimal is missing)
             MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
-                bevy::utils::Duration::from_secs_f64(SERVER_TICK_RATE),
+                bevy::utils::Duration::from_secs_f64(1.0 / SERVER_TICK_RATE as f64),
             )),
             bevy::app::PanicHandlerPlugin,
             bevy::log::LogPlugin::default(),
@@ -108,7 +104,10 @@ fn main() {
         // bevy plugins
         // third-party plugins
         .add_plugins((
-            RepliconPlugins,
+            RepliconPlugins, /*.set(ServerPlugin {
+                                 tick_policy: TickPolicy::MaxTickRate(SERVER_TICK_RATE),
+                                 ..default()
+                             })*/
             RepliconRenetPlugins,
             bevy_mod_reqwest::ReqwestPlugin::default(),
             TokioTasksPlugin::default(),
