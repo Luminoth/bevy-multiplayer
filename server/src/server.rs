@@ -3,6 +3,7 @@ use std::time::{Duration, SystemTime};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
 use bevy_mod_reqwest::*;
+use bevy_mod_websocket::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
     renet::{
@@ -28,8 +29,7 @@ use game_common::{
 use internal::notifs;
 
 use crate::{
-    api, game, options::Options, orchestration::Orchestration, placement, tasks, websocket,
-    AppState,
+    api, game, options::Options, orchestration::Orchestration, placement, tasks, AppState,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -125,30 +125,26 @@ pub struct ServerPlugin;
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            websocket::WebSocketPlugin,
-            placement::PlacementPlugin,
-            game::GamePlugin,
-        ))
-        .add_systems(Startup, setup)
-        .add_systems(
-            PreUpdate,
-            (handle_connect, handle_input_update, handle_jump_event)
-                .after(ServerSet::Receive)
-                .run_if(in_state(AppState::InGame))
-                .run_if(server_running),
-        )
-        .add_systems(
-            Update,
-            (
-                handle_network_events.run_if(in_state(GameState::InGame)),
-                heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
-            ),
-        )
-        .add_systems(OnEnter(AppState::InitServer), init_server)
-        .add_systems(OnEnter(AppState::InGame), enter)
-        .add_systems(OnExit(AppState::InGame), exit)
-        .add_systems(OnEnter(AppState::Shutdown), shutdown);
+        app.add_plugins((placement::PlacementPlugin, game::GamePlugin))
+            .add_systems(Startup, setup)
+            .add_systems(
+                PreUpdate,
+                (handle_connect, handle_input_update, handle_jump_event)
+                    .after(ServerSet::Receive)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(server_running),
+            )
+            .add_systems(
+                Update,
+                (
+                    handle_network_events.run_if(in_state(GameState::InGame)),
+                    heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
+                ),
+            )
+            .add_systems(OnEnter(AppState::InitServer), init_server)
+            .add_systems(OnEnter(AppState::InGame), enter)
+            .add_systems(OnExit(AppState::InGame), exit)
+            .add_systems(OnEnter(AppState::Shutdown), shutdown);
     }
 }
 
@@ -156,7 +152,7 @@ fn setup(
     mut commands: Commands,
     options: Res<Options>,
     mut client: BevyReqwest,
-    mut ws_client: websocket::WebSocketClient,
+    mut ws_client: WebSocketClient,
     runtime: Res<TokioTasksRuntime>,
 ) {
     let server_info = GameServerInfo::new();
@@ -173,27 +169,25 @@ fn setup(
     );
 
     api::subscribe(&mut ws_client, server_info.server_id)
-        .on_success(
-            |trigger: Trigger<websocket::WebSocketConnectSuccessEvent>| {
-                let evt = trigger.event();
-                info!("subscribe success: {:?}", evt);
-            },
-        )
-        .on_error(|trigger: Trigger<websocket::WebSocketErrorEvent>| {
+        .on_success(|trigger: Trigger<WebSocketConnectSuccessEvent>| {
+            let evt = trigger.event();
+            info!("subscribe success: {:?}", evt);
+        })
+        .on_error(|trigger: Trigger<WebSocketErrorEvent>| {
             let evt = trigger.event();
             // TODO: temp panic until we have retry
             //warn!("notifs error: {:?}", evt);
             panic!("notifs error: {:?}", evt);
         })
         .on_message(
-            |trigger: Trigger<websocket::WebSocketMessageEvent>,
+            |trigger: Trigger<WebSocketMessageEvent>,
              mut commands: Commands,
              current_state: Res<State<AppState>>,
              mut app_state: ResMut<NextState<AppState>>| {
                 let evt = trigger.event();
 
                 match &evt.message {
-                    websocket::Message::Text(value) => {
+                    Message::Text(value) => {
                         info!("received notif from {}: {:?}", evt.uri, value);
 
                         // TODO: error handling
@@ -233,7 +227,7 @@ fn setup(
                 }
             },
         )
-        .on_disconnect(|trigger: Trigger<websocket::WebSocketDisconnectEvent>| {
+        .on_disconnect(|trigger: Trigger<WebSocketDisconnectEvent>| {
             let evt = trigger.event();
             // TODO: temp panic until we have reconnect
             //warn!("notifs disconnect: {:?}", evt);

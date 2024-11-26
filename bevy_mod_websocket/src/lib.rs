@@ -1,4 +1,6 @@
-#![allow(dead_code)]
+#![deny(warnings)]
+
+// NOTE: requires TokioTasksPlugin added
 
 use bevy::{
     ecs::system::{EntityCommands, IntoObserverSystem, SystemParam},
@@ -9,8 +11,18 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use futures_lite::future;
 use futures_util::StreamExt;
 use http::uri::Uri;
+use thiserror::Error;
 use tokio::{net::TcpStream, task};
 use tokio_tungstenite::{tungstenite::handshake::client::Request, MaybeTlsStream, WebSocketStream};
+
+#[derive(Error, Debug)]
+pub enum WebSocketError {
+    #[error("websocket error: {0}")]
+    WebSocket(#[from] tokio_tungstenite::tungstenite::Error),
+
+    #[error("unknown websocket error")]
+    Unknown,
+}
 
 #[derive(Debug, Component)]
 struct ConnectWebSocket {
@@ -30,6 +42,7 @@ impl ConnectWebSocket {
     }
 
     #[inline]
+    #[allow(dead_code)]
     fn with_timer(request: Request, duration: Duration) -> Self {
         Self {
             request: Some(request),
@@ -54,7 +67,7 @@ impl ConnectWebSocket {
 #[derive(Debug, Component)]
 struct ConnectWebSocketTask {
     uri: Uri,
-    task: task::JoinHandle<Result<(), anyhow::Error>>,
+    task: task::JoinHandle<Result<(), WebSocketError>>,
 }
 
 #[derive(Debug, Component)]
@@ -76,7 +89,7 @@ impl ListenWebSocket {
 #[derive(Debug, Component)]
 struct ListenWebSocketTask {
     uri: Uri,
-    task: task::JoinHandle<Result<(), anyhow::Error>>,
+    task: task::JoinHandle<Result<(), WebSocketError>>,
 }
 
 // TODO: disconnect
@@ -89,7 +102,7 @@ pub struct WebSocketConnectSuccessEvent {
 #[derive(Debug, Event)]
 pub struct WebSocketErrorEvent {
     pub uri: Uri,
-    pub error: anyhow::Error,
+    pub error: WebSocketError,
 }
 
 #[derive(Debug, Event)]

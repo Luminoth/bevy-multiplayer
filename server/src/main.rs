@@ -5,7 +5,6 @@ mod orchestration;
 mod placement;
 mod server;
 mod tasks;
-mod websocket;
 
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;
@@ -110,6 +109,7 @@ fn main() {
                              })*/
             RepliconRenetPlugins,
             bevy_mod_reqwest::ReqwestPlugin::default(),
+            bevy_mod_websocket::WebSocketPlugin,
             TokioTasksPlugin::default(),
         ))
         // server / game plugins

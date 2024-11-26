@@ -1,22 +1,17 @@
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
+use bevy_mod_websocket::*;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use uuid::Uuid;
 
 use common::gameserver::*;
 
-use crate::{
-    server::{ConnectionInfo, GameSessionInfo},
-    websocket,
-};
+use crate::server::{ConnectionInfo, GameSessionInfo};
 
 const API_HOST: &str = "http://localhost:8000";
 const NOTIFS_HOST: &str = "ws://localhost:8001";
 
-pub fn subscribe<'a>(
-    client: &'a mut websocket::WebSocketClient,
-    server_id: Uuid,
-) -> websocket::WebSocketBuilder<'a> {
+pub fn subscribe<'a>(client: &'a mut WebSocketClient, server_id: Uuid) -> WebSocketBuilder<'a> {
     let mut notifs_request = format!("{}/notifs/v1", NOTIFS_HOST)
         .into_client_request()
         .unwrap();

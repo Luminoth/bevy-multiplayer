@@ -13,6 +13,7 @@ anyhow = "1.0"
 aws-gamelift-server-sdk-rs = { version = "0.3", optional = true }
 bevy = "0.14"
 bevy_mod_reqwest = "0.16"
+bevy_mod_websocket = { path = "../bevy_mod_websocket" }
 bevy_replicon = { version = "0.28", default-features = false, features = [
     "scene",
     "parent_sync",
@@ -25,8 +26,6 @@ bevy_replicon_renet = { version = "0.5", default-features = false, features = [
 ] }
 bevy-tokio-tasks = "0.14"
 clap = { version = "4.5", features = ["derive"] }
-futures-lite = "2.5"
-futures-util = "0.3"
 http = "1.1"
 network-interface = "2.0"
 serde_json = "1.0"

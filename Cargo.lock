@@ -1651,6 +1651,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_websocket"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-tokio-tasks",
+ "futures-lite",
+ "futures-util",
+ "http 1.1.0",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite 0.24.0",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6031,12 +6045,11 @@ dependencies = [
  "bevy",
  "bevy-tokio-tasks",
  "bevy_mod_reqwest",
+ "bevy_mod_websocket",
  "bevy_replicon",
  "bevy_replicon_renet",
  "clap",
  "common",
- "futures-lite",
- "futures-util",
  "game",
  "http 1.1.0",
  "internal",
