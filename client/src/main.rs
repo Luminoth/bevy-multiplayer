@@ -15,6 +15,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
+use bevy_tokio_tasks::TokioTasksPlugin;
 use clap::Parser;
 
 use options::Options;
@@ -65,7 +66,9 @@ fn main() {
             /*bevy_replicon_snap::SnapshotInterpolationPlugin {
                 max_tick_rate: game_common::SERVER_TICK_RATE,
             },*/
+            TokioTasksPlugin::default(),
             bevy_mod_reqwest::ReqwestPlugin::default(),
+            bevy_mod_websocket::WebSocketPlugin,
         ))
         // client / game plugins
         .add_plugins((

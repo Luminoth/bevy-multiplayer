@@ -108,9 +108,9 @@ fn main() {
                                  ..default()
                              })*/
             RepliconRenetPlugins,
+            TokioTasksPlugin::default(),
             bevy_mod_reqwest::ReqwestPlugin::default(),
             bevy_mod_websocket::WebSocketPlugin,
-            TokioTasksPlugin::default(),
         ))
         // server / game plugins
         .add_plugins((server::ServerPlugin, game_common::GamePlugin))
