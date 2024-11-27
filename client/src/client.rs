@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_mod_websocket::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
@@ -8,7 +9,10 @@ use game_common::{
     player, GameState, InputState,
 };
 
-use crate::{camera, connect_server, game, game_menu, input, main_menu, ui, AppState, Settings};
+use crate::{
+    api, camera, connect_server, game, game_menu, input, main_menu, options::Options, ui, AppState,
+    Settings,
+};
 
 #[derive(Debug, Default, Resource)]
 pub struct ClientState {
@@ -45,6 +49,7 @@ impl Plugin for ClientPlugin {
         ))
         .init_resource::<Settings>()
         .init_resource::<ClientState>()
+        .add_systems(Startup, setup)
         .add_systems(OnEnter(AppState::InGame), enter)
         .add_systems(
             PostUpdate,
@@ -55,6 +60,44 @@ impl Plugin for ClientPlugin {
         )
         .add_systems(OnExit(AppState::InGame), exit);
     }
+}
+
+fn setup(options: Res<Options>, mut ws_client: WebSocketClient) {
+    info!("starting client {}", options.user_id);
+
+    api::subscribe(&mut ws_client, options.user_id)
+        .on_success(|trigger: Trigger<WebSocketConnectSuccessEvent>| {
+            let evt = trigger.event();
+            info!("subscribe success: {:?}", evt);
+        })
+        .on_error(|trigger: Trigger<WebSocketErrorEvent>| {
+            let evt = trigger.event();
+            // TODO: temp panic until we have retry
+            //warn!("notifs error: {:?}", evt);
+            panic!("notifs error: {:?}", evt);
+        })
+        .on_message(|trigger: Trigger<WebSocketMessageEvent>| {
+            let evt = trigger.event();
+
+            match &evt.message {
+                Message::Text(value) => {
+                    info!("received notif from {}: {:?}", evt.uri, value);
+
+                    // TODO: error handling
+                    //let notif = serde_json::from_str::<notifs::Notification>(value).unwrap();
+                    //match notif.r#type {}
+                }
+                _ => {
+                    warn!("unexpected notif from {}: {:?}", evt.uri, evt.message);
+                }
+            }
+        })
+        .on_disconnect(|trigger: Trigger<WebSocketDisconnectEvent>| {
+            let evt = trigger.event();
+            // TODO: temp panic until we have reconnect
+            //warn!("notifs disconnect: {:?}", evt);
+            panic!("notifs disconnect: {:?}", evt);
+        });
 }
 
 fn enter(mut game_state: ResMut<NextState<GameState>>) {

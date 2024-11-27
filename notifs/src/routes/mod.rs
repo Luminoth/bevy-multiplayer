@@ -1,14 +1,19 @@
-use axum::{routing::get, Router};
+mod gameclient;
+mod gameserver;
+
+use axum::Router;
 use tracing::info;
 
 use internal::axum as axum_util;
 
-use crate::{handlers::*, state::AppState};
+use crate::state::AppState;
 
 pub fn init_routes(app: Router<AppState>) -> Router<AppState> {
     info!("initializing routes...");
 
-    let app = app.route("/notifs/v1", get(get_subscribe_notifs));
+    // TODO: this is ugly
+    let app = gameclient::init_routes(app);
+    let app = gameserver::init_routes(app);
 
     app.fallback(axum_util::handler_404)
 }

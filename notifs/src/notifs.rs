@@ -6,7 +6,9 @@ use futures_util::{
 use tracing::info;
 use uuid::Uuid;
 
-use crate::state::GameServerSet;
+use common::user::UserId;
+
+use crate::state::{GameClientSet, GameServerSet};
 
 pub type NotifSender = SplitSink<WebSocket, Message>;
 
@@ -17,7 +19,11 @@ async fn idle_notifs(mut receiver: SplitStream<WebSocket>) {
     }
 }
 
-pub async fn handle_notifs(socket: WebSocket, server_id: Uuid, game_servers: GameServerSet) {
+pub async fn handle_gameserver_notifs(
+    socket: WebSocket,
+    server_id: Uuid,
+    game_servers: GameServerSet,
+) {
     info!("{} subscribed to notifications ...", server_id);
 
     let (sender, receiver) = socket.split();
@@ -28,4 +34,21 @@ pub async fn handle_notifs(socket: WebSocket, server_id: Uuid, game_servers: Gam
     info!("{} closed notifications connection", server_id);
 
     game_servers.write().await.remove(&server_id);
+}
+
+pub async fn handle_gameclient_notifs(
+    socket: WebSocket,
+    user_id: UserId,
+    game_clients: GameClientSet,
+) {
+    info!("{} subscribed to notifications ...", user_id);
+
+    let (sender, receiver) = socket.split();
+    game_clients.write().await.insert(user_id, sender);
+
+    idle_notifs(receiver).await;
+
+    info!("{} closed notifications connection", user_id);
+
+    game_clients.write().await.remove(&user_id);
 }

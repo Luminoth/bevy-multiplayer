@@ -8,10 +8,9 @@ use common::user::UserId;
 const API_HOST: &str = "http://localhost:8000";
 const NOTIFS_HOST: &str = "ws://localhost:8001";
 
-#[allow(dead_code)]
 pub fn subscribe<'a>(client: &'a mut WebSocketClient, user_id: UserId) -> WebSocketBuilder<'a> {
     // TODO: get rid of the need to call into_client_request so we can drop the tungstenite dependency
-    let mut notifs_request = format!("{}/notifs/v1", NOTIFS_HOST)
+    let mut notifs_request = format!("{}/gameclient/notifs/v1", NOTIFS_HOST)
         .into_client_request()
         .unwrap();
     let headers = notifs_request.headers_mut();

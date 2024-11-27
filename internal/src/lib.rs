@@ -7,3 +7,4 @@ pub mod redis;
 pub use gamesettings::*;
 
 pub const GAMESERVER_NOTIFS_CHANNEL: &str = "gameserver:notifs";
+pub const GAMECLIENT_NOTIFS_CHANNEL: &str = "gameclient:notifs";
