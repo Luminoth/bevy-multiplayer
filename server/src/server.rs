@@ -94,7 +94,7 @@ impl GameServerInfo {
 pub struct GameSessionInfo {
     pub session_id: Uuid,
     pub max_players: u16,
-    pub player_session_ids: Vec<Uuid>,
+    pub active_player_ids: Vec<UserId>,
     pub pending_player_ids: Vec<UserId>,
 }
 
@@ -203,14 +203,14 @@ fn setup(
                                 let message =
                                     notif.to_message::<notifs::PlacementRequestV1>().unwrap();
 
-                                warn!("faking placement!");
-
+                                // TODO: should come from the placement request
+                                // (as matchtype or something we can look up settings for)
                                 let game_settings = internal::GameSettings::default();
 
                                 let session_info = GameSessionInfo {
-                                    session_id: Uuid::new_v4(), // TODO: this should come from the placement request
+                                    session_id: message.game_session_id,
                                     max_players: game_settings.max_players,
-                                    player_session_ids: vec![],
+                                    active_player_ids: vec![],
                                     pending_player_ids: message.player_ids.clone(),
                                 };
                                 info!("starting session {}", session_info.session_id);

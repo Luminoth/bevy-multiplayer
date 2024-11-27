@@ -39,7 +39,7 @@ pub struct GameServerInfo {
     pub max_players: u16,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub player_session_ids: Option<Vec<Uuid>>,
+    pub active_player_ids: Option<Vec<UserId>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pending_player_ids: Option<Vec<UserId>>,

@@ -51,8 +51,8 @@ pub fn heartbeat<'a>(
                     .map(|session_info| session_info.max_players)
                     .unwrap_or_default(),
                 game_session_id: session_info.map(|session_info| session_info.session_id),
-                player_session_ids: session_info
-                    .map(|session_info| session_info.player_session_ids.clone()),
+                active_player_ids: session_info
+                    .map(|session_info| session_info.active_player_ids.clone()),
                 pending_player_ids: session_info
                     .map(|session_info| session_info.pending_player_ids.clone()),
             },

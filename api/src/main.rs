@@ -1,4 +1,5 @@
 mod gameservers;
+mod gamesessions;
 mod handlers;
 mod models;
 mod notifs;
