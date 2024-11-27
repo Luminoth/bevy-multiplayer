@@ -1,3 +1,4 @@
+mod gameservers;
 mod handlers;
 mod models;
 mod notifs;
