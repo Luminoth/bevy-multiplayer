@@ -101,7 +101,8 @@ pub async fn get_find_server_v1(
             } else {
                 info!("invalid backfill session {}", game_session_id);
 
-                conn.hdel(GAMESESSIONS_BACKFILL_SET, game_session_id.to_string())
+                let _: () = conn
+                    .hdel(GAMESESSIONS_BACKFILL_SET, game_session_id.to_string())
                     .await?;
             }
         }
