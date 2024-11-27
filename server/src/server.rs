@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
@@ -94,8 +95,46 @@ impl GameServerInfo {
 pub struct GameSessionInfo {
     pub session_id: Uuid,
     pub max_players: u16,
-    pub active_player_ids: Vec<UserId>,
-    pub pending_player_ids: Vec<UserId>,
+
+    pub active_player_ids: HashSet<UserId>,
+    pub pending_player_ids: HashSet<UserId>,
+
+    clients: HashMap<ClientId, UserId>,
+}
+
+impl GameSessionInfo {
+    fn new(
+        session_id: Uuid,
+        settings: &internal::GameSettings,
+        pending_player_ids: Vec<UserId>,
+    ) -> Self {
+        Self {
+            session_id,
+            max_players: settings.max_players,
+            active_player_ids: HashSet::new(),
+            pending_player_ids: HashSet::from_iter(pending_player_ids),
+            clients: HashMap::new(),
+        }
+    }
+
+    fn client_connected(&mut self, user_id: UserId, client_id: ClientId) -> bool {
+        if self.pending_player_ids.contains(&user_id) {
+            self.pending_player_ids.remove(&user_id);
+            self.active_player_ids.insert(user_id);
+            self.clients.insert(client_id, user_id);
+
+            true
+        } else {
+            false
+        }
+    }
+
+    fn client_disconnected(&mut self, client_id: &ClientId) {
+        if let Some(user_id) = self.clients.remove(client_id) {
+            self.active_player_ids.remove(&user_id);
+            self.pending_player_ids.remove(&user_id);
+        }
+    }
 }
 
 pub fn heartbeat(
@@ -207,12 +246,11 @@ fn setup(
                                 // (as matchtype or something we can look up settings for)
                                 let game_settings = internal::GameSettings::default();
 
-                                let session_info = GameSessionInfo {
-                                    session_id: message.game_session_id,
-                                    max_players: game_settings.max_players,
-                                    active_player_ids: vec![],
-                                    pending_player_ids: message.player_ids.clone(),
-                                };
+                                let session_info = GameSessionInfo::new(
+                                    message.game_session_id,
+                                    &game_settings,
+                                    message.player_ids,
+                                );
                                 info!("starting session {}", session_info.session_id);
 
                                 commands.insert_resource(session_info);
@@ -388,6 +426,7 @@ fn init_server(
 // (otherwise spawning the player will probably fail)
 fn handle_network_events(
     mut commands: Commands,
+    mut session_info: ResMut<GameSessionInfo>,
     players: Query<(Entity, &player::Player)>,
     mut evr_server: EventReader<ServerEvent>,
 ) {
@@ -404,6 +443,8 @@ fn handle_network_events(
                         player::despawn_player(&mut commands, entity);
                     }
                 }
+
+                session_info.client_disconnected(client_id);
             }
         }
     }
@@ -411,19 +452,21 @@ fn handle_network_events(
 
 fn handle_connect(
     mut commands: Commands,
-    assets: Option<Res<GameAssetState>>,
-    spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
-    _server: ResMut<RenetServer>,
     mut evr_connect: EventReader<FromClient<ConnectEvent>>,
+    assets: Option<Res<GameAssetState>>,
+    _server: ResMut<RenetServer>,
+    mut session_info: ResMut<GameSessionInfo>,
+    spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
 ) {
     for FromClient { client_id, event } in evr_connect.read() {
-        info!("player {} connected", event.0);
+        let user_id = event.0;
+        info!("player {} connected", user_id);
 
-        // TODO: ensure this user is in the pending list
-        // and then move them from pending to the player list
-        // and add their client to the connected player list
-
-        // if the player isn't expected, then server.disconnect(client_id) them
+        if !session_info.client_connected(user_id, *client_id) {
+            warn!("player {} not expected", user_id);
+            //server.disconnect(*client_id);
+            continue;
+        }
 
         let spawnpoint = spawnpoints.iter().next().unwrap();
         player::spawn_player(
@@ -437,10 +480,16 @@ fn handle_connect(
 
 fn handle_input_update(
     mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>,
+    session_info: Res<GameSessionInfo>,
+    _server: ResMut<RenetServer>,
     mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient { client_id, event } in evr_input_update.read() {
-        // TODO: ensure this client is in the connected player list
+        if !session_info.clients.contains_key(client_id) {
+            warn!("client {:?} not in session", client_id);
+            //server.disconnect(*client_id);
+            continue;
+        }
 
         for (mut last_input, player) in &mut player_query {
             if player.client_id() == *client_id {
@@ -452,6 +501,8 @@ fn handle_input_update(
 
 fn handle_jump_event(
     mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>,
+    session_info: Res<GameSessionInfo>,
+    _server: ResMut<RenetServer>,
     mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient {
@@ -459,7 +510,11 @@ fn handle_jump_event(
         event: _,
     } in evr_jump.read()
     {
-        // TODO: ensure this client is in the connected player list
+        if !session_info.clients.contains_key(client_id) {
+            warn!("client {:?} not in session", client_id);
+            //server.disconnect(*client_id);
+            continue;
+        }
 
         for (mut last_input, player) in &mut player_query {
             if player.client_id() == *client_id {

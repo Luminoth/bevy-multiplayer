@@ -52,9 +52,9 @@ pub fn heartbeat<'a>(
                     .unwrap_or_default(),
                 game_session_id: session_info.map(|session_info| session_info.session_id),
                 active_player_ids: session_info
-                    .map(|session_info| session_info.active_player_ids.clone()),
+                    .map(|session_info| session_info.active_player_ids.iter().copied().collect()),
                 pending_player_ids: session_info
-                    .map(|session_info| session_info.pending_player_ids.clone()),
+                    .map(|session_info| session_info.pending_player_ids.iter().copied().collect()),
             },
         })
         .build()

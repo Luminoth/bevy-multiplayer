@@ -128,7 +128,7 @@ pub async fn allocate_game_server(
         }
 
         notifs::notify_gameserver(
-            &app_state,
+            app_state,
             internal::notifs::PlacementRequestV1::new(game_session_id, vec![user_id])
                 .as_notification(server_id)?,
             Some(PLACEMENT_TIMEOUT),

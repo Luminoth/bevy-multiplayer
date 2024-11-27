@@ -9,14 +9,14 @@ pub struct User {
 }
 
 impl User {
-    async fn validate_token(_bearer_token: impl AsRef<str>) -> anyhow::Result<UserId> {
+    async fn validate_token(bearer_token: impl AsRef<str>) -> anyhow::Result<UserId> {
         // TODO: bearer token is JWT, platform user id is in the Claims Subject field
         // probably need to encode the user's platform as well
 
         // TODO: look up user from their platform user id
         // (or create a new user if they don't exist)
 
-        Ok(Uuid::new_v4())
+        Ok(Uuid::parse_str(bearer_token.as_ref())?)
     }
 
     pub async fn read_from_user_id(user_id: UserId) -> anyhow::Result<Self> {
