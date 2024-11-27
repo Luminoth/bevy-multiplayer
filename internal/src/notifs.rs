@@ -33,6 +33,7 @@ pub trait AsNotification: Serialize {
 #[serde(rename_all = "snake_case")]
 pub enum NotifType {
     PlacementRequestV1,
+    ReservationRequestV1,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +50,28 @@ impl AsNotification for PlacementRequestV1 {
 }
 
 impl PlacementRequestV1 {
+    pub fn new(game_session_id: Uuid, player_ids: Vec<UserId>) -> Self {
+        Self {
+            game_session_id,
+            player_ids,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReservationRequestV1 {
+    pub game_session_id: Uuid,
+    pub player_ids: Vec<UserId>,
+}
+
+impl AsNotification for ReservationRequestV1 {
+    #[inline]
+    fn get_type(&self) -> NotifType {
+        NotifType::ReservationRequestV1
+    }
+}
+
+impl ReservationRequestV1 {
     pub fn new(game_session_id: Uuid, player_ids: Vec<UserId>) -> Self {
         Self {
             game_session_id,

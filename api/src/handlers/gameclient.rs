@@ -30,7 +30,9 @@ pub async fn get_find_server_v1(
     let mut conn = app_state.redis_connection_pool.get_owned().await?;
 
     // first backfill
-    if let Some(server_info) = gameservers::reserve_backfill_slot(&mut conn).await? {
+    if let Some(server_info) =
+        gameservers::reserve_backfill_slot(&mut conn, &app_state, user.user_id).await?
+    {
         return Ok(Json(FindServerResponseV1 {
             address: server_info.addrs[0].clone(),
             port: server_info.port,

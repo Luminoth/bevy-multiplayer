@@ -5,7 +5,10 @@ use uuid::Uuid;
 
 use common::user::UserId;
 use internal::{
-    gameserver::{get_gameserver_key, GAMESESSIONS_BACKFILL_SET, WAITING_GAMESERVERS_INDEX},
+    gameserver::{
+        get_gameserver_key, get_gamesession_key, GAMESESSIONS_BACKFILL_SET,
+        WAITING_GAMESERVERS_INDEX,
+    },
     notifs::AsNotification,
     redis::RedisPooledConnection,
 };
@@ -13,6 +16,7 @@ use internal::{
 use crate::{gamesessions, models, notifs, state::AppState};
 
 const PLACEMENT_TIMEOUT: u64 = 60;
+const RESERVATION_TIMEOUT: u64 = 30;
 
 pub async fn read_gameserver_info(
     conn: &mut RedisPooledConnection,
@@ -25,8 +29,32 @@ pub async fn read_gameserver_info(
     Ok(None)
 }
 
+async fn wait_for_reservation(
+    conn: &mut RedisPooledConnection,
+    game_session_id: Uuid,
+    user_id: UserId,
+) -> anyhow::Result<()> {
+    info!("waiting for reservation on {} ...", game_session_id);
+
+    let key = get_gamesession_key(game_session_id);
+    loop {
+        // TODO: back off
+        sleep(Duration::from_secs(1)).await;
+
+        let game_session_info: String = conn.get(&key).await?;
+        let game_session_info: models::gameserver::GameSessionInfo =
+            serde_json::from_str(&game_session_info)?;
+
+        if game_session_info.pending_player_ids.contains(&user_id) {
+            return Ok(());
+        }
+    }
+}
+
 pub async fn reserve_backfill_slot(
     conn: &mut RedisPooledConnection,
+    app_state: &AppState,
+    user_id: UserId,
 ) -> anyhow::Result<Option<models::gameserver::GameServerInfo>> {
     let backfill_sessions = gamesessions::get_backfill_game_sessions(conn).await?;
     if backfill_sessions.len() != 1 {
@@ -49,10 +77,30 @@ pub async fn reserve_backfill_slot(
 
             let server_info = read_gameserver_info(conn, game_session_info.server_id).await?;
             if let Some(server_info) = server_info {
-                // TODO: not quite, we need to reserve the slot on the server
-                // and then wait for it to be reserved, and THEN we can tell the client
-                // and when we reserve we need to update "something" so we don't re-reserve
-                // (and we should check for reserved slots here as well)
+                notifs::notify_gameserver(
+                    app_state,
+                    internal::notifs::ReservationRequestV1::new(game_session_id, vec![user_id])
+                        .as_notification(server_info.server_id)?,
+                    Some(RESERVATION_TIMEOUT),
+                )
+                .await?;
+
+                // TODO: polling for this kind of sucks,
+                // instead what if we notified clients that are part of the session
+                // when the game server heartbeat happens ?
+                // that should have a faster turnaround?
+                // clients would need a mailbox poll tho (probably will anyway)
+                // or a "send messages on notifs connect" piece
+
+                let res = timeout(
+                    Duration::from_secs(RESERVATION_TIMEOUT),
+                    wait_for_reservation(conn, game_session_id, user_id),
+                )
+                .await;
+                if res.is_err() {
+                    warn!("reservation timeout!");
+                    return Ok(None);
+                }
 
                 return Ok(Some(server_info));
             } else {

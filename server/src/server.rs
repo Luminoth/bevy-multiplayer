@@ -111,10 +111,15 @@ impl GameSessionInfo {
         Self {
             session_id,
             max_players: settings.max_players,
-            active_player_ids: HashSet::new(),
+            active_player_ids: HashSet::with_capacity(settings.max_players as usize),
             pending_player_ids: HashSet::from_iter(pending_player_ids),
-            clients: HashMap::new(),
+            clients: HashMap::with_capacity(settings.max_players as usize),
         }
+    }
+
+    #[inline]
+    fn player_count(&self) -> usize {
+        self.active_player_ids.len() + self.pending_player_ids.len()
     }
 
     fn client_connected(&mut self, user_id: UserId, client_id: ClientId) -> bool {
@@ -221,8 +226,12 @@ fn setup(
         .on_message(
             |trigger: Trigger<WebSocketMessageEvent>,
              mut commands: Commands,
+             mut client: BevyReqwest,
              current_state: Res<State<AppState>>,
-             mut app_state: ResMut<NextState<AppState>>| {
+             mut app_state: ResMut<NextState<AppState>>,
+             orchestration: Res<Orchestration>,
+             server_info: Res<GameServerInfo>,
+             session_info: Option<ResMut<GameSessionInfo>>| {
                 let evt = trigger.event();
 
                 match &evt.message {
@@ -246,16 +255,65 @@ fn setup(
                                 // (as matchtype or something we can look up settings for)
                                 let game_settings = internal::GameSettings::default();
 
+                                if message.player_ids.len() > game_settings.max_players as usize {
+                                    warn!(
+                                        "ignoring placement request with too many players: {}",
+                                        message.player_ids.len()
+                                    );
+                                    return;
+                                }
+
+                                info!(
+                                    "starting session {}: {:?}",
+                                    message.game_session_id, message.player_ids
+                                );
+
                                 let session_info = GameSessionInfo::new(
                                     message.game_session_id,
                                     &game_settings,
                                     message.player_ids,
                                 );
-                                info!("starting session {}", session_info.session_id);
 
                                 commands.insert_resource(session_info);
 
                                 app_state.set(AppState::InitServer);
+                            }
+                            notifs::NotifType::ReservationRequestV1 => {
+                                if *current_state != AppState::InGame {
+                                    warn!("ignoring unexpected reservation request!");
+                                    return;
+                                }
+
+                                let mut session_info = session_info.unwrap();
+
+                                // TODO: error handling
+                                let message =
+                                    notif.to_message::<notifs::ReservationRequestV1>().unwrap();
+
+                                if session_info.player_count() + message.player_ids.len()
+                                    > session_info.max_players as usize
+                                {
+                                    warn!(
+                                        "ignoring reservation request with too many players: {}",
+                                        message.player_ids.len()
+                                    );
+                                    return;
+                                }
+
+                                info!("reserving player slots: {:?}", message.player_ids);
+
+                                for player_id in message.player_ids {
+                                    session_info.pending_player_ids.insert(player_id);
+                                }
+
+                                heartbeat(
+                                    &mut client,
+                                    server_info.server_id,
+                                    server_info.connection_info.clone(),
+                                    (**current_state).into(),
+                                    orchestration.as_api_type(),
+                                    Some(&session_info),
+                                );
                             }
                         }
                     }
@@ -424,9 +482,14 @@ fn init_server(
 
 // TODO: we shouldn't allow connections until we've loaded assets
 // (otherwise spawning the player will probably fail)
+#[allow(clippy::too_many_arguments)]
 fn handle_network_events(
     mut commands: Commands,
+    mut client: BevyReqwest,
+    app_state: Res<State<AppState>>,
+    server_info: Res<GameServerInfo>,
     mut session_info: ResMut<GameSessionInfo>,
+    orchestration: Res<Orchestration>,
     players: Query<(Entity, &player::Player)>,
     mut evr_server: EventReader<ServerEvent>,
 ) {
@@ -445,17 +508,31 @@ fn handle_network_events(
                 }
 
                 session_info.client_disconnected(client_id);
+
+                heartbeat(
+                    &mut client,
+                    server_info.server_id,
+                    server_info.connection_info.clone(),
+                    (**app_state).into(),
+                    orchestration.as_api_type(),
+                    Some(&session_info),
+                );
             }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_connect(
     mut commands: Commands,
+    mut client: BevyReqwest,
     mut evr_connect: EventReader<FromClient<ConnectEvent>>,
+    app_state: Res<State<AppState>>,
     assets: Option<Res<GameAssetState>>,
     _server: ResMut<RenetServer>,
+    server_info: Res<GameServerInfo>,
     mut session_info: ResMut<GameSessionInfo>,
+    orchestration: Res<Orchestration>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
 ) {
     for FromClient { client_id, event } in evr_connect.read() {
@@ -467,6 +544,15 @@ fn handle_connect(
             //server.disconnect(*client_id);
             continue;
         }
+
+        heartbeat(
+            &mut client,
+            server_info.server_id,
+            server_info.connection_info.clone(),
+            (**app_state).into(),
+            orchestration.as_api_type(),
+            Some(&session_info),
+        );
 
         let spawnpoint = spawnpoints.iter().next().unwrap();
         player::spawn_player(
