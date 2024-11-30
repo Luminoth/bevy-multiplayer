@@ -161,7 +161,7 @@ impl Plugin for WebSocketPlugin {
 
 pub struct WebSocketBuilder<'a>(EntityCommands<'a>);
 
-impl<'a> WebSocketBuilder<'a> {
+impl WebSocketBuilder<'_> {
     pub fn on_success<
         RB: Bundle,
         RM,
@@ -208,7 +208,7 @@ pub struct WebSocketClient<'w, 's> {
     commands: Commands<'w, 's>,
 }
 
-impl<'w, 's> WebSocketClient<'w, 's> {
+impl WebSocketClient<'_, '_> {
     pub fn connect(&mut self, req: Request) -> WebSocketBuilder {
         let inflight = ConnectWebSocket::new(req);
         WebSocketBuilder(self.commands.spawn(inflight))
