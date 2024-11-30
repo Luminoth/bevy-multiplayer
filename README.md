@@ -21,3 +21,10 @@ Playing around with a mix of Bevy, Agones, and hopefully OpenMatch
 
 * Put the Agones SDK Server binary in /bin
 * From the workspace root run `bin/agones-local.sh`
+
+* TODO: organize libs
+  * client_shared -> client + services shared (messages mainly)
+  * server_shared -> server + services shared (messages mainly)
+  * internal -> services shared (messages, shared utils, etc)
+  * game -> client + server shared (messages, gameplay, shared utils, etc)
+  * can have a common lib if everything needs shared utils and such

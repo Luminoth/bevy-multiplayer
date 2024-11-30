@@ -11,7 +11,7 @@ use bevy_replicon_renet::{
         transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
         ConnectionConfig, RenetServer,
     },
-    RenetChannelsExt,
+    RenetChannelsExt, RenetClientIdExt,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
@@ -142,6 +142,9 @@ impl GameSessionInfo {
     }
 }
 
+// TODO: move callbacks into methods
+
+// TODO: heartbeat off an event instead
 pub fn heartbeat(
     client: &mut BevyReqwest,
     server_id: Uuid,
@@ -529,7 +532,7 @@ fn handle_connect(
     mut evr_connect: EventReader<FromClient<ConnectEvent>>,
     app_state: Res<State<AppState>>,
     assets: Option<Res<GameAssetState>>,
-    _server: ResMut<RenetServer>,
+    mut server: ResMut<RenetServer>,
     server_info: Res<GameServerInfo>,
     mut session_info: ResMut<GameSessionInfo>,
     orchestration: Res<Orchestration>,
@@ -541,7 +544,7 @@ fn handle_connect(
 
         if !session_info.client_connected(user_id, *client_id) {
             warn!("player {} not expected", user_id);
-            //server.disconnect(*client_id);
+            server.disconnect(client_id.to_renet());
             continue;
         }
 
@@ -567,13 +570,13 @@ fn handle_connect(
 fn handle_input_update(
     mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>,
     session_info: Res<GameSessionInfo>,
-    _server: ResMut<RenetServer>,
+    mut server: ResMut<RenetServer>,
     mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient { client_id, event } in evr_input_update.read() {
         if !session_info.clients.contains_key(client_id) {
             warn!("client {:?} not in session", client_id);
-            //server.disconnect(*client_id);
+            server.disconnect(client_id.to_renet());
             continue;
         }
 
@@ -588,7 +591,7 @@ fn handle_input_update(
 fn handle_jump_event(
     mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>,
     session_info: Res<GameSessionInfo>,
-    _server: ResMut<RenetServer>,
+    mut server: ResMut<RenetServer>,
     mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient {
@@ -598,7 +601,7 @@ fn handle_jump_event(
     {
         if !session_info.clients.contains_key(client_id) {
             warn!("client {:?} not in session", client_id);
-            //server.disconnect(*client_id);
+            server.disconnect(client_id.to_renet());
             continue;
         }
 
