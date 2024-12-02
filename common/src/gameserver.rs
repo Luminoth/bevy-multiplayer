@@ -27,6 +27,7 @@ pub enum GameServerOrchestration {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub addrs: Vec<String>,
     pub port: u16,
 
@@ -34,15 +35,20 @@ pub struct GameServerInfo {
     pub orchestration: GameServerOrchestration,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub game_session_id: Option<Uuid>,
+    pub game_session_info: Option<GameSessionInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GameSessionInfo {
+    pub game_session_id: Uuid,
 
     pub max_players: u16,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub active_player_ids: Option<Vec<UserId>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub active_player_ids: Vec<UserId>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pending_player_ids: Option<Vec<UserId>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub pending_player_ids: Vec<UserId>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -5,15 +5,9 @@ use headers::authorization::{Authorization, Bearer};
 use uuid::Uuid;
 
 use common::gameserver::*;
-use internal::{
-    axum::AppError,
-    gameserver::{
-        get_gameserver_key, get_gamesession_key, GAMESERVERS_INDEX, GAMESESSIONS_BACKFILL_SET,
-        GAMESESSIONS_INDEX, WAITING_GAMESERVERS_INDEX,
-    },
-};
+use internal::axum::AppError;
 
-use crate::{models, state::AppState};
+use crate::{gameservers, gamesessions, models, state::AppState};
 
 #[debug_handler]
 pub async fn post_heartbeat_v1(
@@ -24,69 +18,22 @@ pub async fn post_heartbeat_v1(
     // TODO: validate the server token
     let server_id = Uuid::parse_str(bearer.token())?;
 
+    let gameserver_info = models::gameserver::GameServerInfo::new(server_id, &request.server_info);
+    let game_session_info =
+        request
+            .server_info
+            .game_session_info
+            .as_ref()
+            .map(|game_session_info| {
+                models::gamesession::GameSessionInfo::new(server_id, game_session_info)
+            });
+
     let mut conn = app_state.redis_connection_pool.get().await?;
-
-    let ttl = 60;
-    let now = chrono::Utc::now().timestamp() as u64;
-    let expiry = now - ttl;
-
     let mut pipeline = redis::pipe();
 
-    let server_info_data =
-        models::gameserver::GameServerInfo::new(server_id, request.server_info.clone());
-    let value = serde_json::to_string(&server_info_data)?;
-    pipeline.set_ex(get_gameserver_key(server_info_data.server_id), value, ttl);
-
-    // all servers
-    pipeline.zadd(
-        GAMESERVERS_INDEX,
-        server_info_data.server_id.to_string(),
-        now,
-    );
-    pipeline.zrembyscore(GAMESERVERS_INDEX, 0, expiry);
-
-    // servers waiting for placement
-    if server_info_data.state == GameServerState::WaitingForPlacement {
-        pipeline.zadd(
-            WAITING_GAMESERVERS_INDEX,
-            server_info_data.server_id.to_string(),
-            now,
-        );
-        pipeline.zrembyscore(WAITING_GAMESERVERS_INDEX, 0, expiry);
-    }
-
-    if let Ok(session_info_data) =
-        models::gameserver::GameSessionInfo::new(server_id, request.server_info)
-    {
-        let value = serde_json::to_string(&session_info_data)?;
-        pipeline.set_ex(
-            get_gamesession_key(session_info_data.game_session_id),
-            value,
-            ttl,
-        );
-
-        // all sessions
-        pipeline.zadd(
-            GAMESESSIONS_INDEX,
-            session_info_data.game_session_id.to_string(),
-            now,
-        );
-        pipeline.zrembyscore(GAMESESSIONS_INDEX, 0, expiry);
-
-        // sessions that need backfill
-        let openslots = session_info_data.player_slots_remaining();
-        if openslots > 0 {
-            pipeline.hset(
-                GAMESESSIONS_BACKFILL_SET,
-                session_info_data.game_session_id.to_string(),
-                openslots,
-            );
-        } else {
-            pipeline.hdel(
-                GAMESESSIONS_BACKFILL_SET,
-                session_info_data.game_session_id.to_string(),
-            );
-        }
+    gameservers::update_gameserver(&mut pipeline, &gameserver_info).await?;
+    if let Some(game_session_info) = game_session_info {
+        gamesessions::update_game_session(&mut pipeline, &game_session_info).await?;
     }
 
     let _: () = pipeline.query_async(&mut *conn).await?;

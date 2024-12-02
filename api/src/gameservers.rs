@@ -1,12 +1,12 @@
-use bb8_redis::redis::AsyncCommands;
+use bb8_redis::redis::{AsyncCommands, Pipeline};
 use tokio::time::{sleep, timeout, Duration};
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use common::user::UserId;
+use common::{gameserver::*, user::UserId};
 use internal::{
     gameserver::{
-        get_gameserver_key, get_gamesession_key, GAMESESSIONS_BACKFILL_SET,
+        get_gameserver_key, get_gamesession_key, GAMESERVERS_INDEX, GAMESESSIONS_BACKFILL_SET,
         WAITING_GAMESERVERS_INDEX,
     },
     notifs::AsNotification,
@@ -17,6 +17,7 @@ use crate::{gamesessions, models, notifs, state::AppState};
 
 const PLACEMENT_TIMEOUT: u64 = 60;
 const RESERVATION_TIMEOUT: u64 = 30;
+const SERVER_INFO_TTL: u64 = 60;
 
 pub async fn read_gameserver_info(
     conn: &mut RedisPooledConnection,
@@ -27,6 +28,43 @@ pub async fn read_gameserver_info(
         return Ok(Some(serde_json::from_str(&game_server_info)?));
     }
     Ok(None)
+}
+
+pub async fn update_gameserver(
+    pipeline: &mut Pipeline,
+    gameserver_info: &models::gameserver::GameServerInfo,
+) -> anyhow::Result<()> {
+    let value = serde_json::to_string(&gameserver_info)?;
+
+    let now = chrono::Utc::now().timestamp() as u64;
+    let expiry = now - SERVER_INFO_TTL;
+
+    // save the server info
+    pipeline.set_ex(
+        get_gameserver_key(gameserver_info.server_id),
+        value,
+        SERVER_INFO_TTL,
+    );
+
+    // update the server index
+    pipeline.zadd(
+        GAMESERVERS_INDEX,
+        gameserver_info.server_id.to_string(),
+        now,
+    );
+    pipeline.zrembyscore(GAMESERVERS_INDEX, 0, expiry);
+
+    // update servers waiting for placement
+    if gameserver_info.state == GameServerState::WaitingForPlacement {
+        pipeline.zadd(
+            WAITING_GAMESERVERS_INDEX,
+            gameserver_info.server_id.to_string(),
+            now,
+        );
+        pipeline.zrembyscore(WAITING_GAMESERVERS_INDEX, 0, expiry);
+    }
+
+    Ok(())
 }
 
 async fn wait_for_reservation(
@@ -42,7 +80,7 @@ async fn wait_for_reservation(
         sleep(Duration::from_secs(1)).await;
 
         let game_session_info: String = conn.get(&key).await?;
-        let game_session_info: models::gameserver::GameSessionInfo =
+        let game_session_info: models::gamesession::GameSessionInfo =
             serde_json::from_str(&game_session_info)?;
 
         if game_session_info.pending_player_ids.contains(&user_id) {
