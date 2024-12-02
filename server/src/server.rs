@@ -27,10 +27,9 @@ use game_common::{
     spawn::SpawnPoint,
     GameAssetState, GameState, PROTOCOL_ID,
 };
-use internal::notifs;
 
 use crate::{
-    api, game, options::Options, orchestration::Orchestration, placement, tasks, AppState,
+    api, game, notifs, options::Options, orchestration::Orchestration, placement, tasks, AppState,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -103,7 +102,7 @@ pub struct GameSessionInfo {
 }
 
 impl GameSessionInfo {
-    fn new(
+    pub fn new(
         session_id: Uuid,
         settings: &internal::GameSettings,
         pending_player_ids: Vec<UserId>,
@@ -118,7 +117,7 @@ impl GameSessionInfo {
     }
 
     #[inline]
-    fn player_count(&self) -> usize {
+    pub fn player_count(&self) -> usize {
         self.active_player_ids.len() + self.pending_player_ids.len()
     }
 
@@ -142,9 +141,8 @@ impl GameSessionInfo {
     }
 }
 
-// TODO: move callbacks into methods
-
 // TODO: heartbeat off an event instead
+// so we don't have to pass all this garbage into everything
 pub fn heartbeat(
     client: &mut BevyReqwest,
     server_id: Uuid,
@@ -215,123 +213,7 @@ fn setup(
         None,
     );
 
-    api::subscribe(&mut ws_client, server_info.server_id)
-        .on_success(|trigger: Trigger<WebSocketConnectSuccessEvent>| {
-            let evt = trigger.event();
-            info!("subscribe success: {:?}", evt);
-        })
-        .on_error(|trigger: Trigger<WebSocketErrorEvent>| {
-            let evt = trigger.event();
-            // TODO: temp panic until we have retry
-            //warn!("notifs error: {:?}", evt);
-            panic!("notifs error: {:?}", evt);
-        })
-        .on_message(
-            |trigger: Trigger<WebSocketMessageEvent>,
-             mut commands: Commands,
-             mut client: BevyReqwest,
-             current_state: Res<State<AppState>>,
-             mut app_state: ResMut<NextState<AppState>>,
-             orchestration: Res<Orchestration>,
-             server_info: Res<GameServerInfo>,
-             session_info: Option<ResMut<GameSessionInfo>>| {
-                let evt = trigger.event();
-
-                match &evt.message {
-                    Message::Text(value) => {
-                        info!("received notif from {}: {:?}", evt.uri, value);
-
-                        // TODO: error handling
-                        let notif = serde_json::from_str::<notifs::Notification>(value).unwrap();
-                        match notif.r#type {
-                            notifs::NotifType::PlacementRequestV1 => {
-                                if *current_state != AppState::WaitForPlacement {
-                                    warn!("ignoring unexpected placement request!");
-                                    return;
-                                }
-
-                                // TODO: error handling
-                                let message =
-                                    notif.to_message::<notifs::PlacementRequestV1>().unwrap();
-
-                                // TODO: should come from the placement request
-                                // (as matchtype or something we can look up settings for)
-                                let game_settings = internal::GameSettings::default();
-
-                                if message.player_ids.len() > game_settings.max_players as usize {
-                                    warn!(
-                                        "ignoring placement request with too many players: {}",
-                                        message.player_ids.len()
-                                    );
-                                    return;
-                                }
-
-                                info!(
-                                    "starting session {}: {:?}",
-                                    message.game_session_id, message.player_ids
-                                );
-
-                                let session_info = GameSessionInfo::new(
-                                    message.game_session_id,
-                                    &game_settings,
-                                    message.player_ids,
-                                );
-
-                                commands.insert_resource(session_info);
-
-                                app_state.set(AppState::InitServer);
-                            }
-                            notifs::NotifType::ReservationRequestV1 => {
-                                if *current_state != AppState::InGame {
-                                    warn!("ignoring unexpected reservation request!");
-                                    return;
-                                }
-
-                                let mut session_info = session_info.unwrap();
-
-                                // TODO: error handling
-                                let message =
-                                    notif.to_message::<notifs::ReservationRequestV1>().unwrap();
-
-                                if session_info.player_count() + message.player_ids.len()
-                                    > session_info.max_players as usize
-                                {
-                                    warn!(
-                                        "ignoring reservation request with too many players: {}",
-                                        message.player_ids.len()
-                                    );
-                                    return;
-                                }
-
-                                info!("reserving player slots: {:?}", message.player_ids);
-
-                                for player_id in message.player_ids {
-                                    session_info.pending_player_ids.insert(player_id);
-                                }
-
-                                heartbeat(
-                                    &mut client,
-                                    server_info.server_id,
-                                    server_info.connection_info.clone(),
-                                    (**current_state).into(),
-                                    orchestration.as_api_type(),
-                                    Some(&session_info),
-                                );
-                            }
-                        }
-                    }
-                    _ => {
-                        warn!("unexpected notif from {}: {:?}", evt.uri, evt.message);
-                    }
-                }
-            },
-        )
-        .on_disconnect(|trigger: Trigger<WebSocketDisconnectEvent>| {
-            let evt = trigger.event();
-            // TODO: temp panic until we have reconnect
-            //warn!("notifs disconnect: {:?}", evt);
-            panic!("notifs disconnect: {:?}", evt);
-        });
+    notifs::subscribe(&mut ws_client, server_info.server_id);
 
     commands.insert_resource(server_info);
 

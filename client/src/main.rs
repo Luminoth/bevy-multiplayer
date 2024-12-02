@@ -7,6 +7,7 @@ mod game;
 mod game_menu;
 mod input;
 mod main_menu;
+mod notifs;
 mod options;
 mod settings;
 mod ui;

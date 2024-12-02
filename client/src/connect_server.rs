@@ -57,16 +57,18 @@ fn handle_network_error(
     mut evr_error: EventReader<NetcodeTransportError>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
-    if !evr_error.is_empty() {
-        for evt in evr_error.read() {
-            error!("network error: {}", evt);
-        }
-
-        commands.remove_resource::<RenetClient>();
-        commands.remove_resource::<NetcodeClientTransport>();
-
-        app_state.set(AppState::MainMenu);
+    if evr_error.is_empty() {
+        return;
     }
+
+    for evt in evr_error.read() {
+        error!("network error: {}", evt);
+    }
+
+    commands.remove_resource::<RenetClient>();
+    commands.remove_resource::<NetcodeClientTransport>();
+
+    app_state.set(AppState::MainMenu);
 }
 
 fn on_cancel(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
@@ -78,6 +80,41 @@ fn on_cancel(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<Ap
     ) {
         return;
     }
+
+    app_state.set(AppState::MainMenu);
+}
+
+fn on_find_server(
+    req: Trigger<ReqwestResponseEvent>,
+    mut commands: Commands,
+    channels: Res<RepliconChannels>,
+    mut status_query: Query<&mut Text, With<Status>>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    let resp = req.event().as_str().unwrap();
+
+    let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
+    if resp.address.is_empty() {
+        error!("find server failed");
+        app_state.set(AppState::MainMenu);
+        return;
+    }
+
+    connect_to_server(
+        &mut commands,
+        &channels,
+        resp.address,
+        resp.port,
+        &mut status_query,
+    );
+}
+
+fn on_find_server_error(
+    trigger: Trigger<ReqwestErrorEvent>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    let e = &trigger.event().0;
+    error!("find server error: {:?}", e);
 
     app_state.set(AppState::MainMenu);
 }
@@ -111,37 +148,8 @@ fn enter(
 
     api::find_server(&mut client, options.user_id)
         .unwrap()
-        .on_response(
-            |req: Trigger<ReqwestResponseEvent>,
-             mut commands: Commands,
-             channels: Res<RepliconChannels>,
-             mut status_query: Query<&mut Text, With<Status>>,
-             mut app_state: ResMut<NextState<AppState>>| {
-                let resp = req.event().as_str().unwrap();
-                let resp: FindServerResponseV1 = serde_json::from_str(resp).unwrap();
-                if resp.address.is_empty() {
-                    error!("find server failed");
-                    app_state.set(AppState::MainMenu);
-                    return;
-                }
-
-                connect_to_server(
-                    &mut commands,
-                    &channels,
-                    resp.address,
-                    resp.port,
-                    &mut status_query,
-                );
-            },
-        )
-        .on_error(
-            |trigger: Trigger<ReqwestErrorEvent>, mut app_state: ResMut<NextState<AppState>>| {
-                let e = &trigger.event().0;
-                error!("find server error: {:?}", e);
-
-                app_state.set(AppState::MainMenu);
-            },
-        );
+        .on_response(on_find_server)
+        .on_error(on_find_server_error);
 }
 
 fn exit(mut commands: Commands) {
