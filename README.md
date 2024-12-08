@@ -22,6 +22,9 @@ Playing around with a mix of Bevy, Agones, and hopefully OpenMatch
 * Put the Agones SDK Server binary in /bin
 * From the workspace root run `bin/agones-local.sh`
 
+* TODO: replace Rapier with [Avian](https://crates.io/crates/avian3d)
+  * [Tnua Character Controller](https://github.com/idanarye/bevy-tnua)
+
 * TODO: organize libs
   * client_shared -> client + services shared (messages mainly)
   * server_shared -> server + services shared (messages mainly)
