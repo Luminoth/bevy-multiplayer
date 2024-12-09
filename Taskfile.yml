@@ -5,14 +5,42 @@ tasks:
     cmds:
       - cargo clippy
     silent: true
+  clean:
+    cmds:
+      - cargo clean
+
   api:
     cmds:
       - cargo run --bin bevy-multiplayer-api
+    silent: true
+  build-api-image:
+    cmds:
+      - docker buildx build -t bevy-multiplayer-api -f api/Dockerfile .
     silent: true
   notifs:
     cmds:
       - cargo run --bin bevy-multiplayer-notifs
     silent: true
+  build-notifs-image:
+    cmds:
+      - docker buildx build -t bevy-multiplayer-notifs -f api/Dockerfile .
+    silent: true
+  build-all-image:
+    cmds:
+      - docker buildx build -t bevy-multiplayer-api -f api/Dockerfile .
+      - docker buildx build -t bevy-multiplayer-notifs -f notifs/Dockerfile .
+    silent: true
+  run-services:
+    cmds:
+      - docker network create bevy-multiplayer-default
+      - docker-compose build
+      - docker-compose up
+    silent: true
+  stop-services:
+    cmds:
+      - docker-compose stop && docker-compose rm -f
+    silent: true
+
   server:
     cmds:
       - cargo run --bin bevy-multiplayer-server {{.CLI_ARGS}}
