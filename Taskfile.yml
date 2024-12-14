@@ -8,6 +8,7 @@ tasks:
   clean:
     cmds:
       - cargo clean
+    silent: true
 
   api:
     cmds:
