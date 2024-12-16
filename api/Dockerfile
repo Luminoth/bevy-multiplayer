@@ -33,4 +33,4 @@ COPY --from=builder /app/bin bin/
 
 EXPOSE 8000
 
-CMD ["bin/bevy-multiplayer-api"]
+ENTRYPOINT ["bin/bevy-multiplayer-api"]

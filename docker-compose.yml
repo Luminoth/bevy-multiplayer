@@ -1,30 +1,32 @@
 version: '3'
 services:
-    redis:
-        container_name: bevy-multiplayer-redis
-        image: 'redis:alpine'
-        ports:
-            - 6380:6379
-        restart: always
-    api:
-        build:
-          dockerfile: api/Dockerfile
-          context: .
-        container_name: bevy-multiplayer-api
-        image: 'bevy-multiplayer-api'
-        ports:
-            - 8000:8000
-        restart: always
-        depends_on:
-          - redis
-    notifs:
-        build:
-          dockerfile: notifs/Dockerfile
-          context: .
-        container_name: bevy-multiplayer-notifs
-        image: 'bevy-multiplayer-notifs'
-        ports:
-            - 8001:8001
-        restart: always
-        depends_on:
-          - redis
+  #redis:
+  #    container_name: bevy-multiplayer-redis
+  #    image: 'redis:alpine'
+  #    ports:
+  #        - 6380:6379
+  #    restart: always
+  api:
+      build:
+        dockerfile: api/Dockerfile
+        context: .
+      container_name: bevy-multiplayer-api
+      image: 'bevy-multiplayer-api'
+      network_mode: host
+      ports:
+          - 8000:8000
+      restart: always
+      #depends_on:
+      #  - redis
+  notifs:
+      build:
+        dockerfile: notifs/Dockerfile
+        context: .
+      container_name: bevy-multiplayer-notifs
+      image: 'bevy-multiplayer-notifs'
+      network_mode: host
+      ports:
+          - 8001:8001
+      restart: always
+      #depends_on:
+      #  - redis

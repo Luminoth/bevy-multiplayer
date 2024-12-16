@@ -31,6 +31,6 @@ USER appuser
 # copy binary
 COPY --from=builder /app/bin bin/
 
-EXPOSE 8000
+EXPOSE 8001
 
-CMD ["bin/bevy-multiplayer-notifs"]
+ENTRYPOINT ["bin/bevy-multiplayer-notifs"]

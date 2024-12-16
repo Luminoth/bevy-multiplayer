@@ -1,6 +1,27 @@
 version: "3"
 
 tasks:
+  start-cluster:
+    cmds:
+      - minikube start -p agones --kubernetes-version v1.30.4
+    silent: true
+  stop-cluster:
+    cmds:
+      - minikube -p agones stop
+    silent: true
+  cluster-dashboard:
+    cmds:
+      - minikube -p agones dashboard
+    silent: true
+  start-agones-local:
+    cmds:
+      - bin/sdk-server.linux.amd64 --local
+    silent: true
+  start-agones:
+    cmds:
+      - docker run --network=host us-docker.pkg.dev/agones-images/release/agones-sdk:1.44.0 --local
+    silent: true
+
   clippy:
     cmds:
       - cargo clippy
@@ -56,6 +77,15 @@ tasks:
     cmds:
       - docker buildx build -t bevy-multiplayer-server -f server/Dockerfile .
     silent: true
+  start-local-server:
+    cmds:
+      - docker run --network=host bevy-multiplayer-server local
+    silent: true
+  start-agones-server:
+    cmds:
+      - docker run --network=host bevy-multiplayer-server agones
+    silent: true
+
   client:
     cmds:
       - cargo run --bin bevy-multiplayer

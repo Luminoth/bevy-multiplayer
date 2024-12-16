@@ -56,4 +56,4 @@ COPY assets/ assets/
 
 EXPOSE 5576
 
-CMD ["bin/bevy-multiplayer-server", "--headless"]
+ENTRYPOINT ["bin/bevy-multiplayer-server", "--headless"]
