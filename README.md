@@ -20,7 +20,7 @@ Playing around with a mix of Bevy, Agones, and hopefully OpenMatch
 ## Running Locally
 
 * Put the Agones SDK Server binary in /bin
-* From the workspace root run `bin/agones-local.sh`
+* From the workspace root run task `start-agones-local`
 
 * TODO: replace Rapier with [Avian](https://crates.io/crates/avian3d)
   * [Tnua Character Controller](https://github.com/idanarye/bevy-tnua)
