@@ -9,6 +9,14 @@ tasks:
     cmds:
       - cargo clean
     silent: true
+  really-clean:
+    deps: [clean]
+    cmds:
+      - docker image prune
+      - docker rmi -f bevy-multiplayer-api
+      - docker rmi -f bevy-multiplayer-notifs
+      - docker rmi -f bevy-multiplayer-server
+    silent: true
 
   api:
     cmds:
@@ -26,12 +34,10 @@ tasks:
     cmds:
       - docker buildx build -t bevy-multiplayer-notifs -f api/Dockerfile .
     silent: true
-  build-all-image:
-    cmds:
-      - docker buildx build -t bevy-multiplayer-api -f api/Dockerfile .
-      - docker buildx build -t bevy-multiplayer-notifs -f notifs/Dockerfile .
+  build-services-images:
+    deps: [build-api-image, build-notifs-image]
     silent: true
-  run-services:
+  start-services:
     cmds:
       - docker network create bevy-multiplayer-default
       - docker-compose build
@@ -45,6 +51,10 @@ tasks:
   server:
     cmds:
       - cargo run --bin bevy-multiplayer-server {{.CLI_ARGS}}
+    silent: true
+  build-server-image:
+    cmds:
+      - docker buildx build -t bevy-multiplayer-server -f server/Dockerfile .
     silent: true
   client:
     cmds:
