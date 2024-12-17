@@ -13,7 +13,7 @@ anyhow = "1.0"
 aws-gamelift-server-sdk-rs = { version = "0.3", optional = true }
 bevy = "0.14"
 bevy_mod_reqwest = "0.16"
-bevy_mod_websocket = { path = "../bevy_mod_websocket" }
+bevy_mod_websocket = { path = "../../bevy_mod_websocket" }
 bevy_replicon = { version = "0.28", default-features = false, features = [
     "scene",
     "parent_sync",
@@ -33,9 +33,9 @@ tokio = { version = "1.41", features = ["rt", "rt-multi-thread", "sync"] }
 tokio-tungstenite = "0.24"
 uuid = { version = "1.11", features = ["v4", "serde"] }
 
-common = { path = "../common" }
+common = { path = "../../shared/common" }
+internal = { path = "../../shared/internal" }
 game_common = { package = "game", path = "../game" }
-internal = { path = "../internal" }
 
 [features]
 default = ["agones", "gamelift"]

@@ -5,12 +5,12 @@ FROM rust:latest AS builder
 WORKDIR /app
 
 # copy source
-COPY common/ common/
-COPY internal/ internal/
-COPY notifs/ notifs/
+COPY shared/common/ shared/common/
+COPY shared/internal/ shared/internal/
+COPY services/notifs/ services/notifs/
 
 # build
-RUN cargo install --path notifs/ --root .
+RUN cargo install --path services/notifs/ --root .
 
 # stage 2: create image
 # TODO: find a way to move this to alpine

@@ -1,15 +1,15 @@
 version: "3"
 
 tasks:
-  start-cluster:
+  start-agones-cluster:
     cmds:
       - minikube start -p agones --kubernetes-version v1.30.4
     silent: true
-  stop-cluster:
+  stop-agones-cluster:
     cmds:
       - minikube -p agones stop
     silent: true
-  cluster-dashboard:
+  agones-cluster-dashboard:
     cmds:
       - minikube -p agones dashboard
     silent: true
@@ -45,7 +45,7 @@ tasks:
     silent: true
   build-api-image:
     cmds:
-      - docker buildx build -t bevy-multiplayer-api -f api/Dockerfile .
+      - docker buildx build -t bevy-multiplayer-api -f services/api/Dockerfile .
     silent: true
   notifs:
     cmds:
@@ -53,18 +53,20 @@ tasks:
     silent: true
   build-notifs-image:
     cmds:
-      - docker buildx build -t bevy-multiplayer-notifs -f api/Dockerfile .
+      - docker buildx build -t bevy-multiplayer-notifs -f services/notifs/Dockerfile .
     silent: true
   build-services-images:
     deps: [build-api-image, build-notifs-image]
     silent: true
   start-services:
+    dir: services
     cmds:
-      - docker network create bevy-multiplayer-default
-      - docker-compose build
+      # no way to not error if the network already exists ... soooooo
+      - docker network create bevy-multiplayer-default || true
       - docker-compose up
     silent: true
   stop-services:
+    dir: services
     cmds:
       - docker-compose stop && docker-compose rm -f
     silent: true
@@ -75,7 +77,7 @@ tasks:
     silent: true
   build-server-image:
     cmds:
-      - docker buildx build -t bevy-multiplayer-server -f server/Dockerfile .
+      - docker buildx build -t bevy-multiplayer-server -f game/server/Dockerfile .
     silent: true
   start-local-server:
     cmds:

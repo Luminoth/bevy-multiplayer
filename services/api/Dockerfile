@@ -5,12 +5,12 @@ FROM rust:latest AS builder
 WORKDIR /app
 
 # copy source
-COPY common/ common/
-COPY internal/ internal/
-COPY api/ api/
+COPY shared/common/ shared/common/
+COPY shared/internal/ shared/internal/
+COPY services/api/ services/api/
 
 # build
-RUN cargo install --path api/ --root .
+RUN cargo install --path services/api/ --root .
 
 # stage 2: create image
 # TODO: find a way to move this to alpine

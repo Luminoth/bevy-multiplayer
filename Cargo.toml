@@ -2,14 +2,14 @@
 resolver = "2"
 
 members = [
-    "api",
     "bevy_mod_websocket",
-    "client",
-    "common",
-    "game",
-    "internal",
-    "notifs",
-    "server",
+    "shared/common",
+    "shared/internal",
+    "services/api",
+    "services/notifs",
+    "game/client",
+    "game/game",
+    "game/server",
 ]
 
 # Enable a small amount of optimization in the dev profile.

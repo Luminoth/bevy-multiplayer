@@ -5,11 +5,11 @@ FROM rust:latest AS builder
 WORKDIR /app
 
 # copy source
-COPY common/ common/
-COPY game/ game/
-COPY internal/ internal/
 COPY bevy_mod_websocket/ bevy_mod_websocket/
-COPY server/ server/
+COPY shared/common/ shared/common/
+COPY shared/internal/ shared/internal/
+COPY game/game/ game/game/
+COPY game/server/ game/server/
 
 # install dependencies
 RUN apt-get update && \
@@ -28,7 +28,7 @@ RUN cp ./proto/bin/protoc /usr/bin/
 RUN cp -R ./proto/include/* /usr/include
 
 # build
-RUN cargo install --path server/ --root .
+RUN cargo install --path game/server/ --root .
 
 # stage 2: create image
 # TODO: find a way to move this to alpine or something
@@ -37,9 +37,9 @@ FROM ubuntu:latest
 # install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    ca-certificates \
     # bevy dependencies
     libasound2t64 \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home appuser
@@ -52,7 +52,7 @@ USER appuser
 COPY --from=builder /app/bin bin/
 
 # copy assets
-COPY assets/ assets/
+COPY game/assets/ assets/
 
 EXPOSE 5576
 
