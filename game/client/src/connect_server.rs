@@ -68,8 +68,8 @@ fn handle_network_error(
     app_state.set(AppState::MainMenu);
 }
 
-fn on_cancel(event: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
-    if event.button == PointerButton::Primary {
+fn on_cancel(trigger: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
+    if trigger.button == PointerButton::Primary {
         app_state.set(AppState::MainMenu);
     }
 }

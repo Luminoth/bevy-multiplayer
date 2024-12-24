@@ -238,6 +238,8 @@ pub async fn allocate_game_server(
             return Ok(None);
         }
 
+        info!("session {} placed on {}", game_session_id, server_id);
+
         // TODO: if this comes back as None we should loop
         let server_info = res??.unwrap();
 

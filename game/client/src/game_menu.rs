@@ -17,11 +17,11 @@ impl Plugin for GameMenuPlugin {
 }
 
 fn on_leave_game(
-    event: Trigger<Pointer<Click>>,
+    trigger: Trigger<Pointer<Click>>,
     mut app_state: ResMut<NextState<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    if event.button == PointerButton::Primary {
+    if trigger.button == PointerButton::Primary {
         app_state.set(AppState::MainMenu);
         game_state.set(GameState::WaitingForApp);
     }

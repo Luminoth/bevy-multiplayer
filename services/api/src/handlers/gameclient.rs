@@ -29,7 +29,9 @@ pub async fn get_find_server_v1(
 
     let mut conn = app_state.redis_connection_pool.get_owned().await?;
 
-    // first backfill
+    // TODO: check for reconnect
+
+    // not reconnect, check for backfill
     if let Some(server_info) =
         gameservers::reserve_backfill_slot(&mut conn, &app_state, user.user_id).await?
     {
@@ -39,7 +41,7 @@ pub async fn get_find_server_v1(
         }));
     }
 
-    warn!("no backfill servers available!");
+    info!("no backfill servers available, allocating session");
 
     let game_session_id = Uuid::new_v4();
 

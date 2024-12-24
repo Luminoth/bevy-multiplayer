@@ -25,14 +25,14 @@ impl Plugin for MainMenuPlugin {
 }
 
 fn on_start_local(
-    event: Trigger<Pointer<Click>>,
+    trigger: Trigger<Pointer<Click>>,
     mut commands: Commands,
     options: Res<Options>,
     client: Res<client::ClientState>,
     mut evw_connect: EventWriter<ConnectEvent>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
-    if event.button == PointerButton::Primary {
+    if trigger.button == PointerButton::Primary {
         let client_id = PlayerClientId::new(ClientId::SERVER);
         commands.insert_resource(client_id);
         client::on_connected_server(
@@ -45,14 +45,14 @@ fn on_start_local(
     }
 }
 
-fn on_find_server(event: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
-    if event.button == PointerButton::Primary {
+fn on_find_server(trigger: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
+    if trigger.button == PointerButton::Primary {
         app_state.set(AppState::ConnectToServer);
     }
 }
 
-fn on_exit_game(event: Trigger<Pointer<Click>>, mut exit: EventWriter<AppExit>) {
-    if event.button == PointerButton::Primary {
+fn on_exit_game(trigger: Trigger<Pointer<Click>>, mut exit: EventWriter<AppExit>) {
+    if trigger.button == PointerButton::Primary {
         exit.send(AppExit::Success);
     }
 }
