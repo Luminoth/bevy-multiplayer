@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_mod_reqwest::*;
 use uuid::Uuid;
 
-use common::gameserver;
+use common::{check_reqwest_error, gameserver};
 
 use crate::server::{ConnectionInfo, GameSessionInfo};
 
@@ -15,7 +15,7 @@ pub fn heartbeat<'a>(
     state: gameserver::GameServerState,
     orchestration: gameserver::GameServerOrchestration,
     session_info: Option<&GameSessionInfo>,
-) -> BevyReqwestBuilder<'a> {
+) -> anyhow::Result<BevyReqwestBuilder<'a>> {
     debug!("heartbeat");
 
     let url = format!("{}/gameserver/heartbeat/v1", HOST);
@@ -38,23 +38,19 @@ pub fn heartbeat<'a>(
                 }),
             },
         })
-        .build()
-        .unwrap();
+        .build()?;
 
     if let Some(session_info) = session_info {
         debug!("session_info: {:?}", session_info);
     }
 
-    client
+    Ok(client
         .send(req)
         .on_response(|trigger: Trigger<ReqwestResponseEvent>| {
-            let response = trigger.event();
-            if !response.status().is_success() {
-                error!(
-                    "got error response {}: {}",
-                    response.status(),
-                    response.as_str().unwrap_or("invalid response")
-                );
-            }
+            check_reqwest_error(trigger.event());
         })
+        .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
+            let e = &trigger.event().0;
+            error!("heartbeat error: {:?}", e);
+        }))
 }

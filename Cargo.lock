@@ -2543,7 +2543,9 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bevy_mod_reqwest",
  "serde",
+ "tracing",
  "uuid",
 ]
 

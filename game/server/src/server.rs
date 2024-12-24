@@ -157,10 +157,7 @@ pub fn heartbeat(
         orchestration,
         session_info,
     )
-    .on_error(|trigger: Trigger<ReqwestErrorEvent>| {
-        let e = &trigger.event().0;
-        error!("heartbeat error: {:?}", e);
-    });
+    .unwrap();
 }
 
 #[derive(Debug)]

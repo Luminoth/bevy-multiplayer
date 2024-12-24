@@ -124,7 +124,8 @@ fn on_message(
                         (**current_state).into(),
                         orchestration.as_api_type(),
                         Some(&session_info),
-                    );
+                    )
+                    .unwrap();
                 }
             }
         }

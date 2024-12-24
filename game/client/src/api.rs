@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
 
-use common::user::UserId;
+use common::{check_reqwest_error, user::UserId};
 
 const HOST: &str = "http://localhost:8000";
 
@@ -19,5 +19,9 @@ pub fn find_server<'a>(
         .bearer_auth(user_id.to_string())
         .build()?;
 
-    Ok(client.send(req))
+    Ok(client
+        .send(req)
+        .on_response(|trigger: Trigger<ReqwestResponseEvent>| {
+            check_reqwest_error(trigger.event());
+        }))
 }
