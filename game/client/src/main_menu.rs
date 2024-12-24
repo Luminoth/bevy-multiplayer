@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_mod_picking::prelude::*;
 use bevy_replicon::prelude::*;
 
 use game_common::{
@@ -26,15 +25,15 @@ impl Plugin for MainMenuPlugin {
 }
 
 fn on_start_local(
+    event: Trigger<Pointer<Click>>,
     mut commands: Commands,
-    event: Listener<Pointer<Click>>,
     options: Res<Options>,
     client: Res<client::ClientState>,
     mut evw_connect: EventWriter<ConnectEvent>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     if !ui::check_click_event(
-        event.listener(),
+        event.entity(),
         event.target,
         event.button,
         PointerButton::Primary,
@@ -53,9 +52,9 @@ fn on_start_local(
     );
 }
 
-fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
+fn on_find_server(event: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
     if !ui::check_click_event(
-        event.listener(),
+        event.entity(),
         event.target,
         event.button,
         PointerButton::Primary,
@@ -66,9 +65,9 @@ fn on_find_server(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextSta
     app_state.set(AppState::ConnectToServer);
 }
 
-fn on_exit_game(event: Listener<Pointer<Click>>, mut exit: EventWriter<AppExit>) {
+fn on_exit_game(event: Trigger<Pointer<Click>>, mut exit: EventWriter<AppExit>) {
     if !ui::check_click_event(
-        event.listener(),
+        event.entity(),
         event.target,
         event.button,
         PointerButton::Primary,
@@ -84,29 +83,12 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
-    commands.spawn((Camera2dBundle::default(), IsDefaultUiCamera, OnMainMenu));
+    commands.spawn((Camera2d, IsDefaultUiCamera, OnMainMenu));
 
     ui::spawn_canvas(&mut commands, "Main Menu").with_children(|parent| {
-        ui::spawn_button(
-            parent,
-            &asset_server,
-            "Start Local",
-            On::<Pointer<Click>>::run(on_start_local),
-        );
-
-        ui::spawn_button(
-            parent,
-            &asset_server,
-            "Find Server",
-            On::<Pointer<Click>>::run(on_find_server),
-        );
-
-        ui::spawn_button(
-            parent,
-            &asset_server,
-            "Exit",
-            On::<Pointer<Click>>::run(on_exit_game),
-        );
+        ui::spawn_button(parent, &asset_server, "Start Local").observe(on_start_local);
+        ui::spawn_button(parent, &asset_server, "Find Server").observe(on_find_server);
+        ui::spawn_button(parent, &asset_server, "Exit").observe(on_exit_game);
     });
 }
 

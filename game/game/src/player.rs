@@ -65,12 +65,9 @@ pub fn spawn_player(
     info!("spawning player {:?} at {} ...", client_id, position);
 
     commands.spawn((
-        MaterialMeshBundle {
-            transform: Transform::from_xyz(position.x, position.y, position.z),
-            mesh: assets.player_mesh.clone(),
-            material: assets.player_material.clone(),
-            ..default()
-        },
+        Mesh3d(assets.player_mesh.clone()),
+        MeshMaterial3d(assets.player_material.clone()),
+        Transform::from_xyz(position.x, position.y, position.z),
         RigidBody::KinematicPositionBased,
         GravityScale(GRAVITY_SCALE),
         Collider::capsule_y(HEIGHT * 0.5, HEIGHT * 0.5),
@@ -109,12 +106,9 @@ pub fn finish_client_player(
     let mut commands = commands.entity(entity);
 
     commands.insert((
-        MaterialMeshBundle {
-            transform,
-            mesh: assets.player_mesh.clone(),
-            material: assets.player_material.clone(),
-            ..default()
-        },
+        Mesh3d(assets.player_mesh.clone()),
+        MeshMaterial3d(assets.player_material.clone()),
+        transform,
         Name::new(format!(
             "Replicated Player ({})",
             if is_local { " Local" } else { "Remote" }
@@ -127,13 +121,10 @@ pub fn finish_client_player(
 
         commands.with_children(|parent| {
             parent.spawn((
-                Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 1.9, -0.9),
-                    projection: PerspectiveProjection {
-                        fov: 90.0_f32.to_radians(), // TODO: this should move to settings
-                        ..default()
-                    }
-                    .into(),
+                Transform::from_xyz(0.0, 1.9, -0.9),
+                Camera3d::default(),
+                PerspectiveProjection {
+                    fov: 90.0_f32.to_radians(), // TODO: this should move to settings
                     ..default()
                 },
                 Name::new("Player Camera"),
@@ -193,7 +184,7 @@ fn rotate_player(
 ) {
     for (mut last_input, mut transform) in &mut player_query {
         // TODO: should the rate of change here be maxed?
-        let delta_yaw = -last_input.input_state.look.x * time.delta_seconds();
+        let delta_yaw = -last_input.input_state.look.x * time.delta_secs();
 
         transform.rotate_y(delta_yaw);
 
@@ -204,7 +195,7 @@ fn rotate_player(
 #[allow(clippy::type_complexity)]
 fn update_player_physics(
     time: Res<Time<Fixed>>,
-    physics_config: Res<RapierConfiguration>,
+    physics_config: Query<&RapierConfiguration>,
     mut player_query: Query<(
         &mut LastInput,
         &mut KinematicCharacterController,
@@ -255,7 +246,7 @@ fn update_player_physics(
 
         // apply gravity
         player_physics.velocity.y +=
-            physics_config.gravity.y * gravity_scale.0 * time.delta_seconds();
+            physics_config.single().gravity.y * gravity_scale.0 * time.delta_secs();
         player_physics.velocity.y = player_physics
             .velocity
             .y
@@ -265,7 +256,7 @@ fn update_player_physics(
         let translation = character_controller
             .translation
             .get_or_insert(Vec3::default());
-        *translation += player_physics.velocity * time.delta_seconds();
+        *translation += player_physics.velocity * time.delta_secs();
 
         last_input.input_state.r#move = Vec2::default();
         last_input.jump = false;

@@ -54,22 +54,24 @@ fn enter(
         },
         {
             |ctx, _output| {
-                ctx.world.run_system_once(
-                    |mut client: BevyReqwest,
-                     server_info: Res<GameServerInfo>,
-                     state: Res<State<AppState>>,
-                     orchestration: Res<Orchestration>| {
-                        // let the backend know we're available for placement
-                        heartbeat(
-                            &mut client,
-                            server_info.server_id,
-                            server_info.connection_info.clone(),
-                            (**state).into(),
-                            orchestration.as_api_type(),
-                            None,
-                        );
-                    },
-                );
+                ctx.world
+                    .run_system_once(
+                        |mut client: BevyReqwest,
+                         server_info: Res<GameServerInfo>,
+                         state: Res<State<AppState>>,
+                         orchestration: Res<Orchestration>| {
+                            // let the backend know we're available for placement
+                            heartbeat(
+                                &mut client,
+                                server_info.server_id,
+                                server_info.connection_info.clone(),
+                                (**state).into(),
+                                orchestration.as_api_type(),
+                                None,
+                            );
+                        },
+                    )
+                    .unwrap();
 
                 // have to do this with an event
                 // because the runtime resource is removed while
@@ -88,44 +90,31 @@ fn enter_spectate(mut commands: Commands, server_info: Res<GameServerInfo>) {
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
-    commands.spawn((
-        Camera2dBundle::default(),
-        IsDefaultUiCamera,
-        OnWaitPlacement,
-    ));
+    commands.spawn((Camera2d, IsDefaultUiCamera, OnWaitPlacement));
 
     commands
         .spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Start,
-                    justify_content: JustifyContent::Start,
-                    ..default()
-                },
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Start,
+                justify_content: JustifyContent::Start,
                 ..default()
             },
             Name::new("Server UI"),
         ))
         .with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                format!("Server: {}", server_info.server_id),
-                TextStyle {
-                    font_size: 24.0,
-                    color: Color::WHITE,
-                    ..default()
-                },
+            parent.spawn((
+                Text::new(format!("Server: {}", server_info.server_id)),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
             ));
 
-            parent.spawn(TextBundle::from_section(
-                "Waiting for placement ...",
-                TextStyle {
-                    font_size: 24.0,
-                    color: Color::WHITE,
-                    ..default()
-                },
+            parent.spawn((
+                Text::new("Waiting for placement ..."),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
             ));
         });
 }

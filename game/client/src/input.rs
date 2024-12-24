@@ -12,7 +12,7 @@ use game_common::{GameState, InputState};
 use crate::{game_menu, Settings};
 
 #[derive(Debug, Resource)]
-struct ConnectedGamepad(Gamepad);
+struct ConnectedGamepad(Entity);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
 pub struct InputSet;
@@ -62,14 +62,10 @@ impl Plugin for InputPlugin {
     }
 }
 
-fn list_gamepads(gamepads: Res<Gamepads>) {
+fn list_gamepads(gamepads: Query<(&Name, &Gamepad)>) {
     info!("{} connected gamepads:", gamepads.iter().count());
-    for gamepad in gamepads.iter() {
-        info!(
-            "{:?}: {}",
-            gamepad,
-            gamepads.name(gamepad).unwrap_or("unknown")
-        );
+    for (name, gamepad) in gamepads.iter() {
+        info!("{:?}: {}", gamepad, name);
     }
 }
 
@@ -84,11 +80,8 @@ fn handle_gamepad_events(
         };
 
         match &evt_conn.connection {
-            GamepadConnection::Connected(info) => {
-                info!(
-                    "gamepad connected: {:?}, name: {}",
-                    evt_conn.gamepad, info.name,
-                );
+            GamepadConnection::Connected { name, .. } => {
+                info!("gamepad connected: {:?}, name: {}", evt_conn.gamepad, name,);
 
                 if gamepad.is_none() {
                     info!("using gamepad {:?}", evt_conn.gamepad);
@@ -151,11 +144,10 @@ fn update_mnk(
 }
 
 fn update_gamepad(
-    axes: Res<Axis<GamepadAxis>>,
-    buttons: Res<ButtonInput<GamepadButton>>,
     settings: Res<Settings>,
     gamepad: Option<Res<ConnectedGamepad>>,
     mut input_state: ResMut<InputState>,
+    gamepads: Query<&Gamepad>,
     mut evw_jump: EventWriter<JumpPressedEvent>,
 ) {
     if !settings.gamepad.enabled {
@@ -166,31 +158,21 @@ fn update_gamepad(
         return;
     };
 
-    // left stick (move)
-    let axis_lx = GamepadAxis {
-        gamepad,
-        axis_type: GamepadAxisType::LeftStickX,
-    };
-    let axis_ly = GamepadAxis {
-        gamepad,
-        axis_type: GamepadAxisType::LeftStickY,
-    };
+    let gamepad = gamepads.get(gamepad).unwrap();
 
-    if let (Some(x), Some(y)) = (axes.get(axis_lx), axes.get(axis_ly)) {
+    // left stick (move)
+    if let (Some(x), Some(y)) = (
+        gamepad.get(GamepadAxis::LeftStickX),
+        gamepad.get(GamepadAxis::LeftStickY),
+    ) {
         input_state.r#move += Vec2::new(x, y);
     }
 
     // right stick (look)
-    let axis_rx = GamepadAxis {
-        gamepad,
-        axis_type: GamepadAxisType::RightStickX,
-    };
-    let axis_ry = GamepadAxis {
-        gamepad,
-        axis_type: GamepadAxisType::RightStickY,
-    };
-
-    if let (Some(x), Some(y)) = (axes.get(axis_rx), axes.get(axis_ry)) {
+    if let (Some(x), Some(y)) = (
+        gamepad.get(GamepadAxis::RightStickX),
+        gamepad.get(GamepadAxis::RightStickY),
+    ) {
         input_state.look += Vec2::new(
             x,
             if settings.gamepad.invert_look {
@@ -201,12 +183,7 @@ fn update_gamepad(
         ) * settings.gamepad.look_sensitivity;
     }
 
-    let south_button = GamepadButton {
-        gamepad,
-        button_type: GamepadButtonType::South,
-    };
-
-    if buttons.just_pressed(south_button) {
+    if gamepad.just_pressed(GamepadButton::South) {
         evw_jump.send(JumpPressedEvent);
     }
 }

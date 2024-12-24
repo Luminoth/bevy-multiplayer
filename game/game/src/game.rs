@@ -11,7 +11,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
 pub struct ServerSet;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Default, Component)]
 pub struct OnInGame;
 
 #[derive(Debug)]
@@ -197,9 +197,10 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssetState>) {
     );
 
     // player spawns
-    commands.spawn(spawn::SpawnPointBundle::from_translation(Vec3::new(
-        -5.0, 2.1, 5.0,
-    )));
+    commands.spawn((
+        spawn::SpawnPoint,
+        Transform::from_translation(Vec3::new(-5.0, 2.1, 5.0)),
+    ));
 }
 
 fn wait_for_world(mut game_state: ResMut<NextState<GameState>>) {

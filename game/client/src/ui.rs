@@ -1,5 +1,4 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
-use bevy_mod_picking::prelude::*;
 
 const BUTTON_NORMAL: Color = Color::srgb(0.15, 0.15, 0.15);
 const BUTTON_HOVER: Color = Color::srgb(0.25, 0.25, 0.25);
@@ -56,36 +55,28 @@ fn update_button(
 
 pub fn spawn_canvas<'a>(commands: &'a mut Commands, name: impl AsRef<str>) -> EntityCommands<'a> {
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
             ..default()
         },
         Name::new(format!("Ui Canvas - {}", name.as_ref())),
-        Pickable::IGNORE,
     ))
 }
 
 #[allow(dead_code)]
 pub fn spawn_vbox<'a>(parent: &'a mut ChildBuilder) -> EntityCommands<'a> {
     parent.spawn((
-        NodeBundle {
-            style: Style {
-                align_items: AlignItems::Start,
-                justify_content: JustifyContent::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
+        Node {
+            align_items: AlignItems::Start,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
         Name::new("Column"),
-        Pickable::IGNORE,
     ))
 }
 
@@ -93,26 +84,22 @@ pub fn spawn_button<'a>(
     parent: &'a mut ChildBuilder,
     asset_server: &AssetServer,
     text: impl Into<String>,
-    on_click: On<Pointer<Click>>,
 ) -> EntityCommands<'a> {
     let text = text.into();
 
     let mut commands = parent.spawn((
-        ButtonBundle {
-            style: Style {
-                width: Val::Px(BUTTON_WIDTH),
-                height: Val::Px(BUTTON_HEIGHT),
-                border: UiRect::all(Val::Px(BUTTON_BORDER)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            border_color: BorderColor(Color::BLACK),
-            border_radius: BorderRadius::MAX,
-            background_color: BUTTON_NORMAL.into(),
+        Node {
+            width: Val::Px(BUTTON_WIDTH),
+            height: Val::Px(BUTTON_HEIGHT),
+            border: UiRect::all(Val::Px(BUTTON_BORDER)),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
             ..default()
         },
-        on_click,
+        Button,
+        BorderColor(Color::BLACK),
+        BorderRadius::MAX,
+        BackgroundColor(BUTTON_NORMAL),
         Name::new(text.clone()),
     ));
 
@@ -129,14 +116,8 @@ pub fn spawn_label<'a>(
     text: impl Into<String>,
 ) -> EntityCommands<'a> {
     parent.spawn((
-        TextBundle::from_section(
-            text,
-            TextStyle {
-                font: asset_server.load(BUTTON_FONT),
-                font_size: BUTTON_FONT_SIZE,
-                color: BUTTON_FONT_COLOR,
-            },
-        ),
-        Pickable::IGNORE,
+        Text::new(text),
+        TextFont::from_font(asset_server.load(BUTTON_FONT)).with_font_size(BUTTON_FONT_SIZE),
+        TextColor(BUTTON_FONT_COLOR),
     ))
 }

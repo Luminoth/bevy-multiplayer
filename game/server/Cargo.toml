@@ -11,20 +11,22 @@ path = "src/main.rs"
 agones_api = { package = "agones", version = "1.44", optional = true }
 anyhow = "1.0"
 aws-gamelift-server-sdk-rs = { version = "0.3", optional = true }
-bevy = "0.14"
-bevy_mod_reqwest = "0.16"
+bevy = "0.15"
+bevy_mod_reqwest = "0.18"
 bevy_mod_websocket = { path = "../../bevy_mod_websocket" }
-bevy_replicon = { version = "0.28", default-features = false, features = [
+bevy_replicon = { version = "0.29", default-features = false, features = [
     "scene",
     "parent_sync",
     "server",
 ] }
-bevy_replicon_renet = { version = "0.5", default-features = false, features = [
-    "renet_serde",
-    "renet_transport",
+#bevy_replicon_renet = { version = "0.5", default-features = false, features = [
+bevy_replicon_renet = { git = "https://github.com/Luminoth/bevy_replicon_renet.git", features = [
+    "renet_netcode",
+    "renet_steam",
     "server",
 ] }
-bevy-tokio-tasks = "0.14"
+#bevy-tokio-tasks = "0.14"
+bevy-tokio-tasks = { git = "https://github.com/Luminoth/bevy-tokio-tasks.git" }
 clap = { version = "4.5", features = ["derive"] }
 http = "1.1"
 network-interface = "2.0"

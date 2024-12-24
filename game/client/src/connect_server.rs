@@ -2,14 +2,11 @@ use std::net::UdpSocket;
 use std::time::SystemTime;
 
 use bevy::prelude::*;
-use bevy_mod_picking::prelude::*;
 use bevy_mod_reqwest::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
-    renet::{
-        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeTransportError},
-        ConnectionConfig, RenetClient,
-    },
+    netcode::{ClientAuthentication, NetcodeClientTransport, NetcodeTransportError},
+    renet::{ConnectionConfig, RenetClient},
     RenetChannelsExt,
 };
 
@@ -71,9 +68,9 @@ fn handle_network_error(
     app_state.set(AppState::MainMenu);
 }
 
-fn on_cancel(event: Listener<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
+fn on_cancel(event: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
     if !ui::check_click_event(
-        event.listener(),
+        event.entity(),
         event.target,
         event.button,
         PointerButton::Primary,
@@ -129,21 +126,11 @@ fn enter(
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
-    commands.spawn((
-        Camera2dBundle::default(),
-        IsDefaultUiCamera,
-        OnConnectServer,
-    ));
+    commands.spawn((Camera2d, IsDefaultUiCamera, OnConnectServer));
 
     ui::spawn_canvas(&mut commands, "Connect Server").with_children(|parent| {
         ui::spawn_label(parent, &asset_server, "Finding server ...").insert(Status);
-
-        ui::spawn_button(
-            parent,
-            &asset_server,
-            "Cancel",
-            On::<Pointer<Click>>::run(on_cancel),
-        );
+        ui::spawn_button(parent, &asset_server, "Cancel").observe(on_cancel);
     });
 
     api::find_server(&mut client, options.user_id)
@@ -167,7 +154,7 @@ fn connect_to_server(
 ) {
     info!("connect to server ...");
 
-    status_query.single_mut().sections[0].value = "Connecting to server ...".to_owned();
+    status_query.single_mut().0 = "Connecting to server ...".to_owned();
 
     let address = address.as_ref();
     let server_addr = format!("{}:{}", address, port).parse().unwrap();

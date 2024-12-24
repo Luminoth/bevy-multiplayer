@@ -29,13 +29,10 @@ fn enter_spectate(
     commands.insert_resource(ClearColor(Color::BLACK));
 
     commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 5.0, 0.0),
-            projection: PerspectiveProjection {
-                fov: 90.0_f32.to_radians(),
-                ..default()
-            }
-            .into(),
+        Transform::from_xyz(0.0, 5.0, 0.0),
+        Camera3d::default(),
+        PerspectiveProjection {
+            fov: 90.0_f32.to_radians(),
             ..default()
         },
         Name::new("Server Camera"),
@@ -44,36 +41,27 @@ fn enter_spectate(
 
     commands
         .spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Start,
-                    justify_content: JustifyContent::Start,
-                    ..default()
-                },
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Start,
+                justify_content: JustifyContent::Start,
                 ..default()
             },
             Name::new("Server UI"),
         ))
         .with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                format!("Server: {}", server_info.server_id),
-                TextStyle {
-                    font_size: 24.0,
-                    color: Color::WHITE,
-                    ..default()
-                },
+            parent.spawn((
+                Text::new(format!("Server: {}", server_info.server_id)),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
             ));
 
-            parent.spawn(TextBundle::from_section(
-                format!("Session: {}", session_info.session_id),
-                TextStyle {
-                    font_size: 24.0,
-                    color: Color::WHITE,
-                    ..default()
-                },
+            parent.spawn((
+                Text::new(format!("Session: {}", session_info.session_id)),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
             ));
 
             // TODO: connection info

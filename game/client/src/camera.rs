@@ -21,7 +21,7 @@ fn update_fps_camera(
     mut camera_query: Query<&mut Transform, With<PlayerCamera>>,
 ) {
     // TODO: should the rate of change here be maxed?
-    let delta_pitch = input_state.look.y * time.delta_seconds();
+    let delta_pitch = input_state.look.y * time.delta_secs();
 
     if let Ok(mut camera_transform) = camera_query.get_single_mut() {
         // can't do this because we need to clamp the pitch

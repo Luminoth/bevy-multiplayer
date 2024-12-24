@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.14", default-features = false }
-bevy-tokio-tasks = "0.14"
+bevy = { version = "0.15", default-features = false }
+#bevy-tokio-tasks = "0.14"
+bevy-tokio-tasks = { git = "https://github.com/Luminoth/bevy-tokio-tasks.git" }
 futures-lite = "2.5"
 futures-util = "0.3"
 http = "1.1"

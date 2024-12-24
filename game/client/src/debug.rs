@@ -83,7 +83,7 @@ fn debug_ui(
                 diagnostics
                     .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
                     .and_then(|frame_time| frame_time.smoothed())
-                    .unwrap_or_else(|| time.delta_seconds_f64())
+                    .unwrap_or_else(|| time.delta_secs_f64())
             ));
             ui.label(format!(
                 "{:.2}% avg cpu, {:.2}% memory",

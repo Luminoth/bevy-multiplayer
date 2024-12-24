@@ -4,14 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.14"
-bevy_rapier3d = { version = "0.27", default-features = false, features = [
+bevy = "0.15"
+bevy_rapier3d = { version = "0.28", default-features = false, features = [
     "dim3",
     "async-collider",
     "simd-stable",
 ] }
-bevy_replicon = "0.28"
-bevy_replicon_renet = "0.5"
+bevy_replicon = "0.29"
+#bevy_replicon_renet = "0.5"
+bevy_replicon_renet = { git = "https://github.com/Luminoth/bevy_replicon_renet.git" }
 serde = { version = "1.0", features = ["derive"] }
 
 common = { path = "../../shared/common" }

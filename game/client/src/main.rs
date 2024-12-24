@@ -60,7 +60,6 @@ fn main() {
         // third-party plugins
         .add_plugins((
             bevy_egui::EguiPlugin,
-            bevy_mod_picking::DefaultPickingPlugins,
             RapierDebugRenderPlugin::default(),
             RepliconPlugins,
             RepliconRenetPlugins,

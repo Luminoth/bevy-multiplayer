@@ -18,48 +18,25 @@ impl Dynamic {
     }
 }
 
-#[derive(Bundle)]
-pub struct ServerDynamicBundle {
-    material_mesh: MaterialMeshBundle<StandardMaterial>,
-    rigidbody: RigidBody,
-    collider: Collider,
-    mass: ColliderMassProperties,
-    restitution: Restitution,
-    name: Name,
-    replicated: Replicated,
-    dynamic: Dynamic,
-    tag: OnInGame,
-}
-
-#[derive(Bundle)]
-pub struct ClientDynamicBundle {
-    material_mesh: MaterialMeshBundle<StandardMaterial>,
-    name: Name,
-    tag: OnInGame,
-}
-
 pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
     info!("spawning ball at {} ...", position);
 
     let dynamic = Dynamic::Ball;
     let name = dynamic.get_name();
 
-    commands.spawn(ServerDynamicBundle {
-        material_mesh: MaterialMeshBundle {
-            transform: Transform::from_xyz(position.x, position.y, position.z),
-            mesh: assets.ball_mesh.clone(),
-            material: assets.ball_material.clone(),
-            ..default()
-        },
-        rigidbody: RigidBody::Dynamic,
-        collider: Collider::ball(0.5),
-        mass: ColliderMassProperties::Mass(0.5),
-        restitution: Restitution::coefficient(0.7),
-        name: Name::new(name),
-        replicated: Replicated,
+    commands.spawn((
+        Mesh3d(assets.ball_mesh.clone()),
+        MeshMaterial3d(assets.ball_material.clone()),
+        Transform::from_xyz(position.x, position.y, position.z),
+        RigidBody::Dynamic,
+        Collider::ball(0.5),
+        ColliderMassProperties::Mass(0.5),
+        Restitution::coefficient(0.7),
+        Name::new(name),
+        Replicated,
         dynamic,
-        tag: OnInGame,
-    });
+        OnInGame,
+    ));
 }
 
 pub fn finish_client_dynamic(
@@ -74,16 +51,13 @@ pub fn finish_client_dynamic(
         entity, transform.translation
     );
 
-    commands.entity(entity).insert(ClientDynamicBundle {
-        material_mesh: MaterialMeshBundle {
-            transform,
-            mesh: assets.ball_mesh.clone(),
-            material: assets.ball_material.clone(),
-            ..default()
-        },
-        name: Name::new(format!("Replicated {}", dynamic.get_name())),
-        tag: OnInGame,
-    });
+    commands.entity(entity).insert((
+        Mesh3d(assets.ball_mesh.clone()),
+        MeshMaterial3d(assets.ball_material.clone()),
+        transform,
+        Name::new(format!("Replicated {}", dynamic.get_name())),
+        OnInGame,
+    ));
 }
 
 #[derive(Debug)]

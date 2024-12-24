@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_mod_picking::prelude::*;
 
 use game_common::GameState;
 
@@ -18,12 +17,12 @@ impl Plugin for GameMenuPlugin {
 }
 
 fn on_leave_game(
-    event: Listener<Pointer<Click>>,
+    event: Trigger<Pointer<Click>>,
     mut app_state: ResMut<NextState<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
     if !ui::check_click_event(
-        event.listener(),
+        event.entity(),
         event.target,
         event.button,
         PointerButton::Primary,
@@ -42,11 +41,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(GameMenu)
         .insert(Visibility::Hidden)
         .with_children(|parent| {
-            ui::spawn_button(
-                parent,
-                &asset_server,
-                "Leave Game",
-                On::<Pointer<Click>>::run(on_leave_game),
-            );
+            ui::spawn_button(parent, &asset_server, "Leave Game").observe(on_leave_game);
         });
 }

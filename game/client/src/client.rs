@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_websocket::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::renet::{transport::NetcodeClientTransport, RenetClient};
+use bevy_replicon_renet::{netcode::NetcodeClientTransport, renet::RenetClient};
 
 use common::user::UserId;
 use game_common::{

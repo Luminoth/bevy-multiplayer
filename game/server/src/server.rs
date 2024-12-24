@@ -7,11 +7,9 @@ use bevy_mod_reqwest::*;
 use bevy_mod_websocket::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
-    renet::{
-        transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
-        ConnectionConfig, RenetServer,
-    },
-    RenetChannelsExt, RenetClientIdExt,
+    netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
+    renet::{ConnectionConfig, RenetServer},
+    RenetChannelsExt,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
@@ -426,7 +424,7 @@ fn handle_connect(
 
         if !session_info.client_connected(user_id, *client_id) {
             warn!("player {} not expected", user_id);
-            server.disconnect(client_id.to_renet());
+            server.disconnect(client_id.get());
             continue;
         }
 
@@ -458,7 +456,7 @@ fn handle_input_update(
     for FromClient { client_id, event } in evr_input_update.read() {
         if !session_info.clients.contains_key(client_id) {
             warn!("client {:?} not in session", client_id);
-            server.disconnect(client_id.to_renet());
+            server.disconnect(client_id.get());
             continue;
         }
 
@@ -483,7 +481,7 @@ fn handle_jump_event(
     {
         if !session_info.clients.contains_key(client_id) {
             warn!("client {:?} not in session", client_id);
-            server.disconnect(client_id.to_renet());
+            server.disconnect(client_id.get());
             continue;
         }
 
