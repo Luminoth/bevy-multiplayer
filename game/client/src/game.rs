@@ -18,7 +18,10 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             OnEnter(GameState::InGame),
-            enter_local.after(ServerSet).run_if(is_local_game),
+            (spawn_local_player, finish_local)
+                .chain()
+                .after(ServerSet)
+                .run_if(is_local_game),
         )
         .add_systems(
             Update,
@@ -30,15 +33,13 @@ impl Plugin for GamePlugin {
 }
 
 #[allow(clippy::type_complexity)]
-fn enter_local(
+fn spawn_local_player(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
-    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
-    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
 ) {
-    info!("finishing local game ...");
+    info!("spawning local player ...");
 
     let spawnpoint = spawnpoints.iter().next().unwrap();
     player::spawn_player(
@@ -47,6 +48,17 @@ fn enter_local(
         spawnpoint.translation(),
         &assets,
     );
+}
+
+#[allow(clippy::type_complexity)]
+fn finish_local(
+    mut commands: Commands,
+    client_id: Res<PlayerClientId>,
+    assets: Res<GameAssetState>,
+    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
+    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+) {
+    info!("finishing local game ...");
 
     game_common::spawn_client_world(
         &mut commands,

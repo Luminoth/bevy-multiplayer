@@ -225,10 +225,12 @@ pub fn spawn_client_world(
 
     commands.insert_resource(ClearColor(Color::BLACK));
 
+    println!("finishing {} dynamics ...", dynamics.iter().count());
     for (entity, transform, dynamic) in dynamics {
         dynamic::finish_client_dynamic(commands, assets, entity, *transform, *dynamic);
     }
 
+    println!("finishing {} players ...", players.iter().count());
     for (entity, transform, player) in players {
         player::finish_client_player(commands, client_id, assets, entity, *transform, *player);
     }
