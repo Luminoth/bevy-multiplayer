@@ -12,7 +12,8 @@ anyhow = "1.0"
 bevy = "0.15"
 bevy_egui = "0.31"
 bevy-inspector-egui = "0.28"
-bevy_mod_reqwest = "0.18"
+#bevy_mod_reqwest = "0.18"
+bevy_mod_reqwest = { git = "https://github.com/luminoth/bevy_mod_reqwest" }
 bevy_mod_websocket = { path = "../../bevy_mod_websocket" }
 bevy_rapier3d = { version = "0.28", features = ["simd-stable"] }
 bevy_replicon = { version = "0.29", default-features = false, features = [

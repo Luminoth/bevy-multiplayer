@@ -1620,8 +1620,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_reqwest"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8a1fb8aa9ae22a2bab204c8d8db50d776d8d17c0647e536ed7c94acabd676a0"
+source = "git+https://github.com/luminoth/bevy_mod_reqwest#71d3949ca81528df70150ca291a277dde0ca0374"
 dependencies = [
  "anyhow",
  "async-compat",

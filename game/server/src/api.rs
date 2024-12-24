@@ -45,5 +45,16 @@ pub fn heartbeat<'a>(
         debug!("session_info: {:?}", session_info);
     }
 
-    client.send(req)
+    client
+        .send(req)
+        .on_response(|trigger: Trigger<ReqwestResponseEvent>| {
+            let response = trigger.event();
+            if !response.status().is_success() {
+                error!(
+                    "got error response {}: {}",
+                    response.status(),
+                    response.as_str().unwrap_or("invalid response")
+                );
+            }
+        })
 }

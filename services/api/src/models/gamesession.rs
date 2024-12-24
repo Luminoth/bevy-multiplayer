@@ -9,7 +9,11 @@ pub struct GameSessionInfo {
     pub server_id: Uuid,
 
     pub max_players: u16,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub active_player_ids: Vec<UserId>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub pending_player_ids: Vec<UserId>,
 }
 
