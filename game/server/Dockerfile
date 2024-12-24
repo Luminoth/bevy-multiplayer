@@ -52,7 +52,7 @@ USER appuser
 COPY --from=builder /app/bin bin/
 
 # copy assets
-COPY game/assets/ assets/
+COPY assets/ assets/
 
 EXPOSE 5576
 
