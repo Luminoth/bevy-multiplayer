@@ -32,50 +32,29 @@ fn on_start_local(
     mut evw_connect: EventWriter<ConnectEvent>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
-    if !ui::check_click_event(
-        event.entity(),
-        event.target,
-        event.button,
-        PointerButton::Primary,
-    ) {
-        return;
+    if event.button == PointerButton::Primary {
+        let client_id = PlayerClientId::new(ClientId::SERVER);
+        commands.insert_resource(client_id);
+        client::on_connected_server(
+            &client,
+            client_id,
+            options.user_id,
+            &mut evw_connect,
+            &mut app_state,
+        );
     }
-
-    let client_id = PlayerClientId::new(ClientId::SERVER);
-    commands.insert_resource(client_id);
-    client::on_connected_server(
-        &client,
-        client_id,
-        options.user_id,
-        &mut evw_connect,
-        &mut app_state,
-    );
 }
 
 fn on_find_server(event: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
-    if !ui::check_click_event(
-        event.entity(),
-        event.target,
-        event.button,
-        PointerButton::Primary,
-    ) {
-        return;
+    if event.button == PointerButton::Primary {
+        app_state.set(AppState::ConnectToServer);
     }
-
-    app_state.set(AppState::ConnectToServer);
 }
 
 fn on_exit_game(event: Trigger<Pointer<Click>>, mut exit: EventWriter<AppExit>) {
-    if !ui::check_click_event(
-        event.entity(),
-        event.target,
-        event.button,
-        PointerButton::Primary,
-    ) {
-        return;
+    if event.button == PointerButton::Primary {
+        exit.send(AppExit::Success);
     }
-
-    exit.send(AppExit::Success);
 }
 
 fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {

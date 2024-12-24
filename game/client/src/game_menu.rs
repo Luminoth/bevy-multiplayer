@@ -21,17 +21,10 @@ fn on_leave_game(
     mut app_state: ResMut<NextState<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    if !ui::check_click_event(
-        event.entity(),
-        event.target,
-        event.button,
-        PointerButton::Primary,
-    ) {
-        return;
+    if event.button == PointerButton::Primary {
+        app_state.set(AppState::MainMenu);
+        game_state.set(GameState::WaitingForApp);
     }
-
-    app_state.set(AppState::MainMenu);
-    game_state.set(GameState::WaitingForApp);
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {

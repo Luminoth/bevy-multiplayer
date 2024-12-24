@@ -12,16 +12,6 @@ const BUTTON_FONT: &str = "fonts/FiraSans-Bold.ttf";
 const BUTTON_FONT_SIZE: f32 = 32.0;
 const BUTTON_FONT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
 
-#[inline]
-pub fn check_click_event(
-    listener: Entity,
-    target: Entity,
-    event_button: PointerButton,
-    expected_button: PointerButton,
-) -> bool {
-    target == listener && event_button == expected_button
-}
-
 #[derive(Debug)]
 pub struct UiPlugin;
 

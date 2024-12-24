@@ -69,16 +69,9 @@ fn handle_network_error(
 }
 
 fn on_cancel(event: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
-    if !ui::check_click_event(
-        event.entity(),
-        event.target,
-        event.button,
-        PointerButton::Primary,
-    ) {
-        return;
+    if event.button == PointerButton::Primary {
+        app_state.set(AppState::MainMenu);
     }
-
-    app_state.set(AppState::MainMenu);
 }
 
 fn on_find_server(
