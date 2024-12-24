@@ -27,7 +27,7 @@ pub enum GameServerOrchestration {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub addrs: Vec<String>,
     pub port: u16,
 

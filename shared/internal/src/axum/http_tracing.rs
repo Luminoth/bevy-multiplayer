@@ -56,7 +56,7 @@ pub fn on_response<B>(
 
     info!(
         target: "bevy-multiplayer::api",
-        "req:{} {} {:?}",
+        "resp:{} {} {:?}",
         OptFmt(span.id().map(|x| x.into_u64())),
         response.status().as_u16(),
         latency,
@@ -76,6 +76,10 @@ pub async fn tracing_wrapper(
     let referer = get_request_header(&request, header::REFERER).map(str::to_owned);
     let user_agent = get_request_header(&request, header::USER_AGENT).map(str::to_owned);
 
+    /*let (parts, body) = request.into_parts();
+    let bytes = buffer_and_print("request", body).await.unwrap();
+    let request = Request::from_parts(parts, axum::body::Body::from(bytes));*/
+
     let mut forwarded = true;
     let mut remote_addr = get_forwarded_addr(&request);
     if remote_addr.is_none() {
@@ -90,6 +94,10 @@ pub async fn tracing_wrapper(
     let now = Instant::now();
     let response = next.run(request).await;
     let elapsed = now.elapsed();
+
+    /*let (parts, body) = response.into_parts();
+    let bytes = buffer_and_print("response", body).await.unwrap();
+    let response = axum::response::Response::from_parts(parts, axum::body::Body::from(bytes));*/
 
     // don't log AWS health check requests
     if !user_agent

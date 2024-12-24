@@ -5,10 +5,12 @@ use std::fmt;
 use std::net::SocketAddr;
 
 use axum::{
-    debug_handler, extract::ConnectInfo, http::StatusCode, http::Uri, response::IntoResponse,
+    body::Bytes, debug_handler, extract::ConnectInfo, http::StatusCode, http::Uri,
+    response::IntoResponse,
 };
 use http::{header::AsHeaderName, Request};
-use tracing::debug;
+use http_body_util::BodyExt;
+use tracing::{debug, info};
 
 pub use error::*;
 pub use http_tracing::*;
@@ -72,4 +74,26 @@ pub fn get_forwarded_addr<B>(request: &Request<B>) -> Option<SocketAddr> {
     }
 
     None
+}
+
+pub async fn buffer_and_print<B>(direction: &str, body: B) -> Result<Bytes, (StatusCode, String)>
+where
+    B: axum::body::HttpBody<Data = Bytes>,
+    B::Error: std::fmt::Display,
+{
+    let bytes = match body.collect().await {
+        Ok(collected) => collected.to_bytes(),
+        Err(err) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("failed to read {direction} body: {err}"),
+            ));
+        }
+    };
+
+    if let Ok(body) = std::str::from_utf8(&bytes) {
+        info!("{direction} body = {body:?}");
+    }
+
+    Ok(bytes)
 }

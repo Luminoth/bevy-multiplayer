@@ -4189,6 +4189,7 @@ dependencies = [
  "bb8-redis",
  "common",
  "http 1.2.0",
+ "http-body-util",
  "serde",
  "serde_json",
  "tracing",

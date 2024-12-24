@@ -88,8 +88,8 @@ async fn main() -> anyhow::Result<()> {
                                 //.level(Level::INFO)
                                 .include_headers(true),
                         )
-                        //.on_request(http_tracing::on_request)
-                        //.on_response(http_tracing::on_response),
+                        //.on_request(axum_util::on_request)
+                        //.on_response(axum_util::on_response),
                         .on_failure(DefaultOnFailure::new().latency_unit(LatencyUnit::Micros)),
                 )
                 .into_inner(),
