@@ -61,25 +61,27 @@ pub fn spawn_player(
     client_id: ClientId,
     position: Vec3,
     assets: &GameAssetState,
-) {
+) -> Entity {
     info!("spawning player {:?} at {} ...", client_id, position);
 
-    commands.spawn((
-        Mesh3d(assets.player_mesh.clone()),
-        MeshMaterial3d(assets.player_material.clone()),
-        Transform::from_xyz(position.x, position.y, position.z),
-        RigidBody::KinematicPositionBased,
-        GravityScale(GRAVITY_SCALE),
-        Collider::capsule_y(HEIGHT * 0.5, HEIGHT * 0.5),
-        ColliderMassProperties::Mass(MASS),
-        KinematicCharacterController::default(),
-        Name::new(format!("Player {:?}", client_id)),
-        Replicated,
-        PlayerPhysics::default(),
-        LastInput::default(),
-        Player(client_id),
-        OnInGame,
-    ));
+    commands
+        .spawn((
+            Mesh3d(assets.player_mesh.clone()),
+            MeshMaterial3d(assets.player_material.clone()),
+            Transform::from_xyz(position.x, position.y, position.z),
+            RigidBody::KinematicPositionBased,
+            GravityScale(GRAVITY_SCALE),
+            Collider::capsule_y(HEIGHT * 0.5, HEIGHT * 0.5),
+            ColliderMassProperties::Mass(MASS),
+            KinematicCharacterController::default(),
+            Name::new(format!("Player {:?}", client_id)),
+            Replicated,
+            PlayerPhysics::default(),
+            LastInput::default(),
+            Player(client_id),
+            OnInGame,
+        ))
+        .id()
 }
 
 pub fn despawn_player(commands: &mut Commands, entity: Entity) {
@@ -93,8 +95,8 @@ pub fn finish_client_player(
     client_id: ClientId,
     assets: &GameAssetState,
     entity: Entity,
-    transform: Transform,
-    player: Player,
+    transform: &Transform,
+    player: &Player,
 ) {
     info!(
         "finishing player {} ({:?}:{:?}) at {} ...",
@@ -103,12 +105,11 @@ pub fn finish_client_player(
 
     let is_local = player.0 == client_id;
 
-    let mut commands = commands.entity(entity);
-
-    commands.insert((
+    let mut ec = commands.entity(entity);
+    ec.insert((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
-        transform,
+        //transform,
         Name::new(format!(
             "Replicated Player ({})",
             if is_local { " Local" } else { "Remote" }
@@ -117,22 +118,29 @@ pub fn finish_client_player(
     ));
 
     if is_local {
-        commands.insert(LocalPlayer);
-
-        commands.with_children(|parent| {
-            parent.spawn((
-                Transform::from_xyz(0.0, 1.9, -0.9),
-                Camera3d::default(),
-                PerspectiveProjection {
-                    fov: 90.0_f32.to_radians(), // TODO: this should move to settings
-                    ..default()
-                },
-                Name::new("Player Camera"),
-                PlayerCamera,
-                OnInGame,
-            ));
-        });
+        finish_local_player(commands, entity);
     }
+}
+
+pub fn finish_local_player(commands: &mut Commands, entity: Entity) {
+    info!("finishing local player {} ...", entity);
+
+    let mut ec = commands.entity(entity);
+    ec.insert(LocalPlayer);
+
+    ec.with_children(|parent| {
+        parent.spawn((
+            Transform::from_xyz(0.0, 1.9, -0.9),
+            Camera3d::default(),
+            PerspectiveProjection {
+                fov: 90.0_f32.to_radians(), // TODO: this should move to settings
+                ..default()
+            },
+            Name::new("Player Camera"),
+            PlayerCamera,
+            OnInGame,
+        ));
+    });
 }
 
 #[derive(Debug)]
@@ -172,8 +180,8 @@ fn finish_client_players(
             client_id.get_client_id(),
             &assets,
             entity,
-            *transform,
-            *player,
+            transform,
+            player,
         );
     }
 }

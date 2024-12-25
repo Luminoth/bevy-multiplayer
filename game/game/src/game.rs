@@ -4,7 +4,7 @@ use bevy_replicon::prelude::*;
 
 use crate::{
     cleanup_state, dynamic,
-    network::{ConnectEvent, InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player, spawn, world, GameAssetState, GameState, InputState,
 };
 
@@ -214,45 +214,17 @@ fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
 }
 
 #[allow(clippy::type_complexity)]
-pub fn spawn_client_world(
-    commands: &mut Commands,
-    client_id: ClientId,
-    assets: &GameAssetState,
-    dynamics: &Query<(Entity, &Transform, &dynamic::Dynamic), Without<Mesh3d>>,
-    players: &Query<(Entity, &Transform, &player::Player), Without<Mesh3d>>,
-) {
+pub fn spawn_client_world(commands: &mut Commands) {
     info!("spawning client world ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
-
-    println!("finishing {} dynamics ...", dynamics.iter().count());
-    for (entity, transform, dynamic) in dynamics {
-        dynamic::finish_client_dynamic(commands, assets, entity, *transform, *dynamic);
-    }
-
-    println!("finishing {} players ...", players.iter().count());
-    for (entity, transform, player) in players {
-        player::finish_client_player(commands, client_id, assets, entity, *transform, *player);
-    }
 }
 
 #[allow(clippy::type_complexity)]
-fn enter_client(
-    mut commands: Commands,
-    client_id: Res<PlayerClientId>,
-    assets: Res<GameAssetState>,
-    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<Mesh3d>>,
-    players: Query<(Entity, &Transform, &player::Player), Without<Mesh3d>>,
-) {
+fn enter_client(mut commands: Commands) {
     info!("entering client game ...");
 
-    spawn_client_world(
-        &mut commands,
-        client_id.get_client_id(),
-        &assets,
-        &dynamics,
-        &players,
-    );
+    spawn_client_world(&mut commands);
 }
 
 fn exit(mut commands: Commands) {

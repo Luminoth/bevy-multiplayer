@@ -1,8 +1,7 @@
 use bevy::{input::common_conditions::*, prelude::*};
 
 use game_common::{
-    dynamic, network::PlayerClientId, player, spawn::SpawnPoint, GameAssetState, GameState,
-    ServerSet,
+    network::PlayerClientId, player, spawn::SpawnPoint, GameAssetState, GameState, ServerSet,
 };
 
 use crate::game_menu;
@@ -42,31 +41,21 @@ fn spawn_local_player(
     info!("spawning local player ...");
 
     let spawnpoint = spawnpoints.iter().next().unwrap();
-    player::spawn_player(
+    let entity = player::spawn_player(
         &mut commands,
         client_id.get_client_id(),
         spawnpoint.translation(),
         &assets,
     );
+
+    game_common::player::finish_local_player(&mut commands, entity);
 }
 
 #[allow(clippy::type_complexity)]
-fn finish_local(
-    mut commands: Commands,
-    client_id: Res<PlayerClientId>,
-    assets: Res<GameAssetState>,
-    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<Mesh3d>>,
-    players: Query<(Entity, &Transform, &player::Player), Without<Mesh3d>>,
-) {
+fn finish_local(mut commands: Commands) {
     info!("finishing local game ...");
 
-    game_common::spawn_client_world(
-        &mut commands,
-        client_id.get_client_id(),
-        &assets,
-        &dynamics,
-        &players,
-    );
+    game_common::spawn_client_world(&mut commands);
 }
 
 fn toggle_game_menu(mut visibility: Query<&mut Visibility, With<game_menu::GameMenu>>) {

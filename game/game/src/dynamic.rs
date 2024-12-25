@@ -43,8 +43,8 @@ pub fn finish_client_dynamic(
     commands: &mut Commands,
     assets: &GameAssetState,
     entity: Entity,
-    transform: Transform,
-    dynamic: Dynamic,
+    transform: &Transform,
+    dynamic: &Dynamic,
 ) {
     info!(
         "finishing dynamic {} at {} ...",
@@ -54,7 +54,6 @@ pub fn finish_client_dynamic(
     commands.entity(entity).insert((
         Mesh3d(assets.ball_mesh.clone()),
         MeshMaterial3d(assets.ball_material.clone()),
-        transform,
         Name::new(format!("Replicated {}", dynamic.get_name())),
         OnInGame,
     ));
@@ -87,6 +86,6 @@ fn finish_client_dynamics(
     };
 
     for (entity, transform, dynamic) in &dynamics {
-        finish_client_dynamic(&mut commands, &assets, entity, *transform, *dynamic);
+        finish_client_dynamic(&mut commands, &assets, entity, transform, dynamic);
     }
 }
