@@ -218,8 +218,8 @@ pub fn spawn_client_world(
     commands: &mut Commands,
     client_id: ClientId,
     assets: &GameAssetState,
-    dynamics: &Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
-    players: &Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+    dynamics: &Query<(Entity, &Transform, &dynamic::Dynamic), Without<Mesh3d>>,
+    players: &Query<(Entity, &Transform, &player::Player), Without<Mesh3d>>,
 ) {
     info!("spawning client world ...");
 
@@ -241,8 +241,8 @@ fn enter_client(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
-    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
-    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<Mesh3d>>,
+    players: Query<(Entity, &Transform, &player::Player), Without<Mesh3d>>,
 ) {
     info!("entering client game ...");
 

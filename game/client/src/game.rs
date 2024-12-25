@@ -55,8 +55,8 @@ fn finish_local(
     mut commands: Commands,
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
-    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<GlobalTransform>>,
-    players: Query<(Entity, &Transform, &player::Player), Without<GlobalTransform>>,
+    dynamics: Query<(Entity, &Transform, &dynamic::Dynamic), Without<Mesh3d>>,
+    players: Query<(Entity, &Transform, &player::Player), Without<Mesh3d>>,
 ) {
     info!("finishing local game ...");
 

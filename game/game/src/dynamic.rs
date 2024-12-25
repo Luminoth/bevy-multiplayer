@@ -80,7 +80,7 @@ impl Plugin for DynamicPlugin {
 fn finish_client_dynamics(
     mut commands: Commands,
     assets: Option<Res<GameAssetState>>,
-    dynamics: Query<(Entity, &Transform, &Dynamic), Without<GlobalTransform>>,
+    dynamics: Query<(Entity, &Transform, &Dynamic), Without<Mesh3d>>,
 ) {
     let Some(assets) = assets else {
         return;

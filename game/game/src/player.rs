@@ -160,7 +160,7 @@ fn finish_client_players(
     mut commands: Commands,
     client_id: Res<network::PlayerClientId>,
     assets: Option<Res<GameAssetState>>,
-    players: Query<(Entity, &Transform, &Player), Without<GlobalTransform>>,
+    players: Query<(Entity, &Transform, &Player), Without<Mesh3d>>,
 ) {
     let Some(assets) = assets else {
         return;
