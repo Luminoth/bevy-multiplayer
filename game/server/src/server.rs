@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
@@ -32,7 +32,8 @@ use crate::{
 
 #[derive(Debug, Clone, Default)]
 pub struct ConnectionInfo {
-    pub addrs: Vec<String>,
+    pub v4addrs: BTreeSet<String>,
+    pub v6addrs: BTreeSet<String>,
     pub port: u16,
 }
 
@@ -40,36 +41,56 @@ impl ConnectionInfo {
     pub fn update(&mut self, addr: SocketAddr) {
         let ip = addr.ip();
         if ip.is_unspecified() {
-            self.addrs.clear();
+            self.v4addrs.clear();
+            self.v6addrs.clear();
 
             let ifaces = NetworkInterface::show().unwrap();
             for iface in ifaces {
                 // hack for now, I honestly don't know how to ignore this
-                // but we don't bind to it and shouldn't be using it
                 if iface.name.contains("docker") {
+                    continue;
+                }
+
+                // also a hack, I don't know how to ignore bridge interfaces
+                if iface.name.starts_with("br-") {
                     continue;
                 }
 
                 for ip in iface.addr {
                     let ip = ip.ip();
+                    // TODO: copy paste
                     match ip {
                         IpAddr::V4(ip) => {
                             if !ip.is_loopback() && !ip.is_link_local() {
-                                self.addrs.push(ip.to_string());
+                                self.v4addrs.insert(ip.to_string());
                             }
                         }
                         IpAddr::V6(ip) => {
                             if !ip.is_loopback() {
-                                self.addrs.push(ip.to_string());
+                                self.v6addrs.insert(ip.to_string());
                             }
                         }
                     }
                 }
             }
         } else {
-            self.addrs.push(ip.to_string());
+            // TODO: copy paste
+            match ip {
+                IpAddr::V4(ip) => {
+                    if !ip.is_loopback() && !ip.is_link_local() {
+                        self.v4addrs.insert(ip.to_string());
+                    }
+                }
+                IpAddr::V6(ip) => {
+                    if !ip.is_loopback() {
+                        self.v6addrs.insert(ip.to_string());
+                    }
+                }
+            }
         }
         self.port = addr.port();
+
+        info!("updated connection info: {:?}", self);
     }
 }
 

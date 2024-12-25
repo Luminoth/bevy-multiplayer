@@ -36,7 +36,7 @@ pub async fn get_find_server_v1(
         gameservers::reserve_backfill_slot(&mut conn, &app_state, user.user_id).await?
     {
         return Ok(Json(FindServerResponseV1 {
-            address: server_info.addrs[0].clone(),
+            address: server_info.v4addrs[0].clone(),
             port: server_info.port,
         }));
     }
@@ -50,7 +50,7 @@ pub async fn get_find_server_v1(
             .await?
     {
         return Ok(Json(FindServerResponseV1 {
-            address: server_info.addrs[0].clone(),
+            address: server_info.v4addrs[0].clone(),
             port: server_info.port,
         }));
     }

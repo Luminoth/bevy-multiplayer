@@ -26,7 +26,8 @@ pub fn heartbeat<'a>(
         .bearer_auth(server_id.to_string())
         .json(&gameserver::PostHeartbeatRequestV1 {
             server_info: gameserver::GameServerInfo {
-                addrs: connection_info.addrs,
+                v4addrs: connection_info.v4addrs.iter().cloned().collect(),
+                v6addrs: connection_info.v6addrs.iter().cloned().collect(),
                 port: connection_info.port,
                 state,
                 orchestration,

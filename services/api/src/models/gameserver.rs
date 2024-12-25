@@ -7,7 +7,8 @@ use common::gameserver::{GameServerOrchestration, GameServerState};
 pub struct GameServerInfo {
     pub server_id: Uuid,
 
-    pub addrs: Vec<String>,
+    pub v4addrs: Vec<String>,
+    pub v6addrs: Vec<String>,
     pub port: u16,
 
     pub state: GameServerState,
@@ -22,7 +23,8 @@ impl GameServerInfo {
     pub fn new(server_id: Uuid, server_info: &common::gameserver::GameServerInfo) -> Self {
         Self {
             server_id,
-            addrs: server_info.addrs.clone(),
+            v4addrs: server_info.v4addrs.clone(),
+            v6addrs: server_info.v6addrs.clone(),
             port: server_info.port,
             state: server_info.state,
             orchestration: server_info.orchestration,
