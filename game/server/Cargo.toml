@@ -20,14 +20,12 @@ bevy_replicon = { version = "0.29", default-features = false, features = [
     "parent_sync",
     "server",
 ] }
-#bevy_replicon_renet = { version = "0.5", default-features = false, features = [
-bevy_replicon_renet = { git = "https://github.com/Luminoth/bevy_replicon_renet.git", features = [
+bevy_replicon_renet = { version = "0.6", default-features = false, features = [
     "renet_netcode",
     "renet_steam",
     "server",
 ] }
-#bevy-tokio-tasks = "0.14"
-bevy-tokio-tasks = { git = "https://github.com/Luminoth/bevy-tokio-tasks.git" }
+bevy-tokio-tasks = "0.15"
 clap = { version = "4.5", features = ["derive"] }
 http = "1.1"
 network-interface = "2.0"

@@ -11,8 +11,7 @@ bevy_rapier3d = { version = "0.28", default-features = false, features = [
     "simd-stable",
 ] }
 bevy_replicon = "0.29"
-#bevy_replicon_renet = "0.5"
-bevy_replicon_renet = { git = "https://github.com/Luminoth/bevy_replicon_renet.git" }
+bevy_replicon_renet = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 
 common = { path = "../../shared/common" }

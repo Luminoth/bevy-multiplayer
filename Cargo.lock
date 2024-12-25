@@ -1057,7 +1057,8 @@ dependencies = [
 [[package]]
 name = "bevy-tokio-tasks"
 version = "0.15.0"
-source = "git+https://github.com/Luminoth/bevy-tokio-tasks.git#c85eb14ec70d1457703d778ddb62f775769f6426"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34969107e5990787471137983ac7ff54f4ec3aa8913d13b91d3b5b54a20f11b8"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -1845,7 +1846,8 @@ dependencies = [
 [[package]]
 name = "bevy_replicon_renet"
 version = "0.6.0"
-source = "git+https://github.com/Luminoth/bevy_replicon_renet.git#662f51e3379103104fcf84bb088e73da3c91a1ba"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fba162e2a4677c3afaaa6c1b149b60eebc618d02b356c4da157444404ed46f6"
 dependencies = [
  "bevy",
  "bevy_renet",
