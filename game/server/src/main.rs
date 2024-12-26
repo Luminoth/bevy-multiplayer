@@ -60,14 +60,24 @@ fn main() {
 
     // bevy plugins
     if options.headless {
+        println!("running headless");
+
         app.add_plugins((
-            // TODO: replace with HeadlessPlugins in 0.15
-            // (it includes all the plugins that Minimal is missing)
             MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
                 bevy::utils::Duration::from_secs_f64(1.0 / SERVER_TICK_RATE as f64),
             )),
+            // not sure why MinimalPlugins doesn't include any of this
+            // or why the HeadlessPlugins that was supposed to be in 0.15 was removed
+            // (feature gating shouldn't be the *only* way to do things)
             bevy::app::PanicHandlerPlugin,
-            bevy::log::LogPlugin::default(),
+            bevy::log::LogPlugin {
+                // default bevy filter plus silence some spammy 3rd party crates
+                filter: format!(
+                    "{},symphonia_core=error,symphonia_bundle_mp3=error",
+                    bevy::log::DEFAULT_FILTER
+                ),
+                ..default()
+            },
             bevy::transform::TransformPlugin,
             bevy::hierarchy::HierarchyPlugin,
             bevy::diagnostic::DiagnosticsPlugin,
@@ -93,8 +103,10 @@ fn main() {
                 })
                 .set(bevy::log::LogPlugin {
                     // default bevy filter plus silence some spammy 3rd party crates
-                    filter: "wgpu=error,naga=warn,symphonia_core=error,symphonia_bundle_mp3=error"
-                        .to_string(),
+                    filter: format!(
+                        "{},symphonia_core=error,symphonia_bundle_mp3=error",
+                        bevy::log::DEFAULT_FILTER
+                    ),
                     ..default()
                 }),
         );

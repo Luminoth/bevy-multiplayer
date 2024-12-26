@@ -15,7 +15,6 @@ Playing around with a mix of Bevy, Agones, and hopefully OpenMatch
 * Potentially look at [SpaceEditor](https://crates.io/crates/space_editor) again for an editor
 * [bevy-ui-navigation](https://crates.io/crates/bevy-ui-navigation/) for UI navigation
   * TODO:
-* TODO: when bevy 0.15 is out, make use of TerminalCtrlCHandlerPlugin to gracefully shutdown on ctrl+c
 
 ## Running Locally
 
