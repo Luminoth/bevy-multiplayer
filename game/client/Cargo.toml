@@ -23,7 +23,7 @@ bevy_replicon = { version = "0.29", default-features = false, features = [
 ] }
 bevy_replicon_renet = { version = "0.6", default-features = false, features = [
     "renet_netcode",
-    "renet_steam",
+    #"renet_steam",
     "client",
 ] }
 #bevy_replicon_snap = "0.2"

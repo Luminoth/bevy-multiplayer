@@ -33,7 +33,7 @@ tasks:
   really-clean:
     deps: [clean]
     cmds:
-      - docker image prune
+      - docker system prune -f
       - docker rmi -f bevy-multiplayer-api
       - docker rmi -f bevy-multiplayer-notifs
       - docker rmi -f bevy-multiplayer-server
@@ -62,7 +62,7 @@ tasks:
     dir: services
     cmds:
       # no way to not error if the network already exists ... soooooo
-      - docker network create bevy-multiplayer-default || true
+      #- docker network create bevy-multiplayer-default || true
       - docker-compose up
     silent: true
   stop-services:
