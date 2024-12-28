@@ -37,6 +37,7 @@ tasks:
       - docker rmi -f bevy-multiplayer-api
       - docker rmi -f bevy-multiplayer-notifs
       - docker rmi -f bevy-multiplayer-server
+      - minikube delete
     silent: true
 
   api:
