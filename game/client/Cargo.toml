@@ -9,7 +9,8 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-bevy = "0.15"
+# do NOT ship with dynamic_linking enabled
+bevy = { version = "0.15", features = ["dynamic_linking", "mp3"] }
 bevy_egui = "0.31"
 bevy-inspector-egui = "0.28"
 #bevy_mod_reqwest = "0.18"
