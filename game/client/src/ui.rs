@@ -54,6 +54,7 @@ pub fn spawn_canvas<'a>(commands: &'a mut Commands, name: impl AsRef<str>) -> En
             ..default()
         },
         Name::new(format!("Ui Canvas - {}", name.as_ref())),
+        PickingBehavior::IGNORE,
     ))
 }
 
@@ -67,6 +68,7 @@ pub fn spawn_vbox<'a>(parent: &'a mut ChildBuilder) -> EntityCommands<'a> {
             ..default()
         },
         Name::new("Column"),
+        PickingBehavior::IGNORE,
     ))
 }
 
@@ -109,5 +111,6 @@ pub fn spawn_label<'a>(
         Text::new(text),
         TextFont::from_font(asset_server.load(BUTTON_FONT)).with_font_size(BUTTON_FONT_SIZE),
         TextColor(BUTTON_FONT_COLOR),
+        PickingBehavior::IGNORE,
     ))
 }
