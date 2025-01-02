@@ -12,6 +12,11 @@ const BUTTON_FONT: &str = "fonts/FiraSans-Bold.ttf";
 const BUTTON_FONT_SIZE: f32 = 32.0;
 const BUTTON_FONT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
 
+pub const PICKING_BEHAVIOR_BLOCKING: PickingBehavior = PickingBehavior {
+    should_block_lower: true,
+    is_hoverable: false,
+};
+
 #[derive(Debug)]
 pub struct UiPlugin;
 
@@ -54,7 +59,7 @@ pub fn spawn_canvas<'a>(commands: &'a mut Commands, name: impl AsRef<str>) -> En
             ..default()
         },
         Name::new(format!("Ui Canvas - {}", name.as_ref())),
-        PickingBehavior::IGNORE,
+        PICKING_BEHAVIOR_BLOCKING,
     ))
 }
 
