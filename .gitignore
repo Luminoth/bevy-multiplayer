@@ -1,2 +1,5 @@
 /target
 /bin/sdk-server*
+
+# Chart dependencies
+**/charts/*.tgz
