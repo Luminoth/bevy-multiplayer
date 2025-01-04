@@ -1647,7 +1647,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_websocket"
 version = "0.1.0"
-source = "git+https://github.com/luminoth/bevy_mod_websocket#da7862d631231def4e7bc23fd10083c39b7c27a0"
+source = "git+https://github.com/luminoth/bevy_mod_websocket#f46296d0b9d186d30c239c0ae9e914862695863f"
 dependencies = [
  "bevy",
  "bevy-tokio-tasks",
@@ -7893,7 +7893,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
