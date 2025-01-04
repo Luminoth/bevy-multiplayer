@@ -1,6 +1,9 @@
-#![deny(warnings)]
+//! Library for handling WebSocket connections with [`bevy`](https://bevyengine.org/)
+//!
+//! This library requires the [`bevy_tokio_tasks::TokioTasksPlugin`] be registered with the [`bevy::app::App`]
 
-// NOTE: requires TokioTasksPlugin added
+#![deny(missing_docs)]
+#![deny(warnings)]
 
 use bevy::{
     ecs::system::{EntityCommands, IntoObserverSystem, SystemParam},
@@ -15,11 +18,24 @@ use thiserror::Error;
 use tokio::{net::TcpStream, task};
 use tokio_tungstenite::{tungstenite::handshake::client::Request, MaybeTlsStream, WebSocketStream};
 
+// TODO: support intential disconnect
+// when disconnecting, we need to make sure we despawn the entity
+
+// TODO: a lot of cloning from internal Components could be moved
+// to use the same Option::take() pattern used with ConnectWebSocket
+
+/// Error returned by WebSocket connections
 #[derive(Error, Debug)]
 pub enum WebSocketError {
+    /// An error occurred with the WebSocket connection
     #[error("websocket error: {0}")]
     WebSocket(#[from] tokio_tungstenite::tungstenite::Error),
 
+    /// An error occurred in the [`tokio`] runtime
+    #[error("task error")]
+    TaskError,
+
+    /// An unknown error occurred
     #[error("unknown websocket error")]
     Unknown,
 }
@@ -27,8 +43,6 @@ pub enum WebSocketError {
 #[derive(Debug, Component)]
 struct ConnectWebSocket {
     request: Option<Request>,
-
-    // TODO: handling backoff (reconnects, etc) needs to be finished up
     timer: Option<Timer>,
 }
 
@@ -42,7 +56,6 @@ impl ConnectWebSocket {
     }
 
     #[inline]
-    #[allow(dead_code)]
     fn with_timer(request: Request, duration: Duration) -> Self {
         Self {
             request: Some(request),
@@ -66,21 +79,21 @@ impl ConnectWebSocket {
 
 #[derive(Debug, Component)]
 struct ConnectWebSocketTask {
-    uri: Uri,
+    request: Request,
     task: task::JoinHandle<Result<(), WebSocketError>>,
 }
 
 #[derive(Debug, Component)]
 struct ListenWebSocket {
-    uri: Uri,
+    request: Request,
     stream: Option<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 }
 
 impl ListenWebSocket {
     #[inline]
-    fn new(uri: Uri, stream: WebSocketStream<MaybeTlsStream<TcpStream>>) -> Self {
+    fn new(request: Request, stream: WebSocketStream<MaybeTlsStream<TcpStream>>) -> Self {
         Self {
-            uri,
+            request,
             stream: Some(stream),
         }
     }
@@ -88,59 +101,89 @@ impl ListenWebSocket {
 
 #[derive(Debug, Component)]
 struct ListenWebSocketTask {
-    uri: Uri,
+    request: Request,
     task: task::JoinHandle<Result<(), WebSocketError>>,
 }
 
-// TODO: disconnect
-
+/// WebSocket connection success event
 #[derive(Debug, Event)]
 pub struct WebSocketConnectSuccessEvent {
+    /// The connection [`Uri`]
     pub uri: Uri,
 }
 
+/// WebSocket error event
 #[derive(Debug, Event)]
 pub struct WebSocketErrorEvent {
-    pub uri: Uri,
+    /// The connection [`Request`]
+    pub request: Request,
+
+    /// The [WebSocketError] that occurred
     pub error: WebSocketError,
 }
 
+/// WebSocket disconnect event
 #[derive(Debug, Event)]
 pub struct WebSocketDisconnectEvent {
-    pub uri: Uri,
+    /// The connection [`Request`]
+    pub request: Request,
 }
 
+/// A WebSocket message
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// Text message
     Text(String),
+
+    /// Binary message
     Binary(Vec<u8>),
+
+    /// WebSocket Ping message
     Ping(Vec<u8>),
+
+    /// WebSocket Pong message
     Pong(Vec<u8>),
+
+    /// WebSocket close message
     Close,
 }
 
 impl From<tokio_tungstenite::tungstenite::protocol::Message> for Message {
     fn from(message: tokio_tungstenite::tungstenite::protocol::Message) -> Self {
         match message {
-            tokio_tungstenite::tungstenite::protocol::Message::Text(text) => Message::Text(text),
-            tokio_tungstenite::tungstenite::protocol::Message::Binary(bin) => Message::Binary(bin),
-            tokio_tungstenite::tungstenite::protocol::Message::Ping(ping) => Message::Ping(ping),
-            tokio_tungstenite::tungstenite::protocol::Message::Pong(pong) => Message::Pong(pong),
+            tokio_tungstenite::tungstenite::protocol::Message::Text(text) => {
+                Message::Text(text.to_string())
+            }
+            tokio_tungstenite::tungstenite::protocol::Message::Binary(bin) => {
+                Message::Binary(bin.to_vec())
+            }
+            tokio_tungstenite::tungstenite::protocol::Message::Ping(ping) => {
+                Message::Ping(ping.to_vec())
+            }
+            tokio_tungstenite::tungstenite::protocol::Message::Pong(pong) => {
+                Message::Pong(pong.to_vec())
+            }
             tokio_tungstenite::tungstenite::protocol::Message::Close(_) => Message::Close,
             tokio_tungstenite::tungstenite::protocol::Message::Frame(_) => unreachable!(),
         }
     }
 }
 
+/// WebSocket message event
 #[derive(Debug, Event)]
 pub struct WebSocketMessageEvent {
+    /// The connection [`Uri`]
     pub uri: Uri,
+
+    /// The message that was received
     pub message: Message,
 }
 
+/// The WebSocket [`SystemSet`]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
 pub struct WebSocketSet;
 
+/// Add this plugin, along with the [`bevy_tokio_tasks::TokioTasksPlugin`] to enable WebSocket connections
 pub struct WebSocketPlugin;
 
 impl Plugin for WebSocketPlugin {
@@ -159,9 +202,11 @@ impl Plugin for WebSocketPlugin {
     }
 }
 
+/// Builder to connect observers
 pub struct WebSocketBuilder<'a>(EntityCommands<'a>);
 
 impl WebSocketBuilder<'_> {
+    /// Triggered on WebSocket connection success
     pub fn on_success<
         RB: Bundle,
         RM,
@@ -174,6 +219,7 @@ impl WebSocketBuilder<'_> {
         self
     }
 
+    /// Triggered on WebSocket connection error
     pub fn on_error<RB: Bundle, RM, OR: IntoObserverSystem<WebSocketErrorEvent, RB, RM>>(
         mut self,
         onerror: OR,
@@ -182,6 +228,7 @@ impl WebSocketBuilder<'_> {
         self
     }
 
+    /// Triggered on WebSocket message
     pub fn on_message<RB: Bundle, RM, OR: IntoObserverSystem<WebSocketMessageEvent, RB, RM>>(
         mut self,
         onmessage: OR,
@@ -190,6 +237,7 @@ impl WebSocketBuilder<'_> {
         self
     }
 
+    /// Triggered on WebSocket disconnect
     pub fn on_disconnect<
         RB: Bundle,
         RM,
@@ -203,15 +251,33 @@ impl WebSocketBuilder<'_> {
     }
 }
 
+/// The WebSocket client [`SystemParam`]
 #[derive(SystemParam)]
 pub struct WebSocketClient<'w, 's> {
     commands: Commands<'w, 's>,
 }
 
 impl WebSocketClient<'_, '_> {
+    /// Starts an attempt at a WebSocket connection
     pub fn connect(&mut self, req: Request) -> WebSocketBuilder {
+        debug!("starting websocket connect");
+
         let inflight = ConnectWebSocket::new(req);
-        WebSocketBuilder(self.commands.spawn(inflight))
+
+        let mut commands = self.commands.spawn(inflight);
+        commands.insert(Name::new("websocket"));
+        WebSocketBuilder(commands)
+    }
+
+    /// Starts an attempt at a WebSocket connection after a timer completes
+    pub fn retry(&mut self, entity: Entity, req: Request, duration: Duration) -> WebSocketBuilder {
+        debug!("retrying websocket connect in {:?}", duration);
+
+        let inflight = ConnectWebSocket::with_timer(req, duration);
+
+        let mut commands = self.commands.entity(entity);
+        commands.insert(inflight);
+        WebSocketBuilder(commands)
     }
 }
 
@@ -234,28 +300,31 @@ fn connect_websockets(
         }
 
         let request = request.request.take().unwrap();
-        let uri = request.uri().clone();
-        let task = runtime.spawn_background_task(move |mut ctx| async move {
-            let uri = request.uri().clone();
-            info!("connecting websocket at {}", uri);
+        let task = runtime.spawn_background_task({
+            let request = request.clone();
+            move |mut ctx| async move {
+                info!("connecting websocket at {} ...", request.uri());
 
-            // TODO: error handle this (if it fails, trigger a WebSocketErrorEvent)
-            let (stream, _) = tokio_tungstenite::connect_async(request).await?;
+                match tokio_tungstenite::connect_async(request.clone()).await {
+                    Ok((stream, _)) => {
+                        // start listening to the stream
+                        ctx.run_on_main_thread(move |ctx| {
+                            ctx.world
+                                .entity_mut(entity)
+                                .insert(ListenWebSocket::new(request, stream));
+                        })
+                        .await;
 
-            // start listening to the stream
-            ctx.run_on_main_thread(move |ctx| {
-                ctx.world
-                    .entity_mut(entity)
-                    .insert(ListenWebSocket::new(uri, stream));
-            })
-            .await;
-
-            Ok(())
+                        Ok(())
+                    }
+                    Err(err) => Err(WebSocketError::from(err)),
+                }
+            }
         });
 
         commands
             .entity(entity)
-            .insert(ConnectWebSocketTask { uri, task })
+            .insert(ConnectWebSocketTask { request, task })
             .remove::<ConnectWebSocket>();
     }
 }
@@ -266,23 +335,34 @@ fn poll_connect_websockets(
 ) {
     for (entity, mut task) in tasks.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.task)) {
-            let uri = &task.uri;
-
-            // TODO: error handling
-            let response = response.unwrap();
+            let uri = task.request.uri();
 
             match response {
-                Ok(_) => {
-                    debug!("connected websocket at {}", uri);
-                    commands
-                        .trigger_targets(WebSocketConnectSuccessEvent { uri: uri.clone() }, entity);
-                }
+                Ok(response) => match response {
+                    Ok(_) => {
+                        debug!("connected websocket at {}", uri);
+                        commands.trigger_targets(
+                            WebSocketConnectSuccessEvent { uri: uri.clone() },
+                            entity,
+                        );
+                    }
+                    Err(err) => {
+                        warn!("failed to connect websocket at {}: {}", uri, err);
+                        commands.trigger_targets(
+                            WebSocketErrorEvent {
+                                request: task.request.clone(),
+                                error: err,
+                            },
+                            entity,
+                        );
+                    }
+                },
                 Err(err) => {
-                    warn!("failed to connect websocket at {}: {}", uri, err);
+                    error!("failed to join connect websocket task at {}: {}", uri, err);
                     commands.trigger_targets(
                         WebSocketErrorEvent {
-                            uri: uri.clone(),
-                            error: err,
+                            request: task.request.clone(),
+                            error: WebSocketError::TaskError,
                         },
                         entity,
                     );
@@ -296,53 +376,55 @@ fn poll_connect_websockets(
 
 fn listen_websockets(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut ListenWebSocket)>,
+    mut websockets: Query<(Entity, &mut ListenWebSocket)>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, mut request) in requests.iter_mut() {
-        if request.stream.is_none() {
+    for (entity, mut websocket) in websockets.iter_mut() {
+        if websocket.stream.is_none() {
             warn!("listen websocket missing stream!");
             commands.entity(entity).remove::<ListenWebSocket>();
             continue;
         }
 
-        let uri = request.uri.clone();
-        let stream = request.stream.take().unwrap();
-        let task = runtime.spawn_background_task(move |mut ctx| async move {
-            info!("listening websocket at {}", uri);
+        let request = websocket.request.clone();
+        let stream = websocket.stream.take().unwrap();
+        let task = runtime.spawn_background_task({
+            let request = request.clone();
+            move |mut ctx| async move {
+                info!("listening websocket at {} ...", request.uri());
 
-            let (_, mut read) = stream.split();
-            while let Some(Ok(msg)) = read.next().await {
-                let uri = uri.clone();
-                debug!("got websocket message from {}: {}", uri, msg);
+                let (_, mut read) = stream.split();
+                while let Some(Ok(msg)) = read.next().await {
+                    debug!("got websocket message from {}: {}", request.uri(), msg);
+                    ctx.run_on_main_thread({
+                        let uri = request.uri().clone();
+                        move |ctx| {
+                            ctx.world.trigger_targets(
+                                WebSocketMessageEvent {
+                                    uri,
+                                    message: msg.into(),
+                                },
+                                entity,
+                            );
+                        }
+                    })
+                    .await;
+                }
+
+                warn!("websocket connection {} closed!", request.uri());
                 ctx.run_on_main_thread(move |ctx| {
-                    ctx.world.trigger_targets(
-                        WebSocketMessageEvent {
-                            uri,
-                            message: msg.into(),
-                        },
-                        entity,
-                    );
+                    ctx.world
+                        .trigger_targets(WebSocketDisconnectEvent { request }, entity);
                 })
                 .await;
+
+                Ok(())
             }
-
-            warn!("websocket connection {} closed!", uri);
-            ctx.run_on_main_thread(move |ctx| {
-                ctx.world
-                    .trigger_targets(WebSocketDisconnectEvent { uri }, entity);
-            })
-            .await;
-
-            Ok(())
         });
 
         commands
             .entity(entity)
-            .insert(ListenWebSocketTask {
-                uri: request.uri.clone(),
-                task,
-            })
+            .insert(ListenWebSocketTask { request, task })
             .remove::<ListenWebSocket>();
     }
 }
@@ -353,15 +435,42 @@ fn poll_listen_websockets(
 ) {
     for (entity, mut task) in tasks.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.task)) {
-            // TODO: error handling
-            let response = response.unwrap();
+            match response {
+                Ok(response) => {
+                    if let Err(err) = response {
+                        warn!(
+                            "error listening websocket at {}: {}",
+                            task.request.uri(),
+                            err
+                        );
+                        commands.trigger_targets(
+                            WebSocketErrorEvent {
+                                request: task.request.clone(),
+                                error: err,
+                            },
+                            entity,
+                        );
 
-            // TODO: error handling
-            response.unwrap();
+                        continue;
+                    }
+                }
+                Err(err) => {
+                    error!(
+                        "failed to join listen websocket task at {}: {}",
+                        task.request.uri(),
+                        err
+                    );
+                    commands.trigger_targets(
+                        WebSocketErrorEvent {
+                            request: task.request.clone(),
+                            error: WebSocketError::TaskError,
+                        },
+                        entity,
+                    );
+                }
+            }
 
-            info!("closing websocket connection to {}", task.uri);
-
-            commands.entity(entity).despawn();
+            commands.entity(entity).remove::<ListenWebSocketTask>();
         }
     }
 }

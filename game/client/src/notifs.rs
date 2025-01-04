@@ -1,28 +1,29 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::Duration};
 use bevy_mod_websocket::*;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
 use common::user::UserId;
 
 const HOST: &str = "ws://localhost:8001";
+const RETRY_INTERVAL: Duration = Duration::from_secs(10);
 
 fn on_success(trigger: Trigger<WebSocketConnectSuccessEvent>) {
     let evt = trigger.event();
     info!("subscribe success: {:?}", evt);
 }
 
-fn on_error(trigger: Trigger<WebSocketErrorEvent>) {
+fn on_error(trigger: Trigger<WebSocketErrorEvent>, mut ws_client: WebSocketClient) {
     let evt = trigger.event();
-    // TODO: temp panic until we have retry
-    //warn!("notifs error: {:?}", evt);
-    panic!("notifs error: {:?}", evt);
+    warn!("notifs error: {:?}", evt.error);
+
+    ws_client.retry(trigger.entity(), evt.request.clone(), RETRY_INTERVAL);
 }
 
-fn on_disconnect(trigger: Trigger<WebSocketDisconnectEvent>) {
+fn on_disconnect(trigger: Trigger<WebSocketDisconnectEvent>, mut ws_client: WebSocketClient) {
     let evt = trigger.event();
-    // TODO: temp panic until we have reconnect
-    //warn!("notifs disconnect: {:?}", evt);
-    panic!("notifs disconnect: {:?}", evt);
+    warn!("notifs disconnect");
+
+    ws_client.retry(trigger.entity(), evt.request.clone(), RETRY_INTERVAL);
 }
 
 fn on_message(trigger: Trigger<WebSocketMessageEvent>) {

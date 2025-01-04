@@ -1,14 +1,21 @@
 [package]
 name = "bevy_mod_websocket"
 version = "0.1.0"
+authors = ["Shane Lillie <ignignokterr@gmail.com>"]
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/Luminoth/bevy_mod_websocket"
 edition = "2021"
+keywords = ["bevy", "websocket"]
+
+description = "WebSocket plugin for Bevy game engine"
 
 [dependencies]
-bevy = { version = "0.15", default-features = false }
-bevy-tokio-tasks = "0.15"
-futures-lite = "2.5"
-futures-util = "0.3"
-http = "1.1"
-thiserror = "1.0"
-tokio = { version = "1.41", default-features = false }
-tokio-tungstenite = "0.24"
+bevy = { version = "0.15.1", default-features = false }
+bevy-tokio-tasks = "0.15.0"
+futures-lite = "2.5.0"
+futures-util = "0.3.31"
+http = "1.2.0"
+thiserror = "2.0.9"
+tokio = { version = "1.42.0", default-features = false }
+tokio-tungstenite = "0.26.1"
