@@ -5,7 +5,6 @@ FROM rust:latest AS builder
 WORKDIR /app
 
 # copy source
-COPY bevy_mod_websocket/ bevy_mod_websocket/
 COPY shared/common/ shared/common/
 COPY shared/internal/ shared/internal/
 COPY game/game/ game/game/

@@ -1647,6 +1647,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_websocket"
 version = "0.1.0"
+source = "git+https://github.com/luminoth/bevy_mod_websocket#da7862d631231def4e7bc23fd10083c39b7c27a0"
 dependencies = [
  "bevy",
  "bevy-tokio-tasks",

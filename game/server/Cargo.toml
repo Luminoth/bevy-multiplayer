@@ -15,7 +15,7 @@ aws-gamelift-server-sdk-rs = { version = "0.3", optional = true }
 bevy = { version = "0.15", features = ["dynamic_linking"] }
 #bevy_mod_reqwest = "0.18"
 bevy_mod_reqwest = { git = "https://github.com/luminoth/bevy_mod_reqwest" }
-bevy_mod_websocket = { path = "../../bevy_mod_websocket" }
+bevy_mod_websocket = { git = "https://github.com/luminoth/bevy_mod_websocket" }
 bevy_replicon = { version = "0.29", default-features = false, features = [
     "scene",
     "parent_sync",
