@@ -1,6 +1,6 @@
 use bevy::{
     input::{
-        gamepad::{GamepadConnection, GamepadEvent},
+        gamepad::{GamepadConnection, GamepadConnectionEvent},
         mouse::MouseMotion,
     },
     prelude::*,
@@ -46,39 +46,25 @@ fn should_update_input(
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<JumpPressedEvent>()
-            // TODO: this is running before bevy picks up the set of gamepads
-            .add_systems(Startup, list_gamepads)
-            .add_systems(
-                Update,
-                (
-                    handle_gamepad_events,
-                    (update_mnk, (update_gamepad.after(handle_gamepad_events)))
-                        .run_if(should_update_input)
-                        .run_if(in_state(GameState::InGame)),
-                )
-                    .in_set(InputSet),
-            );
-    }
-}
-
-fn list_gamepads(gamepads: Query<(&Name, &Gamepad)>) {
-    info!("{} connected gamepads:", gamepads.iter().count());
-    for (name, gamepad) in gamepads.iter() {
-        info!("{:?}: {}", gamepad, name);
+        app.add_event::<JumpPressedEvent>().add_systems(
+            Update,
+            (
+                handle_gamepad_events,
+                (update_mnk, (update_gamepad.after(handle_gamepad_events)))
+                    .run_if(should_update_input)
+                    .run_if(in_state(GameState::InGame)),
+            )
+                .in_set(InputSet),
+        );
     }
 }
 
 fn handle_gamepad_events(
     mut commands: Commands,
     gamepad: Option<Res<ConnectedGamepad>>,
-    mut evr_gamepad: EventReader<GamepadEvent>,
+    mut evr_connections: EventReader<GamepadConnectionEvent>,
 ) {
-    for evt in evr_gamepad.read() {
-        let GamepadEvent::Connection(evt_conn) = evt else {
-            continue;
-        };
-
+    for evt_conn in evr_connections.read() {
         match &evt_conn.connection {
             GamepadConnection::Connected { name, .. } => {
                 info!("gamepad connected: {:?}, name: {}", evt_conn.gamepad, name,);
