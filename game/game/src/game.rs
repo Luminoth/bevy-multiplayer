@@ -52,6 +52,13 @@ impl Plugin for GamePlugin {
             ),
         )
         .add_systems(
+            PreUpdate,
+            (handle_input_update, handle_jump_event)
+                .after(bevy_replicon::server::ServerSet::Receive)
+                .run_if(in_state(GameState::InGame))
+                .run_if(server_or_singleplayer),
+        )
+        .add_systems(
             OnExit(GameState::InGame),
             (exit, cleanup_state::<OnInGame>, cleanup_state::<Node>),
         );
@@ -213,14 +220,12 @@ fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
     dynamic::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
 }
 
-#[allow(clippy::type_complexity)]
 pub fn spawn_client_world(commands: &mut Commands) {
     info!("spawning client world ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
 }
 
-#[allow(clippy::type_complexity)]
 fn enter_client(mut commands: Commands) {
     info!("entering client game ...");
 
@@ -233,4 +238,38 @@ fn exit(mut commands: Commands) {
     commands.remove_resource::<ClearColor>();
     commands.remove_resource::<AmbientLight>();
     commands.remove_resource::<GameAssetState>();
+}
+
+fn handle_input_update(
+    mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>,
+    mut player_query: Query<(&mut player::LastInput, &player::Player)>,
+) {
+    for FromClient { client_id, event } in evr_input_update.read() {
+        // validation handled by server
+
+        for (mut last_input, player) in &mut player_query {
+            if player.client_id() == *client_id {
+                last_input.input_state = event.0;
+            }
+        }
+    }
+}
+
+fn handle_jump_event(
+    mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>,
+    mut player_query: Query<(&mut player::LastInput, &player::Player)>,
+) {
+    for FromClient {
+        client_id,
+        event: _,
+    } in evr_jump.read()
+    {
+        // validation handled by server
+
+        for (mut last_input, player) in &mut player_query {
+            if player.client_id() == *client_id {
+                last_input.jump = true;
+            }
+        }
+    }
 }

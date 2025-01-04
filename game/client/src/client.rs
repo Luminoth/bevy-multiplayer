@@ -55,8 +55,7 @@ impl Plugin for ClientPlugin {
             PostUpdate,
             (send_input_update, send_jump_event)
                 .before(ClientSet::Send)
-                .run_if(in_state(AppState::InGame))
-                .run_if(client_connected),
+                .run_if(in_state(AppState::InGame)),
         )
         .add_systems(OnExit(AppState::InGame), exit);
     }

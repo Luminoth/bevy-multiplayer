@@ -190,7 +190,7 @@ impl Plugin for ServerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 PreUpdate,
-                (handle_connect, handle_input_update, handle_jump_event)
+                (handle_connect, validate_input_update, validate_jump_event)
                     .after(ServerSet::Receive)
                     .run_if(in_state(AppState::InGame))
                     .run_if(server_running),
@@ -465,32 +465,30 @@ fn handle_connect(
     }
 }
 
-fn handle_input_update(
+fn validate_input_update(
     mut evr_input_update: EventReader<FromClient<InputUpdateEvent>>,
     session_info: Res<GameSessionInfo>,
     mut server: ResMut<RenetServer>,
-    mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
-    for FromClient { client_id, event } in evr_input_update.read() {
+    for FromClient {
+        client_id,
+        event: _,
+    } in evr_input_update.read()
+    {
         if !session_info.clients.contains_key(client_id) {
             warn!("client {:?} not in session", client_id);
             server.disconnect(client_id.get());
             continue;
         }
 
-        for (mut last_input, player) in &mut player_query {
-            if player.client_id() == *client_id {
-                last_input.input_state = event.0;
-            }
-        }
+        // shared game handles the event
     }
 }
 
-fn handle_jump_event(
+fn validate_jump_event(
     mut evr_jump: EventReader<FromClient<PlayerJumpEvent>>,
     session_info: Res<GameSessionInfo>,
     mut server: ResMut<RenetServer>,
-    mut player_query: Query<(&mut player::LastInput, &player::Player)>,
 ) {
     for FromClient {
         client_id,
@@ -503,10 +501,6 @@ fn handle_jump_event(
             continue;
         }
 
-        for (mut last_input, player) in &mut player_query {
-            if player.client_id() == *client_id {
-                last_input.jump = true;
-            }
-        }
+        // shared game handles the event
     }
 }
