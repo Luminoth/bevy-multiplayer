@@ -71,6 +71,7 @@ fn debug_ui(
     client: Option<Res<RenetClient>>,
     mut debug_settings: ResMut<DebugSettings>,
     mut contexts: EguiContexts,
+    gamepads: Query<(&Name, &Gamepad)>,
 ) {
     egui::Window::new("Debug").show(contexts.ctx_mut(), |ui| {
         ui.vertical(|ui| {
@@ -96,6 +97,16 @@ fn debug_ui(
                     .and_then(|memory| memory.value())
                     .unwrap_or_default()
             ));
+
+            ui.label("Gamepads:");
+            for (name, gamepad) in gamepads.iter() {
+                ui.label(format!(
+                    "  {}:{} {}",
+                    gamepad.vendor_id().unwrap_or_default(),
+                    gamepad.product_id().unwrap_or_default(),
+                    name
+                ));
+            }
 
             if let Some(client) = client {
                 if client.is_connecting() {
