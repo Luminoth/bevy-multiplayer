@@ -64,6 +64,50 @@ fn enter_spectate(
                 TextColor(Color::WHITE),
             ));
 
-            // TODO: connection info
+            for addr in &server_info.connection_info.v4addrs {
+                parent.spawn((
+                    Text::new(format!("  {}:{}", addr, server_info.connection_info.port)),
+                    TextFont::from_font_size(24.0),
+                    TextColor(Color::WHITE),
+                ));
+            }
+
+            for addr in &server_info.connection_info.v6addrs {
+                parent.spawn((
+                    Text::new(format!("  {}:{}", addr, server_info.connection_info.port)),
+                    TextFont::from_font_size(24.0),
+                    TextColor(Color::WHITE),
+                ));
+            }
+
+            parent.spawn((
+                Text::new(format!("Pending Players:")),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
+            ));
+
+            // TODO: this list updates over time
+            for player_id in &session_info.pending_player_ids {
+                parent.spawn((
+                    Text::new(format!("  {}", player_id)),
+                    TextFont::from_font_size(24.0),
+                    TextColor(Color::WHITE),
+                ));
+            }
+
+            parent.spawn((
+                Text::new(format!("Active Players:")),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
+            ));
+
+            // TODO: this list updates over time
+            for player_id in &session_info.active_player_ids {
+                parent.spawn((
+                    Text::new(format!("  {}", player_id)),
+                    TextFont::from_font_size(24.0),
+                    TextColor(Color::WHITE),
+                ));
+            }
         });
 }
