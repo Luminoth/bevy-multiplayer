@@ -12,7 +12,7 @@ mod options;
 mod settings;
 mod ui;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::CursorGrabMode};
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
@@ -31,6 +31,25 @@ pub enum AppState {
 }
 
 const DEFAULT_RESOLUTION: (f32, f32) = (1280.0, 720.0);
+
+fn recenter_cursor(window: Option<&mut Mut<'_, Window>>) {
+    if let Some(window) = window {
+        let center = Vec2::new(window.width() / 2.0, window.height() / 2.0);
+        window.set_cursor_position(Some(center));
+    }
+}
+
+pub fn show_cursor(window: Option<&mut Mut<'_, Window>>, show: bool) {
+    if let Some(window) = window {
+        window.cursor_options.grab_mode = if show {
+            CursorGrabMode::None
+        } else {
+            CursorGrabMode::Locked
+        };
+
+        window.cursor_options.visible = show;
+    }
+}
 
 fn main() {
     let options = Options::parse();

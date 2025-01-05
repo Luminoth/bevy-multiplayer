@@ -24,7 +24,7 @@ fn enter_spectate(
     server_info: Res<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
 ) {
-    info!("enter server spectate ...");
+    info!("entering server spectate game ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
 

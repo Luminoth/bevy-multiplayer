@@ -42,7 +42,7 @@ fn enter(
     orchestration: Res<Orchestration>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    info!("enter placement ...");
+    info!("entering placement ...");
 
     tasks::spawn_task(
         &runtime,
@@ -86,7 +86,7 @@ fn enter(
 }
 
 fn enter_spectate(mut commands: Commands, server_info: Res<GameServerInfo>) {
-    info!("enter placement spectate ...");
+    info!("entering placement spectate ...");
 
     commands.insert_resource(ClearColor(Color::BLACK));
 

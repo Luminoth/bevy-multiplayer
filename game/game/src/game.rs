@@ -215,7 +215,7 @@ fn wait_for_world(mut game_state: ResMut<NextState<GameState>>) {
 }
 
 fn enter_server(mut commands: Commands, assets: Res<GameAssetState>) {
-    info!("entering server game ...");
+    info!("entering game (server / singleplayer) ...");
 
     dynamic::spawn_ball(&mut commands, Vec3::new(0.0, 20.0, -5.0), &assets);
 }
@@ -227,7 +227,7 @@ pub fn spawn_client_world(commands: &mut Commands) {
 }
 
 fn enter_client(mut commands: Commands) {
-    info!("entering client game ...");
+    info!("entering game (client) ...");
 
     spawn_client_world(&mut commands);
 }

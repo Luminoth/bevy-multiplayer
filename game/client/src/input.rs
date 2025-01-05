@@ -27,21 +27,18 @@ fn should_update_input(
     window_query: Query<&Window, With<PrimaryWindow>>,
     game_menu_query: Query<&Visibility, With<game_menu::GameMenu>>,
 ) -> bool {
-    if let Ok(window) = window_query.get_single() {
-        if !window.focused {
-            return false;
-        }
-    } else {
+    if !window_query
+        .get_single()
+        .map(|window| window.focused)
+        .unwrap_or_default()
+    {
         return false;
     }
 
-    if let Ok(visibility) = game_menu_query.get_single() {
-        if *visibility == Visibility::Visible {
-            return false;
-        }
-    }
-
-    true
+    game_menu_query
+        .get_single()
+        .map(|visibility| *visibility != Visibility::Visible)
+        .unwrap_or(true)
 }
 
 impl Plugin for InputPlugin {

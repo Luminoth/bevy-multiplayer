@@ -274,7 +274,7 @@ fn enter(
     state: Res<State<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    info!("enter server game ...");
+    info!("entering server app game ...");
 
     heartbeat(
         &mut client,
@@ -289,7 +289,7 @@ fn enter(
 }
 
 fn exit(mut commands: Commands) {
-    info!("exit server game ...");
+    info!("exiting server app game ...");
 
     commands.remove_resource::<GameSessionInfo>();
     commands.remove_resource::<RenetServer>();

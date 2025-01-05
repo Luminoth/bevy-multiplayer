@@ -62,19 +62,19 @@ impl Plugin for ClientPlugin {
 }
 
 fn setup(options: Res<Options>, mut ws_client: WebSocketClient) {
-    info!("starting client {}", options.user_id);
+    info!("starting client app {}", options.user_id);
 
     notifs::subscribe(&mut ws_client, options.user_id);
 }
 
 fn enter(mut game_state: ResMut<NextState<GameState>>) {
-    info!("enter client game ...");
+    info!("entering client app game ...");
 
     game_state.set(GameState::LoadAssets);
 }
 
 fn exit(mut commands: Commands) {
-    info!("exit client game ...");
+    info!("exiting client app game ...");
 
     commands.init_resource::<ClientState>();
 
