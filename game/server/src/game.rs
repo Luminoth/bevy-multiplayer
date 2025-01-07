@@ -81,7 +81,7 @@ fn enter_spectate(
             }
 
             parent.spawn((
-                Text::new(format!("Pending Players:")),
+                Text::new("Pending Players:"),
                 TextFont::from_font_size(24.0),
                 TextColor(Color::WHITE),
             ));
@@ -96,7 +96,7 @@ fn enter_spectate(
             }
 
             parent.spawn((
-                Text::new(format!("Active Players:")),
+                Text::new("Active Players:"),
                 TextFont::from_font_size(24.0),
                 TextColor(Color::WHITE),
             ));
