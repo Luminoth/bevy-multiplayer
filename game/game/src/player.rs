@@ -1,6 +1,7 @@
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
+use bevy_tnua::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, network, GameAssetState, InputState};
@@ -24,21 +25,6 @@ pub struct PlayerCamera;
 #[derive(Debug, Default, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct PlayerPhysics {
     pub velocity: Vec3,
-    grounded: bool,
-}
-
-impl PlayerPhysics {
-    #[inline]
-    pub fn is_grounded(&self) -> bool {
-        self.grounded
-    }
-
-    fn update_grounded(&mut self, grounded: bool) {
-        self.grounded = grounded;
-        if self.grounded {
-            self.velocity.y = 0.0;
-        }
-    }
 }
 
 #[derive(Debug, Default, Component)]
@@ -50,8 +36,8 @@ pub struct LastInput {
 // TODO: if these moved to a resource
 // they'd be easier to fudge for testing
 const MOVE_SPEED: f32 = 10.0;
-const JUMP_SPEED: f32 = 15.0;
-const TERMINAL_VELOCITY: f32 = 50.0;
+//const JUMP_SPEED: f32 = 15.0;
+//const TERMINAL_VELOCITY: f32 = 50.0;
 const GRAVITY_SCALE: f32 = 4.0;
 const HEIGHT: f32 = 2.0;
 const MASS: f32 = 75.0;
@@ -69,11 +55,14 @@ pub fn spawn_player(
             Mesh3d(assets.player_mesh.clone()),
             MeshMaterial3d(assets.player_material.clone()),
             Transform::from_xyz(position.x, position.y, position.z),
-            RigidBody::KinematicPositionBased,
+            //RigidBody::Kinematic,
+            RigidBody::Dynamic,
             GravityScale(GRAVITY_SCALE),
-            Collider::capsule_y(HEIGHT * 0.5, HEIGHT * 0.5),
-            ColliderMassProperties::Mass(MASS),
-            KinematicCharacterController::default(),
+            Collider::capsule(HEIGHT * 0.5, HEIGHT * 0.5),
+            Mass(MASS),
+            TnuaController::default(),
+            //TnuaAvian3dSensorShape(Collider::cylinder(0.49, 0.0)),
+            //LockedAxes::ROTATION_LOCKED,
             Name::new(format!("Player {:?}", client_id)),
             Replicated,
             PlayerPhysics::default(),
@@ -202,58 +191,44 @@ fn rotate_player(
 
 #[allow(clippy::type_complexity)]
 fn update_player_physics(
-    time: Res<Time<Fixed>>,
-    physics_config: Query<&RapierConfiguration>,
     mut player_query: Query<(
         &mut LastInput,
-        &mut KinematicCharacterController,
-        Option<&KinematicCharacterControllerOutput>,
+        &mut TnuaController,
         &GlobalTransform,
         &mut PlayerPhysics,
-        &GravityScale,
     )>,
 ) {
-    for (
-        mut last_input,
-        mut character_controller,
-        output,
-        global_transform,
-        mut player_physics,
-        gravity_scale,
-    ) in &mut player_query
+    for (mut last_input, mut character_controller, global_transform, mut player_physics) in
+        &mut player_query
     {
+        // TODO: this needs lots of work to get working with avian
+
         let global_transform = global_transform.compute_transform();
 
-        // update grounded
-        let grounded = output.map(|output| output.grounded).unwrap_or_default();
-        player_physics.update_grounded(grounded);
-
         // handle move input
-        if player_physics.is_grounded() {
-            let direction = global_transform.rotation
-                * Vec3::new(
-                    last_input.input_state.r#move.x,
-                    0.0,
-                    -last_input.input_state.r#move.y,
-                );
-            // TODO: we may want to just max() each value instead of normalizing
-            let direction = direction.normalize_or_zero();
+        let direction = global_transform.rotation
+            * Vec3::new(
+                last_input.input_state.r#move.x,
+                0.0,
+                -last_input.input_state.r#move.y,
+            );
+        // TODO: we may want to just max() each value instead of normalizing
+        let direction = direction.normalize_or_zero();
 
-            if direction.length_squared() > 0.0 {
-                player_physics.velocity.x = direction.x * MOVE_SPEED;
-                player_physics.velocity.z = direction.z * MOVE_SPEED;
-            } else {
-                player_physics.velocity.x = 0.0;
-                player_physics.velocity.z = 0.0;
-            }
-
-            if last_input.jump {
-                player_physics.velocity.y += JUMP_SPEED;
-            }
+        if direction.length_squared() > 0.0 {
+            player_physics.velocity.x = direction.x * MOVE_SPEED;
+            player_physics.velocity.z = direction.z * MOVE_SPEED;
+        } else {
+            player_physics.velocity.x = 0.0;
+            player_physics.velocity.z = 0.0;
         }
 
+        /*if last_input.jump {
+            player_physics.velocity.y += JUMP_SPEED;
+        }*/
+
         // apply gravity
-        player_physics.velocity.y +=
+        /*player_physics.velocity.y +=
             physics_config.single().gravity.y * gravity_scale.0 * time.delta_secs();
         player_physics.velocity.y = player_physics
             .velocity
@@ -264,7 +239,19 @@ fn update_player_physics(
         let translation = character_controller
             .translation
             .get_or_insert(Vec3::default());
-        *translation += player_physics.velocity * time.delta_secs();
+        *translation += player_physics.velocity * time.delta_secs();*/
+        character_controller.basis(TnuaBuiltinWalk {
+            desired_velocity: player_physics.velocity,
+            float_height: 1.5,
+            ..Default::default()
+        });
+
+        if last_input.jump {
+            character_controller.action(TnuaBuiltinJump {
+                height: 4.0,
+                ..Default::default()
+            });
+        }
 
         last_input.input_state.r#move = Vec2::default();
         last_input.jump = false;

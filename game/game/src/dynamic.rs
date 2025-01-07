@@ -1,5 +1,5 @@
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -29,9 +29,9 @@ pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetSta
         MeshMaterial3d(assets.ball_material.clone()),
         Transform::from_xyz(position.x, position.y, position.z),
         RigidBody::Dynamic,
-        Collider::ball(0.5),
-        ColliderMassProperties::Mass(0.5),
-        Restitution::coefficient(0.7),
+        Collider::sphere(0.12),
+        Mass(0.5),
+        Restitution::new(0.75),
         Name::new(name),
         Replicated,
         dynamic,

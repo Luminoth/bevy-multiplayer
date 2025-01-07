@@ -1,6 +1,8 @@
+use avian3d::prelude::*;
 use bevy::{color::palettes::css::*, prelude::*};
-use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
+use bevy_tnua::prelude::*;
+use bevy_tnua_avian3d::*;
 
 use crate::{
     cleanup_state, dynamic,
@@ -21,7 +23,9 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             // third-party plugins
-            RapierPhysicsPlugin::<NoUserData>::default(),
+            PhysicsPlugins::default(),
+            TnuaControllerPlugin::new(FixedUpdate),
+            TnuaAvian3dPlugin::new(FixedUpdate),
             // game plugins
             player::PlayerPlugin,
             dynamic::DynamicPlugin,
@@ -83,7 +87,7 @@ fn load_assets(
         .as_mut()
         .map(|materials| materials.add(Color::from(NAVY)));
 
-    let ball_mesh = meshes.add(Sphere::new(0.5));
+    let ball_mesh = meshes.add(Sphere::new(0.12));
     let ball_material = materials
         .as_mut()
         .map(|materials| materials.add(Color::from(FUCHSIA)));

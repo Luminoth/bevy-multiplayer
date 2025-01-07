@@ -6,7 +6,7 @@ use bevy_replicon_renet::{netcode::NetcodeClientTransport, renet::RenetClient};
 use common::user::UserId;
 use game_common::{
     network::{ConnectEvent, InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
-    player, GameState, InputState,
+    GameState, InputState,
 };
 
 use crate::{
@@ -118,13 +118,10 @@ fn send_input_update(
 fn send_jump_event(
     mut evr_jump: EventReader<input::JumpPressedEvent>,
     mut evw_jump: EventWriter<PlayerJumpEvent>,
-    player_query: Query<&player::PlayerPhysics, With<player::LocalPlayer>>,
 ) {
     if !evr_jump.is_empty() {
-        let player_physics = player_query.single();
-        if player_physics.is_grounded() {
-            evw_jump.send(PlayerJumpEvent);
-            evr_jump.clear();
-        }
+        // TODO: only send if we *can* jump
+        evw_jump.send(PlayerJumpEvent);
+        evr_jump.clear();
     }
 }

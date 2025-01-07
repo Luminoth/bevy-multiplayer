@@ -87,7 +87,7 @@ fn main() {
             bevy::state::app::StatesPlugin,
         ));
 
-        // rapier makes use of Mesh assets
+        // physics makes use of Mesh assets
         // and this is missing without rendering
         app.init_asset::<Mesh>();
     } else {

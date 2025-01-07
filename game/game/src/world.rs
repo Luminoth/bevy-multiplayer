@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 
 use crate::OnInGame;
 
@@ -36,7 +36,7 @@ pub fn spawn_wall(
         Mesh3d(mesh),
         MeshMaterial3d(material),
         transform,
-        Collider::cuboid(25.0, 0.1, 25.0),
+        Collider::cuboid(50.0, 0.1, 50.0),
         Name::new(name),
         OnInGame,
     ));
