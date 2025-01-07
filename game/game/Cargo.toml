@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+avian3d = "0.2"
 bevy = "0.15"
 bevy_rapier3d = { version = "0.28", default-features = false, features = [
     "dim3",
