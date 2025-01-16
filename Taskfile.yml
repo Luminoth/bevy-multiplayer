@@ -74,7 +74,7 @@ tasks:
 
   server:
     cmds:
-      - cargo run --bin bevy-multiplayer-server {{.CLI_ARGS}}
+      - cargo run --bin bevy-multiplayer-server -- {{.CLI_ARGS}}
     silent: true
   build-server-image:
     cmds:
