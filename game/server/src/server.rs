@@ -1,6 +1,6 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 use std::net::{IpAddr, SocketAddr, UdpSocket};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
 use bevy_mod_reqwest::*;
@@ -23,6 +23,7 @@ use game_common::{
     network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player,
     spawn::SpawnPoint,
+    utils::current_timestamp,
     GameAssetState, GameState, PROTOCOL_ID,
 };
 
@@ -111,13 +112,41 @@ impl GameServerInfo {
     }
 }
 
+#[derive(Debug)]
+pub struct PendingPlayer {
+    pub user_id: UserId,
+
+    #[allow(dead_code)]
+    timestamp: Duration,
+}
+
+impl PendingPlayer {
+    pub fn new(user_id: UserId) -> Self {
+        Self {
+            user_id,
+            timestamp: current_timestamp(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ActivePlayer {
+    pub user_id: UserId,
+}
+
+impl ActivePlayer {
+    fn new(user_id: UserId) -> Self {
+        Self { user_id }
+    }
+}
+
 #[derive(Debug, Resource)]
 pub struct GameSessionInfo {
     pub session_id: Uuid,
     pub max_players: u16,
 
-    pub active_player_ids: HashSet<UserId>,
-    pub pending_player_ids: HashSet<UserId>,
+    pub active_players: HashMap<UserId, ActivePlayer>,
+    pub pending_players: HashMap<UserId, PendingPlayer>,
 
     clients: HashMap<ClientId, UserId>,
 }
@@ -131,21 +160,24 @@ impl GameSessionInfo {
         Self {
             session_id,
             max_players: settings.max_players,
-            active_player_ids: HashSet::with_capacity(settings.max_players as usize),
-            pending_player_ids: HashSet::from_iter(pending_player_ids),
+            active_players: HashMap::with_capacity(settings.max_players as usize),
+            pending_players: HashMap::from_iter(pending_player_ids.iter().map(
+                |&pending_player_id| (pending_player_id, PendingPlayer::new(pending_player_id)),
+            )),
             clients: HashMap::with_capacity(settings.max_players as usize),
         }
     }
 
     #[inline]
     pub fn player_count(&self) -> usize {
-        self.active_player_ids.len() + self.pending_player_ids.len()
+        self.active_players.len() + self.pending_players.len()
     }
 
     fn client_connected(&mut self, user_id: UserId, client_id: ClientId) -> bool {
-        if self.pending_player_ids.contains(&user_id) {
-            self.pending_player_ids.remove(&user_id);
-            self.active_player_ids.insert(user_id);
+        if self.pending_players.contains_key(&user_id) {
+            self.pending_players.remove(&user_id);
+            self.active_players
+                .insert(user_id, ActivePlayer::new(user_id));
             self.clients.insert(client_id, user_id);
 
             true
@@ -156,8 +188,8 @@ impl GameSessionInfo {
 
     fn client_disconnected(&mut self, client_id: &ClientId) {
         if let Some(user_id) = self.clients.remove(client_id) {
-            self.active_player_ids.remove(&user_id);
-            self.pending_player_ids.remove(&user_id);
+            self.active_players.remove(&user_id);
+            self.pending_players.remove(&user_id);
         }
     }
 }
@@ -355,9 +387,7 @@ fn init_server(
 
     let server_addr = options.address().parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
-    let current_time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
+    let current_time = current_timestamp();
     let server_config = ServerConfig {
         current_time,
         max_clients: session_info.max_players as usize,

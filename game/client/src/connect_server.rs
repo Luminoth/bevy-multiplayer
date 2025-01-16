@@ -1,5 +1,4 @@
 use std::net::UdpSocket;
-use std::time::SystemTime;
 
 use bevy::prelude::*;
 use bevy_mod_reqwest::*;
@@ -14,6 +13,7 @@ use common::gameclient::*;
 use game_common::{
     cleanup_state,
     network::{ConnectEvent, PlayerClientId},
+    utils::current_timestamp,
     PROTOCOL_ID,
 };
 
@@ -152,9 +152,7 @@ fn connect_to_server(
     let address = address.as_ref();
     let server_addr = format!("{}:{}", address, port).parse().unwrap();
     let socket = UdpSocket::bind(format!("{}:0", address)).unwrap();
-    let current_time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
+    let current_time = current_timestamp();
     let client_id = current_time.as_millis() as u64;
     let authentication = ClientAuthentication::Unsecure {
         client_id,

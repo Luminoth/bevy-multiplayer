@@ -3,6 +3,7 @@ mod game;
 pub mod network;
 pub mod player;
 pub mod spawn;
+pub mod utils;
 mod world;
 
 use bevy::prelude::*;

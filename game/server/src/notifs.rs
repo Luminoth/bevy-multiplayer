@@ -9,7 +9,7 @@ use internal::notifs;
 use crate::{
     api,
     orchestration::Orchestration,
-    server::{GameServerInfo, GameSessionInfo},
+    server::{GameServerInfo, GameSessionInfo, PendingPlayer},
     AppState,
 };
 
@@ -115,7 +115,9 @@ fn on_message(
                     info!("reserving player slots: {:?}", message.player_ids);
 
                     for player_id in message.player_ids {
-                        session_info.pending_player_ids.insert(player_id);
+                        session_info
+                            .pending_players
+                            .insert(player_id, PendingPlayer::new(player_id));
                     }
 
                     api::heartbeat(

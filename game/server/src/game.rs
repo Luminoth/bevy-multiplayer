@@ -87,9 +87,9 @@ fn enter_spectate(
             ));
 
             // TODO: this list updates over time
-            for player_id in &session_info.pending_player_ids {
+            for pending_player in session_info.pending_players.values() {
                 parent.spawn((
-                    Text::new(format!("  {}", player_id)),
+                    Text::new(format!("  {}", pending_player.user_id)),
                     TextFont::from_font_size(24.0),
                     TextColor(Color::WHITE),
                 ));
@@ -102,9 +102,9 @@ fn enter_spectate(
             ));
 
             // TODO: this list updates over time
-            for player_id in &session_info.active_player_ids {
+            for active_player in session_info.active_players.values() {
                 parent.spawn((
-                    Text::new(format!("  {}", player_id)),
+                    Text::new(format!("  {}", active_player.user_id)),
                     TextFont::from_font_size(24.0),
                     TextColor(Color::WHITE),
                 ));

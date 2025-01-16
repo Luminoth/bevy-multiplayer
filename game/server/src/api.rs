@@ -34,8 +34,8 @@ pub fn heartbeat<'a>(
                 game_session_info: session_info.map(|session_info| gameserver::GameSessionInfo {
                     max_players: session_info.max_players,
                     game_session_id: session_info.session_id,
-                    active_player_ids: session_info.active_player_ids.iter().copied().collect(),
-                    pending_player_ids: session_info.pending_player_ids.iter().copied().collect(),
+                    active_player_ids: session_info.active_players.keys().copied().collect(),
+                    pending_player_ids: session_info.pending_players.keys().copied().collect(),
                 }),
             },
         })

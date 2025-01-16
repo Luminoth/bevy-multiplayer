@@ -95,7 +95,7 @@ pub async fn reserve_backfill_slot(
     user_id: UserId,
 ) -> anyhow::Result<Option<models::gameserver::GameServerInfo>> {
     let backfill_sessions = gamesessions::get_backfill_game_sessions(conn).await?;
-    if backfill_sessions.len() < 1 {
+    if backfill_sessions.is_empty() {
         warn!("no sessions available for backfill!");
         return Ok(None);
     }
