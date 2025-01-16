@@ -1,11 +1,29 @@
 use std::borrow::Cow;
 
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
 
-use crate::OnInGame;
+use crate::{GameAssetState, OnInGame};
 
+// TODO: this should move to settings
 const ENABLE_SHADOWS: bool = true;
+
+pub fn load_assets(
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Option<ResMut<Assets<StandardMaterial>>>,
+    game_assets: &mut GameAssetState,
+) {
+    game_assets.floor_mesh = meshes.add(Plane3d::default().mesh().size(50.0, 50.0));
+    game_assets.floor_material = materials
+        .as_mut()
+        .map(|materials| materials.add(Color::from(css::GREEN)))
+        .unwrap_or_default();
+
+    game_assets.wall_material = materials
+        .as_mut()
+        .map(|materials| materials.add(Color::from(css::NAVY)))
+        .unwrap_or_default();
+}
 
 pub fn spawn_directional_light(
     commands: &mut Commands,
@@ -37,6 +55,7 @@ pub fn spawn_wall(
         MeshMaterial3d(material),
         transform,
         RigidBody::Static,
+        // TODO: can we infer this from the mesh?
         Collider::cuboid(50.0, 0.1, 50.0),
         Name::new(name),
         OnInGame,

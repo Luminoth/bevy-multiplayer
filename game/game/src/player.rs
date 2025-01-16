@@ -1,10 +1,19 @@
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
 use bevy_tnua::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, network, GameAssetState, InputState};
+
+// TODO: if these moved to a resource
+// they'd be easier to fudge for testing
+const MOVE_SPEED: f32 = 10.0;
+//const JUMP_SPEED: f32 = 15.0;
+const JUMP_HEIGHT: f32 = 8.0;
+//const TERMINAL_VELOCITY: f32 = 50.0;
+const HEIGHT: f32 = 2.0; // includes capsule hemispheres
+const MASS: f32 = 75.0;
 
 #[derive(Debug, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct Player(ClientId);
@@ -33,14 +42,17 @@ pub struct LastInput {
     pub jump: bool,
 }
 
-// TODO: if these moved to a resource
-// they'd be easier to fudge for testing
-const MOVE_SPEED: f32 = 10.0;
-//const JUMP_SPEED: f32 = 15.0;
-//const TERMINAL_VELOCITY: f32 = 50.0;
-const GRAVITY_SCALE: f32 = 4.0;
-const HEIGHT: f32 = 2.0;
-const MASS: f32 = 75.0;
+pub fn load_assets(
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Option<ResMut<Assets<StandardMaterial>>>,
+    game_assets: &mut GameAssetState,
+) {
+    game_assets.player_mesh = meshes.add(Capsule3d::new(HEIGHT * 0.5, HEIGHT));
+    game_assets.player_material = materials
+        .as_mut()
+        .map(|materials| materials.add(Color::from(css::LIGHT_YELLOW)))
+        .unwrap_or_default();
+}
 
 pub fn spawn_player(
     commands: &mut Commands,
@@ -57,13 +69,16 @@ pub fn spawn_player(
             Transform::from_xyz(position.x, position.y, position.z),
             //RigidBody::Kinematic,
             RigidBody::Dynamic,
+            // TODO: can we infer this from the mesh?
             Collider::capsule(HEIGHT * 0.5, HEIGHT * 0.5),
             Mass(MASS),
-            GravityScale(GRAVITY_SCALE),
             TnuaController::default(),
-            // TODO:
-            //TnuaAvian3dSensorShape(Collider::cylinder(0.49, 0.0)),
-            //LockedAxes::ROTATION_LOCKED,
+            // TODO: can we infer this from the mesh?
+            bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(
+                (HEIGHT * 0.25) - 0.1,
+                0.0,
+            )),
+            LockedAxes::ROTATION_LOCKED,
             Name::new(format!("Player {:?}", client_id)),
             Replicated,
             PlayerPhysics::default(),
@@ -201,8 +216,6 @@ fn update_player_physics(
     for (mut last_input, mut character_controller, global_transform, mut player_physics) in
         &mut player_query
     {
-        // TODO: this needs lots of work to get working with avian
-
         let global_transform = global_transform.compute_transform();
 
         // handle move input
@@ -212,7 +225,6 @@ fn update_player_physics(
                 0.0,
                 -last_input.input_state.r#move.y,
             );
-        // TODO: we may want to just max() each value instead of normalizing
         let direction = direction.normalize_or_zero();
 
         if direction.length_squared() > 0.0 {
@@ -223,32 +235,17 @@ fn update_player_physics(
             player_physics.velocity.z = 0.0;
         }
 
-        /*if last_input.jump {
-            player_physics.velocity.y += JUMP_SPEED;
-        }*/
-
-        // apply gravity
-        /*player_physics.velocity.y +=
-            physics_config.single().gravity.y * gravity_scale.0 * time.delta_secs();
-        player_physics.velocity.y = player_physics
-            .velocity
-            .y
-            .clamp(-TERMINAL_VELOCITY, TERMINAL_VELOCITY);
-
-        // move
-        let translation = character_controller
-            .translation
-            .get_or_insert(Vec3::default());
-        *translation += player_physics.velocity * time.delta_secs();*/
         character_controller.basis(TnuaBuiltinWalk {
             desired_velocity: player_physics.velocity,
-            float_height: 1.5,
+            // must be > distance from center to lowest point on collider
+            float_height: HEIGHT * 0.75,
+            // TODO: should we remove rotate_player() and set desired_forward here instead?
             ..Default::default()
         });
 
         if last_input.jump {
             character_controller.action(TnuaBuiltinJump {
-                height: 4.0,
+                height: JUMP_HEIGHT,
                 ..Default::default()
             });
         }

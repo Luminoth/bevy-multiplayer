@@ -1,9 +1,15 @@
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, GameAssetState};
+
+// TODO: if these moved to a resource
+// they'd be easier to fudge for testing
+const BALL_RADIUS: f32 = 0.5; //0.12;
+const BALL_MASS: f32 = 0.5;
+const BALL_RESTITUTION: f32 = 0.75;
 
 #[derive(Debug, Component, Copy, Clone, Serialize, Deserialize)]
 pub enum Dynamic {
@@ -18,6 +24,18 @@ impl Dynamic {
     }
 }
 
+pub fn load_assets(
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Option<ResMut<Assets<StandardMaterial>>>,
+    game_assets: &mut GameAssetState,
+) {
+    game_assets.ball_mesh = meshes.add(Sphere::new(BALL_RADIUS));
+    game_assets.ball_material = materials
+        .as_mut()
+        .map(|materials| materials.add(Color::from(css::FUCHSIA)))
+        .unwrap_or_default();
+}
+
 pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
     info!("spawning ball at {} ...", position);
 
@@ -29,9 +47,10 @@ pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetSta
         MeshMaterial3d(assets.ball_material.clone()),
         Transform::from_xyz(position.x, position.y, position.z),
         RigidBody::Dynamic,
-        Collider::sphere(0.5),
-        Mass(0.5),
-        Restitution::new(0.75),
+        // TODO: can we infer this from the mesh?
+        Collider::sphere(BALL_RADIUS),
+        Mass(BALL_MASS),
+        Restitution::new(BALL_RESTITUTION),
         Name::new(name),
         Replicated,
         dynamic,

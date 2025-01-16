@@ -1,8 +1,5 @@
-use avian3d::prelude::*;
-use bevy::{color::palettes::css::*, prelude::*};
+use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
-use bevy_tnua::prelude::*;
-use bevy_tnua_avian3d::*;
 
 use crate::{
     cleanup_state, dynamic,
@@ -23,9 +20,9 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             // third-party plugins
-            PhysicsPlugins::default(), // TODO: this doesn't work with tnua: .set(PhysicsInterpolationPlugin::interpolate_all()),
-            TnuaControllerPlugin::new(FixedUpdate),
-            TnuaAvian3dPlugin::new(FixedUpdate),
+            avian3d::PhysicsPlugins::default(), // TODO: this doesn't work with tnua: .set(PhysicsInterpolationPlugin::interpolate_all()),
+            bevy_tnua::controller::TnuaControllerPlugin::new(FixedUpdate),
+            bevy_tnua_avian3d::TnuaAvian3dPlugin::new(FixedUpdate),
             // game plugins
             player::PlayerPlugin,
             dynamic::DynamicPlugin,
@@ -78,34 +75,13 @@ fn load_assets(
 ) {
     info!("loading assets ...");
 
-    let floor_mesh = meshes.add(Plane3d::default().mesh().size(50.0, 50.0));
-    let floor_material = materials
-        .as_mut()
-        .map(|materials| materials.add(Color::from(GREEN)));
+    let mut game_assets = GameAssetState::default();
 
-    let wall_material = materials
-        .as_mut()
-        .map(|materials| materials.add(Color::from(NAVY)));
+    world::load_assets(&mut meshes, &mut materials, &mut game_assets);
+    dynamic::load_assets(&mut meshes, &mut materials, &mut game_assets);
+    player::load_assets(&mut meshes, &mut materials, &mut game_assets);
 
-    let ball_mesh = meshes.add(Sphere::new(0.5));
-    let ball_material = materials
-        .as_mut()
-        .map(|materials| materials.add(Color::from(FUCHSIA)));
-
-    let player_mesh = meshes.add(Capsule3d::new(1.0, 2.0));
-    let player_material = materials
-        .as_mut()
-        .map(|materials| materials.add(Color::from(LIGHT_YELLOW)));
-
-    commands.insert_resource(GameAssetState {
-        floor_mesh,
-        floor_material: floor_material.unwrap_or_default(),
-        wall_material: wall_material.unwrap_or_default(),
-        ball_mesh,
-        ball_material: ball_material.unwrap_or_default(),
-        player_mesh,
-        player_material: player_material.unwrap_or_default(),
-    });
+    commands.insert_resource(game_assets);
 }
 
 fn wait_for_assets(mut game_state: ResMut<NextState<GameState>>) {
@@ -118,13 +94,13 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssetState>) {
     info!("spawning world ...");
 
     commands.insert_resource(AmbientLight {
-        color: WHITE.into(),
+        color: css::WHITE.into(),
         brightness: 80.0,
     });
 
     world::spawn_directional_light(
         &mut commands,
-        ORANGE_RED.into(),
+        css::ORANGE_RED.into(),
         Transform {
             translation: Vec3::new(0.0, 5.0, 0.0),
             rotation: Quat::from_rotation_x(-45.0f32.to_radians()),

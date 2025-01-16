@@ -34,7 +34,7 @@ pub struct InputState {
     pub r#move: Vec2,
 }
 
-#[derive(Debug, Resource)]
+#[derive(Debug, Default, Resource)]
 pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
     floor_material: Handle<StandardMaterial>,
