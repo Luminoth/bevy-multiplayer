@@ -30,6 +30,8 @@ use crate::{
     api, game, notifs, options::Options, orchestration::Orchestration, placement, tasks, AppState,
 };
 
+const HEARTBEAT_FREQUENCY: Duration = Duration::from_secs(5);
+
 #[derive(Debug, Clone, Default)]
 pub struct ConnectionInfo {
     pub v4addrs: BTreeSet<String>,
@@ -199,7 +201,7 @@ impl Plugin for ServerPlugin {
                 Update,
                 (
                     handle_network_events.run_if(in_state(GameState::InGame)),
-                    heartbeat_monitor.run_if(on_timer(Duration::from_secs(30))),
+                    heartbeat_monitor.run_if(on_timer(HEARTBEAT_FREQUENCY)),
                 ),
             )
             .add_systems(OnEnter(AppState::InitServer), init_server)

@@ -15,9 +15,9 @@ use internal::{
 
 use crate::{gamesessions, models, notifs, state::AppState};
 
-const PLACEMENT_TIMEOUT: u64 = 60;
-const RESERVATION_TIMEOUT: u64 = 30;
-const SERVER_INFO_TTL: u64 = 60;
+const PLACEMENT_TIMEOUT: Duration = Duration::from_secs(30);
+const RESERVATION_TIMEOUT: Duration = Duration::from_secs(5);
+const SERVER_INFO_TTL: u64 = 10;
 
 pub async fn read_gameserver_info(
     conn: &mut RedisPooledConnection,
@@ -131,7 +131,7 @@ pub async fn reserve_backfill_slot(
                 // or a "send messages on notifs connect" piece
 
                 let res = timeout(
-                    Duration::from_secs(RESERVATION_TIMEOUT),
+                    RESERVATION_TIMEOUT,
                     wait_for_reservation(conn, game_session_id, user_id),
                 )
                 .await;
@@ -229,7 +229,7 @@ pub async fn allocate_game_server(
         // or a "send messages on notifs connect" piece
 
         let res = timeout(
-            Duration::from_secs(PLACEMENT_TIMEOUT),
+            PLACEMENT_TIMEOUT,
             wait_for_placement(conn, server_id, game_session_id),
         )
         .await;

@@ -1,4 +1,5 @@
 use bb8_redis::redis::AsyncCommands;
+use tokio::time::Duration;
 use tracing::info;
 
 use internal::notifs::Notification;
@@ -8,7 +9,7 @@ use crate::AppState;
 pub async fn notify_gameserver(
     app_state: &AppState,
     notification: Notification,
-    _ttl: Option<u64>,
+    _ttl: Option<Duration>,
 ) -> anyhow::Result<()> {
     let notif = serde_json::to_string(&notification)?;
     info!("notifying gameserver: {}", notif);
