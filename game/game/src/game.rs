@@ -23,7 +23,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             // third-party plugins
-            PhysicsPlugins::default(),
+            PhysicsPlugins::default(), // TODO: this doesn't work with tnua: .set(PhysicsInterpolationPlugin::interpolate_all()),
             TnuaControllerPlugin::new(FixedUpdate),
             TnuaAvian3dPlugin::new(FixedUpdate),
             // game plugins
@@ -87,7 +87,7 @@ fn load_assets(
         .as_mut()
         .map(|materials| materials.add(Color::from(NAVY)));
 
-    let ball_mesh = meshes.add(Sphere::new(0.12));
+    let ball_mesh = meshes.add(Sphere::new(0.5));
     let ball_material = materials
         .as_mut()
         .map(|materials| materials.add(Color::from(FUCHSIA)));

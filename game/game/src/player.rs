@@ -57,10 +57,11 @@ pub fn spawn_player(
             Transform::from_xyz(position.x, position.y, position.z),
             //RigidBody::Kinematic,
             RigidBody::Dynamic,
-            GravityScale(GRAVITY_SCALE),
             Collider::capsule(HEIGHT * 0.5, HEIGHT * 0.5),
             Mass(MASS),
+            GravityScale(GRAVITY_SCALE),
             TnuaController::default(),
+            // TODO:
             //TnuaAvian3dSensorShape(Collider::cylinder(0.49, 0.0)),
             //LockedAxes::ROTATION_LOCKED,
             Name::new(format!("Player {:?}", client_id)),
@@ -98,7 +99,6 @@ pub fn finish_client_player(
     ec.insert((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
-        //transform,
         Name::new(format!(
             "Replicated Player ({})",
             if is_local { " Local" } else { "Remote" }

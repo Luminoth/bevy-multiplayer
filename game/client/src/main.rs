@@ -12,7 +12,6 @@ mod options;
 mod settings;
 mod ui;
 
-use avian3d::prelude::*;
 use bevy::{prelude::*, window::CursorGrabMode};
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
@@ -81,7 +80,7 @@ fn main() {
         // third-party plugins
         .add_plugins((
             bevy_egui::EguiPlugin,
-            PhysicsDebugPlugin::default(),
+            avian3d::debug_render::PhysicsDebugPlugin::default(),
             RepliconPlugins,
             RepliconRenetPlugins,
             /*bevy_replicon_snap::SnapshotInterpolationPlugin {

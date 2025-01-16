@@ -29,7 +29,7 @@ pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetSta
         MeshMaterial3d(assets.ball_material.clone()),
         Transform::from_xyz(position.x, position.y, position.z),
         RigidBody::Dynamic,
-        Collider::sphere(0.12),
+        Collider::sphere(0.5),
         Mass(0.5),
         Restitution::new(0.75),
         Name::new(name),

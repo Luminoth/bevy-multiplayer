@@ -36,6 +36,7 @@ pub fn spawn_wall(
         Mesh3d(mesh),
         MeshMaterial3d(material),
         transform,
+        RigidBody::Static,
         Collider::cuboid(50.0, 0.1, 50.0),
         Name::new(name),
         OnInGame,
