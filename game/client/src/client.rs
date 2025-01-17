@@ -5,7 +5,7 @@ use bevy_replicon_renet::{netcode::NetcodeClientTransport, renet::RenetClient};
 
 use common::user::UserId;
 use game_common::{
-    network::{ConnectEvent, InputUpdateEvent, PlayerClientId, PlayerCrouchEvent, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerClientId, PlayerJumpEvent},
     GameState, InputState,
 };
 
@@ -53,7 +53,7 @@ impl Plugin for ClientPlugin {
         .add_systems(OnEnter(AppState::InGame), enter)
         .add_systems(
             PostUpdate,
-            (send_input_update, send_jump_event, send_crouch_event)
+            (send_input_update, send_jump_event)
                 .before(ClientSet::Send)
                 .run_if(in_state(AppState::InGame)),
         )
@@ -123,16 +123,5 @@ fn send_jump_event(
         // TODO: only send if we *can* jump
         evw_jump.send(PlayerJumpEvent);
         evr_jump.clear();
-    }
-}
-
-fn send_crouch_event(
-    mut evr_crouch: EventReader<input::CrouchPressedEvent>,
-    mut evw_crouch: EventWriter<PlayerCrouchEvent>,
-) {
-    if !evr_crouch.is_empty() {
-        // TODO: only send if we *can* crouch
-        evw_crouch.send(PlayerCrouchEvent);
-        evr_crouch.clear();
     }
 }

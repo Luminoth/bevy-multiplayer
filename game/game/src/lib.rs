@@ -33,6 +33,7 @@ pub enum GameState {
 pub struct InputState {
     pub look: Vec2,
     pub r#move: Vec2,
+    pub crouch: bool,
 }
 
 #[derive(Debug, Default, Resource)]

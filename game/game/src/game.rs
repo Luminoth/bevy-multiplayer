@@ -1,9 +1,10 @@
+use avian3d::prelude::*;
 use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
 
 use crate::{
     cleanup_state, dynamic,
-    network::{ConnectEvent, InputUpdateEvent, PlayerCrouchEvent, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player, spawn, world, GameAssetState, GameState, InputState,
 };
 
@@ -20,9 +21,10 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             // third-party plugins
-            avian3d::PhysicsPlugins::default(), // TODO: this doesn't work with tnua: .set(PhysicsInterpolationPlugin::interpolate_all()),
-            bevy_tnua::controller::TnuaControllerPlugin::new(FixedUpdate),
-            bevy_tnua_avian3d::TnuaAvian3dPlugin::new(FixedUpdate),
+            PhysicsPlugins::default(), // TODO: this doesn't work with tnua: .set(PhysicsInterpolationPlugin::interpolate_all()),
+            bevy_tnua::controller::TnuaControllerPlugin::new(PhysicsSchedule),
+            bevy_tnua::control_helpers::TnuaCrouchEnforcerPlugin::new(PhysicsSchedule),
+            bevy_tnua_avian3d::TnuaAvian3dPlugin::new(PhysicsSchedule),
             // game plugins
             player::PlayerPlugin,
             dynamic::DynamicPlugin,
@@ -33,7 +35,6 @@ impl Plugin for GamePlugin {
         .add_client_event::<ConnectEvent>(ChannelKind::Unordered)
         .add_client_event::<InputUpdateEvent>(ChannelKind::Ordered)
         .add_client_event::<PlayerJumpEvent>(ChannelKind::Unordered)
-        .add_client_event::<PlayerCrouchEvent>(ChannelKind::Unordered)
         .add_systems(OnEnter(GameState::LoadAssets), load_assets)
         .add_systems(
             Update,
@@ -55,7 +56,7 @@ impl Plugin for GamePlugin {
         )
         .add_systems(
             PreUpdate,
-            (handle_input_update, handle_jump_event, handle_crouch_event)
+            (handle_input_update, handle_jump_event)
                 .after(bevy_replicon::server::ServerSet::Receive)
                 .run_if(in_state(GameState::InGame))
                 .run_if(server_or_singleplayer),
@@ -250,25 +251,6 @@ fn handle_jump_event(
         for (mut last_input, player) in &mut player_query {
             if player.client_id() == *client_id {
                 last_input.jump = true;
-            }
-        }
-    }
-}
-
-fn handle_crouch_event(
-    mut evr_crouch: EventReader<FromClient<PlayerCrouchEvent>>,
-    mut player_query: Query<(&mut player::LastInput, &player::Player)>,
-) {
-    for FromClient {
-        client_id,
-        event: _,
-    } in evr_crouch.read()
-    {
-        // validation handled by server
-
-        for (mut last_input, player) in &mut player_query {
-            if player.client_id() == *client_id {
-                last_input.crouch = true;
             }
         }
     }

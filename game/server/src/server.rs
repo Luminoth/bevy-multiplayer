@@ -20,7 +20,7 @@ use common::{
     user::UserId,
 };
 use game_common::{
-    network::{ConnectEvent, InputUpdateEvent, PlayerCrouchEvent, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player,
     spawn::SpawnPoint,
     utils::current_timestamp,
@@ -224,12 +224,7 @@ impl Plugin for ServerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 PreUpdate,
-                (
-                    handle_connect,
-                    validate_input_update,
-                    validate_jump_event,
-                    validate_crouch_event,
-                )
+                (handle_connect, validate_input_update, validate_jump_event)
                     .after(ServerSet::Receive)
                     .run_if(in_state(AppState::InGame))
                     .run_if(server_running),
@@ -531,26 +526,6 @@ fn validate_jump_event(
         client_id,
         event: _,
     } in evr_jump.read()
-    {
-        if !session_info.clients.contains_key(client_id) {
-            warn!("client {:?} not in session", client_id);
-            server.disconnect(client_id.get());
-            continue;
-        }
-
-        // shared game handles the event
-    }
-}
-
-fn validate_crouch_event(
-    mut evr_crouch: EventReader<FromClient<PlayerCrouchEvent>>,
-    session_info: Res<GameSessionInfo>,
-    mut server: ResMut<RenetServer>,
-) {
-    for FromClient {
-        client_id,
-        event: _,
-    } in evr_crouch.read()
     {
         if !session_info.clients.contains_key(client_id) {
             warn!("client {:?} not in session", client_id);

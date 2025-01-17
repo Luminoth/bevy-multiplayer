@@ -1,7 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
-use bevy_tnua::{builtins::TnuaBuiltinCrouch, prelude::*};
+use bevy_tnua::{builtins::TnuaBuiltinCrouch, control_helpers::TnuaCrouchEnforcer, prelude::*};
 use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, network, GameAssetState, InputState};
@@ -40,7 +40,6 @@ pub struct PlayerPhysics {
 pub struct LastInput {
     pub input_state: InputState,
     pub jump: bool,
-    pub crouch: bool,
 }
 
 pub fn load_assets(
@@ -77,6 +76,9 @@ pub fn spawn_player(
             // TODO: wtf do I set these values to?
             // does this thing even matter?
             //bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(0.49, 0.0)),
+            TnuaCrouchEnforcer::new(Vec3::Y * HEIGHT, |_commands| {
+                // ???
+            }),
             LockedAxes::ROTATION_LOCKED,
             Name::new(format!("Player {:?}", client_id)),
             Replicated,
@@ -213,12 +215,18 @@ fn update_player_physics(
     mut player_query: Query<(
         &mut LastInput,
         &mut TnuaController,
+        &mut TnuaCrouchEnforcer,
         &GlobalTransform,
         &mut PlayerPhysics,
     )>,
 ) {
-    for (mut last_input, mut character_controller, global_transform, mut player_physics) in
-        &mut player_query
+    for (
+        mut last_input,
+        mut character_controller,
+        mut crouch_enforcer,
+        global_transform,
+        mut player_physics,
+    ) in &mut player_query
     {
         let global_transform = global_transform.compute_transform();
 
@@ -229,8 +237,9 @@ fn update_player_physics(
                 0.0,
                 -last_input.input_state.r#move.y,
             );
-        let direction = direction.normalize_or_zero();
+        last_input.input_state.r#move = Vec2::default();
 
+        let direction = direction.normalize_or_zero();
         if direction.length_squared() > 0.0 {
             player_physics.velocity.x = direction.x * MOVE_SPEED;
             player_physics.velocity.z = direction.z * MOVE_SPEED;
@@ -252,17 +261,15 @@ fn update_player_physics(
                 height: JUMP_HEIGHT,
                 ..Default::default()
             });
+            last_input.jump = false;
         }
 
-        if last_input.crouch {
-            character_controller.action(TnuaBuiltinCrouch {
+        if last_input.input_state.crouch {
+            info!("crouch");
+            character_controller.action(crouch_enforcer.enforcing(TnuaBuiltinCrouch {
                 float_offset: HEIGHT * -0.5,
                 ..Default::default()
-            });
+            }));
         }
-
-        last_input.input_state.r#move = Vec2::default();
-        last_input.jump = false;
-        last_input.crouch = false;
     }
 }

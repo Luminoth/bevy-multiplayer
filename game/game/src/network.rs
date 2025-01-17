@@ -37,6 +37,3 @@ pub struct InputUpdateEvent(pub InputState);
 
 #[derive(Debug, Event, Serialize, Deserialize)]
 pub struct PlayerJumpEvent;
-
-#[derive(Debug, Event, Serialize, Deserialize)]
-pub struct PlayerCrouchEvent;

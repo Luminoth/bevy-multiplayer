@@ -20,9 +20,6 @@ pub struct InputSet;
 #[derive(Debug, Event)]
 pub struct JumpPressedEvent;
 
-#[derive(Debug, Event)]
-pub struct CrouchPressedEvent;
-
 #[derive(Debug)]
 pub struct InputPlugin;
 
@@ -46,18 +43,16 @@ fn should_update_input(
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<JumpPressedEvent>()
-            .add_event::<CrouchPressedEvent>()
-            .add_systems(
-                Update,
-                (
-                    handle_gamepad_events,
-                    (update_mnk, (update_gamepad.after(handle_gamepad_events)))
-                        .run_if(should_update_input)
-                        .run_if(in_state(GameState::InGame)),
-                )
-                    .in_set(InputSet),
-            );
+        app.add_event::<JumpPressedEvent>().add_systems(
+            Update,
+            (
+                handle_gamepad_events,
+                (update_mnk, (update_gamepad.after(handle_gamepad_events)))
+                    .run_if(should_update_input)
+                    .run_if(in_state(GameState::InGame)),
+            )
+                .in_set(InputSet),
+        );
     }
 }
 
@@ -95,7 +90,6 @@ fn update_mnk(
     mut input_state: ResMut<InputState>,
     settings: Res<Settings>,
     mut evw_jump: EventWriter<JumpPressedEvent>,
-    mut evw_crouch: EventWriter<CrouchPressedEvent>,
 ) {
     if !settings.mnk.enabled {
         return;
@@ -121,8 +115,14 @@ fn update_mnk(
         evw_jump.send(JumpPressedEvent);
     }
 
-    if keys.just_pressed(KeyCode::ControlLeft) {
-        evw_crouch.send(CrouchPressedEvent);
+    if settings.controls.hold_crouch {
+        input_state.crouch = keys.pressed(KeyCode::ControlLeft);
+    } else {
+        if keys.just_pressed(KeyCode::ControlLeft) {
+            input_state.crouch = true;
+        } else if keys.just_released(KeyCode::ControlLeft) {
+            input_state.crouch = false;
+        }
     }
 
     let mut look = Vec2::default();
@@ -142,7 +142,6 @@ fn update_gamepad(
     mut input_state: ResMut<InputState>,
     gamepads: Query<&Gamepad>,
     mut evw_jump: EventWriter<JumpPressedEvent>,
-    mut evw_crouch: EventWriter<CrouchPressedEvent>,
 ) {
     if !settings.gamepad.enabled {
         return;
@@ -181,7 +180,13 @@ fn update_gamepad(
         evw_jump.send(JumpPressedEvent);
     }
 
-    if gamepad.just_pressed(GamepadButton::RightThumb) {
-        evw_crouch.send(CrouchPressedEvent);
+    if settings.controls.hold_crouch {
+        input_state.crouch = gamepad.pressed(GamepadButton::RightThumb);
+    } else {
+        if gamepad.just_pressed(GamepadButton::RightThumb) {
+            input_state.crouch = true;
+        } else if gamepad.just_released(GamepadButton::RightThumb) {
+            input_state.crouch = false;
+        }
     }
 }

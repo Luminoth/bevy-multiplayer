@@ -38,8 +38,22 @@ impl Default for GamepadSettings {
     }
 }
 
+#[derive(Debug, Reflect)]
+pub struct ControlsSettings {
+    pub hold_crouch: bool,
+}
+
+impl Default for ControlsSettings {
+    fn default() -> Self {
+        Self {
+            hold_crouch: true, //false,
+        }
+    }
+}
+
 #[derive(Debug, Default, Resource, Reflect)]
 pub struct Settings {
     pub mnk: MnkSettings,
     pub gamepad: GamepadSettings,
+    pub controls: ControlsSettings,
 }
