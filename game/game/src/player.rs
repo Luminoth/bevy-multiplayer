@@ -70,14 +70,12 @@ pub fn spawn_player(
             //RigidBody::Kinematic,
             RigidBody::Dynamic,
             // TODO: can we infer this from the mesh?
-            Collider::capsule(HEIGHT * 0.5, HEIGHT * 0.5),
+            Collider::capsule(HEIGHT * 0.5, HEIGHT),
             Mass(MASS),
             TnuaController::default(),
-            // TODO: can we infer this from the mesh?
-            bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(
-                (HEIGHT * 0.25) - 0.1,
-                0.0,
-            )),
+            // TODO: wtf do I set these values to?
+            // does this thing even matter?
+            //bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(0.49, 0.0)),
             LockedAxes::ROTATION_LOCKED,
             Name::new(format!("Player {:?}", client_id)),
             Replicated,
@@ -114,6 +112,11 @@ pub fn finish_client_player(
     ec.insert((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
+        // TODO: we probably should replicate this?
+        // because we might want to make updates to it
+        // (like when crouching)
+        // (either way, we need it for the debug view)
+        Collider::capsule(HEIGHT * 0.5, HEIGHT),
         Name::new(format!(
             "Replicated Player ({})",
             if is_local { " Local" } else { "Remote" }
@@ -237,8 +240,8 @@ fn update_player_physics(
 
         character_controller.basis(TnuaBuiltinWalk {
             desired_velocity: player_physics.velocity,
-            // must be > distance from center to lowest point on collider
-            float_height: HEIGHT * 0.75,
+            // TODO: this doesn't seem right by the docs, but anything less doesn't work
+            float_height: HEIGHT,
             // TODO: should we remove rotate_player() and set desired_forward here instead?
             ..Default::default()
         });
