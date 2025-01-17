@@ -17,7 +17,7 @@ struct ConnectedGamepad(Entity);
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
 pub struct InputSet;
 
-#[derive(Debug, Event)]
+#[derive(Debug, Default, Event)]
 pub struct JumpPressedEvent;
 
 #[derive(Debug)]
@@ -112,7 +112,7 @@ fn update_mnk(
     input_state.r#move += r#move;
 
     if keys.just_pressed(KeyCode::Space) {
-        evw_jump.send(JumpPressedEvent);
+        evw_jump.send_default();
     }
 
     if settings.controls.hold_crouch {
@@ -175,7 +175,7 @@ fn update_gamepad(
     }
 
     if gamepad.just_pressed(GamepadButton::South) {
-        evw_jump.send(JumpPressedEvent);
+        evw_jump.send_default();
     }
 
     if settings.controls.hold_crouch {

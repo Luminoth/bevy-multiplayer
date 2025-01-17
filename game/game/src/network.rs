@@ -35,5 +35,5 @@ pub struct ConnectEvent(pub UserId);
 #[derive(Debug, Event, Serialize, Deserialize)]
 pub struct InputUpdateEvent(pub InputState);
 
-#[derive(Debug, Event, Serialize, Deserialize)]
+#[derive(Debug, Default, Event, Serialize, Deserialize)]
 pub struct PlayerJumpEvent;

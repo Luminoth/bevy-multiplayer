@@ -121,7 +121,7 @@ fn send_jump_event(
 ) {
     if !evr_jump.is_empty() {
         // TODO: only send if we *can* jump
-        evw_jump.send(PlayerJumpEvent);
+        evw_jump.send_default();
         evr_jump.clear();
     }
 }
