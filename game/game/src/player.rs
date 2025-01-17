@@ -270,7 +270,6 @@ fn update_player_physics(
         }
 
         if last_input.input_state.crouch {
-            info!("crouch");
             character_controller.action(crouch_enforcer.enforcing(TnuaBuiltinCrouch {
                 float_offset: HEIGHT * -0.5,
                 ..Default::default()
