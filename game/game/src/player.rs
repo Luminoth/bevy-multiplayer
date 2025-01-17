@@ -1,7 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
-use bevy_tnua::prelude::*;
+use bevy_tnua::{builtins::TnuaBuiltinCrouch, prelude::*};
 use serde::{Deserialize, Serialize};
 
 use crate::{game::OnInGame, network, GameAssetState, InputState};
@@ -40,6 +40,7 @@ pub struct PlayerPhysics {
 pub struct LastInput {
     pub input_state: InputState,
     pub jump: bool,
+    pub crouch: bool,
 }
 
 pub fn load_assets(
@@ -253,7 +254,15 @@ fn update_player_physics(
             });
         }
 
+        if last_input.crouch {
+            character_controller.action(TnuaBuiltinCrouch {
+                float_offset: HEIGHT * -0.5,
+                ..Default::default()
+            });
+        }
+
         last_input.input_state.r#move = Vec2::default();
         last_input.jump = false;
+        last_input.crouch = false;
     }
 }
