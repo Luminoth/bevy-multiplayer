@@ -9,6 +9,14 @@ use crate::{
     server::{GameServerInfo, GameSessionInfo},
 };
 
+// TODO: spectator UI would be much less expensive if it were EGUI
+
+#[derive(Debug, Component)]
+struct PendingPlayerList;
+
+#[derive(Debug, Component)]
+struct ActivePlayerList;
+
 #[derive(Debug)]
 pub struct GamePlugin;
 
@@ -17,6 +25,12 @@ impl Plugin for GamePlugin {
         app.add_systems(
             OnEnter(GameState::InGame),
             enter_spectate.run_if(is_not_headless),
+        )
+        .add_systems(
+            Update,
+            update_spectate_ui
+                .run_if(in_state(GameState::InGame))
+                .run_if(is_not_headless),
         );
     }
 }
@@ -90,14 +104,17 @@ fn enter_spectate(
                 TextColor(Color::WHITE),
             ));
 
-            // TODO: this list updates over time
+            let mut pending_players_str = String::new();
             for pending_player in &pending_players {
-                parent.spawn((
-                    Text::new(format!("  {}", pending_player.user_id)),
-                    TextFont::from_font_size(24.0),
-                    TextColor(Color::WHITE),
-                ));
+                pending_players_str.push_str(&format!("  {}", pending_player.user_id));
             }
+
+            parent.spawn((
+                Text::new(pending_players_str),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
+                PendingPlayerList,
+            ));
 
             parent.spawn((
                 Text::new("Active Players:"),
@@ -105,13 +122,38 @@ fn enter_spectate(
                 TextColor(Color::WHITE),
             ));
 
-            // TODO: this list updates over time
+            let mut active_players_str = String::new();
             for active_player in &active_players {
-                parent.spawn((
-                    Text::new(format!("  {}", active_player.user_id)),
-                    TextFont::from_font_size(24.0),
-                    TextColor(Color::WHITE),
-                ));
+                active_players_str.push_str(&format!("  {}", active_player.user_id));
             }
+
+            parent.spawn((
+                Text::new(active_players_str),
+                TextFont::from_font_size(24.0),
+                TextColor(Color::WHITE),
+                ActivePlayerList,
+            ));
         });
+}
+
+// TODO: this is terrible, we should only update these values if they've changed
+fn update_spectate_ui(
+    pending_players: Query<&PendingPlayer>,
+    mut pending_player_list: Query<&mut Text, (With<PendingPlayerList>, Without<ActivePlayerList>)>,
+    active_players: Query<&ActivePlayer>,
+    mut active_player_list: Query<&mut Text, (With<ActivePlayerList>, Without<PendingPlayerList>)>,
+) {
+    let mut pending_players_str = String::new();
+    for pending_player in &pending_players {
+        pending_players_str.push_str(&format!("  {}", pending_player.user_id));
+    }
+
+    pending_player_list.single_mut().0 = pending_players_str;
+
+    let mut active_players_str = String::new();
+    for active_player in &active_players {
+        active_players_str.push_str(&format!("  {}", active_player.user_id));
+    }
+
+    active_player_list.single_mut().0 = active_players_str;
 }

@@ -113,8 +113,6 @@ impl GameServerInfo {
 #[derive(Debug, Component)]
 pub struct PendingPlayer {
     pub user_id: UserId,
-
-    #[allow(dead_code)]
     timer: Timer,
 }
 
@@ -124,6 +122,11 @@ impl PendingPlayer {
             user_id,
             timer: Timer::new(PENDING_PLAYER_TIMEOUT, TimerMode::Once),
         }
+    }
+
+    pub fn is_timeout(&mut self, delta: Duration) -> bool {
+        self.timer.tick(delta);
+        self.timer.finished()
     }
 }
 
@@ -191,7 +194,6 @@ impl GameSessionInfo {
         self.pending_player_count += 1;
     }
 
-    #[allow(dead_code)]
     fn pending_player_timeout(
         &mut self,
         commands: &mut Commands,
@@ -293,6 +295,7 @@ impl Plugin for ServerPlugin {
                 Update,
                 (
                     handle_network_events.run_if(in_state(GameState::InGame)),
+                    timeout_pending_players.run_if(in_state(GameState::InGame)),
                     heartbeat_monitor.run_if(on_timer(HEARTBEAT_FREQUENCY)),
                     handle_heartbeat_events,
                 ),
@@ -488,7 +491,7 @@ fn handle_network_events(
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 info!("client {:?} disconnected: {}", client_id, reason);
 
-                for (entity, player) in players.iter() {
+                for (entity, player) in &players {
                     if player.client_id == *client_id {
                         player::despawn_player(&mut commands, entity, player.user_id);
                     }
@@ -503,6 +506,19 @@ fn handle_network_events(
 
                 evw_heartbeat.send_default();
             }
+        }
+    }
+}
+
+fn timeout_pending_players(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut session_info: ResMut<GameSessionInfo>,
+    mut pending_players: Query<(Entity, &mut PendingPlayer)>,
+) {
+    for (entity, mut pending_player) in &mut pending_players {
+        if pending_player.is_timeout(time.delta()) {
+            session_info.pending_player_timeout(&mut commands, entity, pending_player.user_id);
         }
     }
 }

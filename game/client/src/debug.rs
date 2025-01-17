@@ -99,7 +99,7 @@ fn debug_ui(
             ));
 
             ui.label("Gamepads:");
-            for (name, gamepad) in gamepads.iter() {
+            for (name, gamepad) in &gamepads {
                 ui.label(format!(
                     "  {}:{} {}",
                     gamepad.vendor_id().unwrap_or_default(),
