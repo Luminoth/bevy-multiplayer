@@ -66,7 +66,10 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     ui::spawn_canvas(&mut commands, "Main Menu").with_children(|parent| {
         ui::spawn_button(parent, &asset_server, "Start Local").observe(on_start_local);
+
+        // TODO: disable this if we aren't connected to the notifs server
         ui::spawn_button(parent, &asset_server, "Find Server").observe(on_find_server);
+
         ui::spawn_button(parent, &asset_server, "Exit").observe(on_exit_game);
     });
 }
