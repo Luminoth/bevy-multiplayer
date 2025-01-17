@@ -62,30 +62,35 @@ pub fn spawn_player(
 ) -> Entity {
     info!("spawning player {:?} at {} ...", client_id, position);
 
+    let mut commands = commands.spawn((
+        Mesh3d(assets.player_mesh.clone()),
+        MeshMaterial3d(assets.player_material.clone()),
+        Transform::from_xyz(position.x, position.y, position.z),
+        Name::new(format!("Player {:?}", client_id)),
+        Replicated,
+        PlayerPhysics::default(),
+        LastInput::default(),
+        Player(client_id),
+        OnInGame,
+    ));
+
+    commands.insert((
+        RigidBody::Dynamic,
+        // TODO: can we infer this from the mesh?
+        Collider::capsule(HEIGHT * 0.5, HEIGHT),
+        Mass(MASS),
+        LockedAxes::ROTATION_LOCKED,
+    ));
+
     commands
-        .spawn((
-            Mesh3d(assets.player_mesh.clone()),
-            MeshMaterial3d(assets.player_material.clone()),
-            Transform::from_xyz(position.x, position.y, position.z),
-            //RigidBody::Kinematic,
-            RigidBody::Dynamic,
-            // TODO: can we infer this from the mesh?
-            Collider::capsule(HEIGHT * 0.5, HEIGHT),
-            Mass(MASS),
+        .insert((
             TnuaController::default(),
-            // TODO: wtf do I set these values to?
-            // does this thing even matter?
-            //bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(0.49, 0.0)),
-            TnuaCrouchEnforcer::new(Vec3::Y * HEIGHT, |_commands| {
-                // ???
+            bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(0.5, 0.0)),
+            TnuaCrouchEnforcer::new(Vec3::Y * HEIGHT, |commands| {
+                commands.insert(bevy_tnua_avian3d::TnuaAvian3dSensorShape(
+                    Collider::cylinder(0.5, 0.0),
+                ));
             }),
-            LockedAxes::ROTATION_LOCKED,
-            Name::new(format!("Player {:?}", client_id)),
-            Replicated,
-            PlayerPhysics::default(),
-            LastInput::default(),
-            Player(client_id),
-            OnInGame,
         ))
         .id()
 }

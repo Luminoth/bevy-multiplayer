@@ -49,15 +49,20 @@ pub fn spawn_wall(
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
     name: impl Into<Cow<'static, str>>,
-) {
-    commands.spawn((
+) -> Entity {
+    let mut commands = commands.spawn((
         Mesh3d(mesh),
         MeshMaterial3d(material),
         transform,
-        RigidBody::Static,
-        // TODO: can we infer this from the mesh?
-        Collider::cuboid(50.0, 0.1, 50.0),
         Name::new(name),
         OnInGame,
     ));
+
+    commands
+        .insert((
+            RigidBody::Static,
+            // TODO: can we infer this from the mesh?
+            Collider::cuboid(50.0, 0.1, 50.0),
+        ))
+        .id()
 }

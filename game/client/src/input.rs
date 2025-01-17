@@ -117,12 +117,10 @@ fn update_mnk(
 
     if settings.controls.hold_crouch {
         input_state.crouch = keys.pressed(KeyCode::ControlLeft);
-    } else {
-        if keys.just_pressed(KeyCode::ControlLeft) {
-            input_state.crouch = true;
-        } else if keys.just_released(KeyCode::ControlLeft) {
-            input_state.crouch = false;
-        }
+    } else if keys.just_pressed(KeyCode::ControlLeft) {
+        input_state.crouch = true;
+    } else if keys.just_released(KeyCode::ControlLeft) {
+        input_state.crouch = false;
     }
 
     let mut look = Vec2::default();
@@ -182,11 +180,9 @@ fn update_gamepad(
 
     if settings.controls.hold_crouch {
         input_state.crouch = gamepad.pressed(GamepadButton::RightThumb);
-    } else {
-        if gamepad.just_pressed(GamepadButton::RightThumb) {
-            input_state.crouch = true;
-        } else if gamepad.just_released(GamepadButton::RightThumb) {
-            input_state.crouch = false;
-        }
+    } else if gamepad.just_pressed(GamepadButton::RightThumb) {
+        input_state.crouch = true;
+    } else if gamepad.just_released(GamepadButton::RightThumb) {
+        input_state.crouch = false;
     }
 }

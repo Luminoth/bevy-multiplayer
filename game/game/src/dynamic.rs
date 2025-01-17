@@ -36,26 +36,31 @@ pub fn load_assets(
         .unwrap_or_default();
 }
 
-pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) {
+pub fn spawn_ball(commands: &mut Commands, position: Vec3, assets: &GameAssetState) -> Entity {
     info!("spawning ball at {} ...", position);
 
     let dynamic = Dynamic::Ball;
     let name = dynamic.get_name();
 
-    commands.spawn((
+    let mut commands = commands.spawn((
         Mesh3d(assets.ball_mesh.clone()),
         MeshMaterial3d(assets.ball_material.clone()),
         Transform::from_xyz(position.x, position.y, position.z),
-        RigidBody::Dynamic,
-        // TODO: can we infer this from the mesh?
-        Collider::sphere(BALL_RADIUS),
-        Mass(BALL_MASS),
-        Restitution::new(BALL_RESTITUTION),
         Name::new(name),
         Replicated,
         dynamic,
         OnInGame,
     ));
+
+    commands
+        .insert((
+            RigidBody::Dynamic,
+            // TODO: can we infer this from the mesh?
+            Collider::sphere(BALL_RADIUS),
+            Mass(BALL_MASS),
+            Restitution::new(BALL_RESTITUTION),
+        ))
+        .id()
 }
 
 pub fn finish_client_dynamic(
