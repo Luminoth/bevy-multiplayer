@@ -79,7 +79,7 @@ pub fn spawn_player(
         // TODO: can we infer this from the mesh?
         Collider::capsule(HEIGHT * 0.5, HEIGHT),
         Mass(MASS),
-        LockedAxes::ROTATION_LOCKED,
+        LockedAxes::ROTATION_LOCKED.unlock_rotation_y(),
     ));
 
     commands
