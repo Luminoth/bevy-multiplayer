@@ -2,7 +2,6 @@ mod placement;
 mod reservation;
 
 use bevy::{prelude::*, utils::Duration};
-use bevy_mod_reqwest::*;
 use bevy_mod_websocket::*;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use uuid::Uuid;
@@ -10,8 +9,7 @@ use uuid::Uuid;
 use internal::notifs;
 
 use crate::{
-    orchestration::Orchestration,
-    server::{GameServerInfo, GameSessionInfo},
+    server::{GameSessionInfo, HeartbeatEvent},
     AppState,
 };
 
@@ -41,12 +39,10 @@ fn on_disconnect(trigger: Trigger<WebSocketDisconnectEvent>, mut ws_client: WebS
 fn on_message(
     trigger: Trigger<WebSocketMessageEvent>,
     mut commands: Commands,
-    mut client: BevyReqwest,
     current_state: Res<State<AppState>>,
     mut app_state: ResMut<NextState<AppState>>,
-    orchestration: Res<Orchestration>,
-    server_info: Res<GameServerInfo>,
     mut session_info: Option<ResMut<GameSessionInfo>>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
     let evt = trigger.event();
 
@@ -68,13 +64,12 @@ fn on_message(
                 }
                 notifs::NotifType::ReservationRequestV1 => {
                     reservation::handle_v1(
-                        &mut client,
+                        &mut commands,
                         &current_state,
-                        &orchestration,
-                        &server_info,
                         session_info.as_mut().unwrap(),
                         // TODO: error handling
                         notif.to_message::<notifs::ReservationRequestV1>().unwrap(),
+                        &mut evw_heartbeat,
                     );
                 }
             }

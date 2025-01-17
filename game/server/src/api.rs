@@ -4,10 +4,11 @@ use uuid::Uuid;
 
 use common::{check_reqwest_error, gameserver};
 
-use crate::server::{ConnectionInfo, GameSessionInfo};
+use crate::server::{ActivePlayer, ConnectionInfo, GameSessionInfo, PendingPlayer};
 
 const HOST: &str = "http://localhost:8000";
 
+#[allow(clippy::too_many_arguments)]
 pub fn heartbeat<'a>(
     client: &'a mut BevyReqwest,
     server_id: Uuid,
@@ -15,6 +16,8 @@ pub fn heartbeat<'a>(
     state: gameserver::GameServerState,
     orchestration: gameserver::GameServerOrchestration,
     session_info: Option<&GameSessionInfo>,
+    pending_players: impl Iterator<Item = &'a PendingPlayer>,
+    active_players: impl Iterator<Item = &'a ActivePlayer>,
 ) -> anyhow::Result<BevyReqwestBuilder<'a>> {
     debug!("heartbeat");
 
@@ -34,8 +37,12 @@ pub fn heartbeat<'a>(
                 game_session_info: session_info.map(|session_info| gameserver::GameSessionInfo {
                     max_players: session_info.max_players,
                     game_session_id: session_info.session_id,
-                    active_player_ids: session_info.active_players.keys().copied().collect(),
-                    pending_player_ids: session_info.pending_players.keys().copied().collect(),
+                    active_player_ids: active_players
+                        .map(|active_player| active_player.user_id)
+                        .collect(),
+                    pending_player_ids: pending_players
+                        .map(|pending_player| pending_player.user_id)
+                        .collect(),
                 }),
             },
         })

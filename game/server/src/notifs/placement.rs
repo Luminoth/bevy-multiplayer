@@ -32,8 +32,12 @@ pub fn handle_v1(
         request.game_session_id, request.player_ids
     );
 
-    let session_info =
-        GameSessionInfo::new(request.game_session_id, &game_settings, request.player_ids);
+    let session_info = GameSessionInfo::new(
+        commands,
+        request.game_session_id,
+        &game_settings,
+        request.player_ids,
+    );
 
     commands.insert_resource(session_info);
 

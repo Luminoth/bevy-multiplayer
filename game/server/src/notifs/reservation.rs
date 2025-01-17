@@ -1,22 +1,18 @@
 use bevy::prelude::*;
-use bevy_mod_reqwest::*;
 
 use internal::notifs;
 
 use crate::{
-    api,
-    orchestration::Orchestration,
-    server::{GameServerInfo, GameSessionInfo, PendingPlayer},
+    server::{GameSessionInfo, HeartbeatEvent},
     AppState,
 };
 
 pub fn handle_v1(
-    client: &mut BevyReqwest,
+    commands: &mut Commands,
     current_state: &AppState,
-    orchestration: &Orchestration,
-    server_info: &GameServerInfo,
     session_info: &mut GameSessionInfo,
     request: notifs::ReservationRequestV1,
+    evw_heartbeat: &mut EventWriter<HeartbeatEvent>,
 ) {
     if *current_state != AppState::InGame {
         warn!("ignoring unexpected reservation request!");
@@ -32,20 +28,9 @@ pub fn handle_v1(
     }
 
     info!("reserving player slots: {:?}", request.player_ids);
-
     for player_id in request.player_ids {
-        session_info
-            .pending_players
-            .insert(player_id, PendingPlayer::new(player_id));
+        session_info.reserve_player(commands, player_id);
     }
 
-    api::heartbeat(
-        client,
-        server_info.server_id,
-        server_info.connection_info.clone(),
-        (*current_state).into(),
-        orchestration.as_api_type(),
-        Some(&session_info),
-    )
-    .unwrap();
+    evw_heartbeat.send_default();
 }

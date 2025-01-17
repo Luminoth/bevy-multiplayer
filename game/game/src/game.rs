@@ -230,7 +230,7 @@ fn handle_input_update(
         // validation handled by server
 
         for (mut last_input, player) in &mut player_query {
-            if player.client_id() == *client_id {
+            if player.client_id == *client_id {
                 last_input.input_state = event.0;
             }
         }
@@ -249,7 +249,7 @@ fn handle_jump_event(
         // validation handled by server
 
         for (mut last_input, player) in &mut player_query {
-            if player.client_id() == *client_id {
+            if player.client_id == *client_id {
                 last_input.jump = true;
             }
         }

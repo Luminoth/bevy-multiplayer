@@ -15,10 +15,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use uuid::Uuid;
 
-use common::{
-    gameserver::{GameServerOrchestration, GameServerState},
-    user::UserId,
-};
+use common::user::UserId;
 use game_common::{
     network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player,
@@ -32,6 +29,7 @@ use crate::{
 };
 
 const HEARTBEAT_FREQUENCY: Duration = Duration::from_secs(5);
+const PENDING_PLAYER_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Clone, Default)]
 pub struct ConnectionInfo {
@@ -112,24 +110,24 @@ impl GameServerInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Component)]
 pub struct PendingPlayer {
     pub user_id: UserId,
 
     #[allow(dead_code)]
-    timestamp: Duration,
+    timer: Timer,
 }
 
 impl PendingPlayer {
     pub fn new(user_id: UserId) -> Self {
         Self {
             user_id,
-            timestamp: current_timestamp(),
+            timer: Timer::new(PENDING_PLAYER_TIMEOUT, TimerMode::Once),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Component)]
 pub struct ActivePlayer {
     pub user_id: UserId,
 }
@@ -145,39 +143,89 @@ pub struct GameSessionInfo {
     pub session_id: Uuid,
     pub max_players: u16,
 
-    pub active_players: HashMap<UserId, ActivePlayer>,
-    pub pending_players: HashMap<UserId, PendingPlayer>,
+    pending_player_count: usize,
+    active_player_count: usize,
 
     clients: HashMap<ClientId, UserId>,
 }
 
 impl GameSessionInfo {
     pub fn new(
+        commands: &mut Commands,
         session_id: Uuid,
         settings: &internal::GameSettings,
-        pending_player_ids: Vec<UserId>,
+        pending_player_ids: impl AsRef<[UserId]>,
     ) -> Self {
-        Self {
+        let mut this = Self {
             session_id,
             max_players: settings.max_players,
-            active_players: HashMap::with_capacity(settings.max_players as usize),
-            pending_players: HashMap::from_iter(pending_player_ids.iter().map(
-                |&pending_player_id| (pending_player_id, PendingPlayer::new(pending_player_id)),
-            )),
+            pending_player_count: 0,
+            active_player_count: 0,
             clients: HashMap::with_capacity(settings.max_players as usize),
+        };
+
+        for pending_player_id in pending_player_ids.as_ref().iter() {
+            this.reserve_player(commands, *pending_player_id);
         }
+
+        this
     }
 
     #[inline]
     pub fn player_count(&self) -> usize {
-        self.active_players.len() + self.pending_players.len()
+        self.pending_player_count + self.active_player_count
     }
 
-    fn client_connected(&mut self, user_id: UserId, client_id: ClientId) -> bool {
-        if self.pending_players.contains_key(&user_id) {
-            self.pending_players.remove(&user_id);
-            self.active_players
-                .insert(user_id, ActivePlayer::new(user_id));
+    pub fn reserve_player(&mut self, commands: &mut Commands, pending_player_id: UserId) {
+        if self.player_count() + 1 > self.max_players as usize {
+            warn!(
+                "not reserving player slot for {}, max players {} exceeded!",
+                pending_player_id, self.max_players
+            );
+            return;
+        }
+
+        info!("reserving player slot {}", pending_player_id);
+
+        commands.spawn(PendingPlayer::new(pending_player_id));
+        self.pending_player_count += 1;
+    }
+
+    #[allow(dead_code)]
+    fn pending_player_timeout(
+        &mut self,
+        commands: &mut Commands,
+        pending_player: Entity,
+        pending_player_id: UserId,
+    ) {
+        info!("pending player {} timeout", pending_player_id);
+
+        commands.entity(pending_player).despawn_recursive();
+        self.pending_player_count -= 1;
+    }
+
+    fn client_connected<'a>(
+        &mut self,
+        commands: &mut Commands,
+        user_id: UserId,
+        client_id: ClientId,
+        mut pending_players: impl Iterator<Item = (Entity, &'a PendingPlayer)>,
+    ) -> bool {
+        if let Some(pending_player) = pending_players.find_map(|v| {
+            if v.1.user_id == user_id {
+                Some(v.0)
+            } else {
+                None
+            }
+        }) {
+            info!("activating player slot {} for {:?}", user_id, client_id);
+
+            commands.entity(pending_player).despawn_recursive();
+            self.pending_player_count -= 1;
+
+            commands.spawn(ActivePlayer::new(user_id));
+            self.active_player_count += 1;
+
             self.clients.insert(client_id, user_id);
 
             true
@@ -186,34 +234,45 @@ impl GameSessionInfo {
         }
     }
 
-    fn client_disconnected(&mut self, client_id: &ClientId) {
+    fn client_disconnected<'a>(
+        &mut self,
+        commands: &mut Commands,
+        client_id: &ClientId,
+        mut pending_players: impl Iterator<Item = (Entity, &'a PendingPlayer)>,
+        mut active_players: impl Iterator<Item = (Entity, &'a ActivePlayer)>,
+    ) {
         if let Some(user_id) = self.clients.remove(client_id) {
-            self.active_players.remove(&user_id);
-            self.pending_players.remove(&user_id);
+            if let Some(pending_player) = pending_players.find_map(|v| {
+                if v.1.user_id == user_id {
+                    Some(v.0)
+                } else {
+                    None
+                }
+            }) {
+                info!("pending player {} disconnected ?", user_id);
+
+                commands.entity(pending_player).despawn_recursive();
+                self.pending_player_count -= 1;
+            }
+
+            if let Some(active_player) = active_players.find_map(|v| {
+                if v.1.user_id == user_id {
+                    Some(v.0)
+                } else {
+                    None
+                }
+            }) {
+                info!("active player {} disconnected ?", user_id);
+
+                commands.entity(active_player).despawn_recursive();
+                self.active_player_count -= 1;
+            }
         }
     }
 }
 
-// TODO: heartbeat off an event instead
-// so we don't have to pass all this garbage into everything
-pub fn heartbeat(
-    client: &mut BevyReqwest,
-    server_id: Uuid,
-    connection_info: ConnectionInfo,
-    state: GameServerState,
-    orchestration: GameServerOrchestration,
-    session_info: Option<&GameSessionInfo>,
-) {
-    api::heartbeat(
-        client,
-        server_id,
-        connection_info,
-        state,
-        orchestration,
-        session_info,
-    )
-    .unwrap();
-}
+#[derive(Debug, Default, Event)]
+pub struct HeartbeatEvent;
 
 #[derive(Debug)]
 pub struct ServerPlugin;
@@ -221,6 +280,7 @@ pub struct ServerPlugin;
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((placement::PlacementPlugin, game::GamePlugin))
+            .add_event::<HeartbeatEvent>()
             .add_systems(Startup, setup)
             .add_systems(
                 PreUpdate,
@@ -234,6 +294,7 @@ impl Plugin for ServerPlugin {
                 (
                     handle_network_events.run_if(in_state(GameState::InGame)),
                     heartbeat_monitor.run_if(on_timer(HEARTBEAT_FREQUENCY)),
+                    handle_heartbeat_events,
                 ),
             )
             .add_systems(OnEnter(AppState::InitServer), init_server)
@@ -246,22 +307,15 @@ impl Plugin for ServerPlugin {
 fn setup(
     mut commands: Commands,
     options: Res<Options>,
-    mut client: BevyReqwest,
     mut ws_client: WebSocketClient,
     runtime: Res<TokioTasksRuntime>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
     let server_info = GameServerInfo::new();
     info!("starting server {}", server_info.server_id);
 
     // let the backend know we're starting up
-    heartbeat(
-        &mut client,
-        server_info.server_id,
-        server_info.connection_info.clone(),
-        AppState::Startup.into(),
-        GameServerOrchestration::Local,
-        None,
-    );
+    evw_heartbeat.send_default();
 
     notifs::subscribe(&mut ws_client, server_info.server_id);
 
@@ -301,23 +355,12 @@ fn shutdown(orchestration: Res<Orchestration>, runtime: Res<TokioTasksRuntime>) 
 }
 
 fn enter(
-    mut client: BevyReqwest,
-    orchestration: Res<Orchestration>,
-    server_info: Res<GameServerInfo>,
-    session_info: Res<GameSessionInfo>,
-    state: Res<State<AppState>>,
     mut game_state: ResMut<NextState<GameState>>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
     info!("entering server app game ...");
 
-    heartbeat(
-        &mut client,
-        server_info.server_id,
-        server_info.connection_info.clone(),
-        (**state).into(),
-        orchestration.as_api_type(),
-        Some(&session_info),
-    );
+    evw_heartbeat.send_default();
 
     game_state.set(GameState::LoadAssets);
 }
@@ -331,23 +374,14 @@ fn exit(mut commands: Commands) {
 }
 
 fn heartbeat_monitor(
-    mut client: BevyReqwest,
     orchestration: Res<Orchestration>,
-    server_info: Res<GameServerInfo>,
     state: Res<State<AppState>>,
-    session_info: Option<Res<GameSessionInfo>>,
     runtime: Res<TokioTasksRuntime>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
-    let session_info = session_info.as_deref();
-    heartbeat(
-        &mut client,
-        server_info.server_id,
-        server_info.connection_info.clone(),
-        (**state).into(),
-        orchestration.as_api_type(),
-        session_info,
-    );
+    evw_heartbeat.send_default();
 
+    // send orchestration health check
     if state.is_ready() {
         let orchestration = orchestration.clone();
         tasks::spawn_task(
@@ -362,28 +396,49 @@ fn heartbeat_monitor(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn handle_heartbeat_events(
+    mut client: BevyReqwest,
+    orchestration: Option<Res<Orchestration>>,
+    server_info: Res<GameServerInfo>,
+    session_info: Option<Res<GameSessionInfo>>,
+    state: Res<State<AppState>>,
+    pending_players: Query<&PendingPlayer>,
+    active_players: Query<&ActivePlayer>,
+    mut evr_heartbeat: EventReader<HeartbeatEvent>,
+) {
+    if let Some(orchestration) = orchestration {
+        if !evr_heartbeat.is_empty() {
+            api::heartbeat(
+                &mut client,
+                server_info.server_id,
+                server_info.connection_info.clone(),
+                (**state).into(),
+                orchestration.as_api_type(),
+                session_info.as_deref(),
+                pending_players.iter(),
+                active_players.iter(),
+            )
+            .unwrap();
+        }
+    }
+
+    evr_heartbeat.clear();
+}
+
+#[allow(clippy::too_many_arguments)]
 fn init_server(
     mut commands: Commands,
-    mut client: BevyReqwest,
     options: Res<Options>,
     channels: Res<RepliconChannels>,
-    orchestration: Res<Orchestration>,
     mut server_info: ResMut<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
-    current_state: Res<State<AppState>>,
     mut app_state: ResMut<NextState<AppState>>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
     info!("init network ...");
 
     // let the backend know we're initializing the game
-    heartbeat(
-        &mut client,
-        server_info.server_id,
-        server_info.connection_info.clone(),
-        (**current_state).into(),
-        orchestration.as_api_type(),
-        None,
-    );
+    evw_heartbeat.send_default();
 
     let server_addr = options.address().parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
@@ -418,13 +473,12 @@ fn init_server(
 #[allow(clippy::too_many_arguments)]
 fn handle_network_events(
     mut commands: Commands,
-    mut client: BevyReqwest,
-    app_state: Res<State<AppState>>,
-    server_info: Res<GameServerInfo>,
     mut session_info: ResMut<GameSessionInfo>,
-    orchestration: Res<Orchestration>,
+    pending_players: Query<(Entity, &PendingPlayer)>,
+    active_players: Query<(Entity, &ActivePlayer)>,
     players: Query<(Entity, &player::Player)>,
     mut evr_server: EventReader<ServerEvent>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
     for evt in evr_server.read() {
         match evt {
@@ -435,21 +489,19 @@ fn handle_network_events(
                 info!("client {:?} disconnected: {}", client_id, reason);
 
                 for (entity, player) in players.iter() {
-                    if player.client_id() == *client_id {
-                        player::despawn_player(&mut commands, entity);
+                    if player.client_id == *client_id {
+                        player::despawn_player(&mut commands, entity, player.user_id);
                     }
                 }
 
-                session_info.client_disconnected(client_id);
-
-                heartbeat(
-                    &mut client,
-                    server_info.server_id,
-                    server_info.connection_info.clone(),
-                    (**app_state).into(),
-                    orchestration.as_api_type(),
-                    Some(&session_info),
+                session_info.client_disconnected(
+                    &mut commands,
+                    client_id,
+                    pending_players.iter(),
+                    active_players.iter(),
                 );
+
+                evw_heartbeat.send_default();
             }
         }
     }
@@ -458,38 +510,35 @@ fn handle_network_events(
 #[allow(clippy::too_many_arguments)]
 fn handle_connect(
     mut commands: Commands,
-    mut client: BevyReqwest,
     mut evr_connect: EventReader<FromClient<ConnectEvent>>,
-    app_state: Res<State<AppState>>,
     assets: Option<Res<GameAssetState>>,
     mut server: ResMut<RenetServer>,
-    server_info: Res<GameServerInfo>,
     mut session_info: ResMut<GameSessionInfo>,
-    orchestration: Res<Orchestration>,
+    pending_players: Query<(Entity, &PendingPlayer)>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
+    mut evw_heartbeat: EventWriter<HeartbeatEvent>,
 ) {
     for FromClient { client_id, event } in evr_connect.read() {
         let user_id = event.0;
         info!("player {} connected", user_id);
 
-        if !session_info.client_connected(user_id, *client_id) {
+        if !session_info.client_connected(
+            &mut commands,
+            user_id,
+            *client_id,
+            pending_players.iter(),
+        ) {
             warn!("player {} not expected", user_id);
             server.disconnect(client_id.get());
             continue;
         }
 
-        heartbeat(
-            &mut client,
-            server_info.server_id,
-            server_info.connection_info.clone(),
-            (**app_state).into(),
-            orchestration.as_api_type(),
-            Some(&session_info),
-        );
+        evw_heartbeat.send_default();
 
         let spawnpoint = spawnpoints.iter().next().unwrap();
         player::spawn_player(
             &mut commands,
+            user_id,
             *client_id,
             spawnpoint.translation(),
             assets.as_ref().unwrap(),

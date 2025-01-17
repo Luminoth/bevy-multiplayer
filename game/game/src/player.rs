@@ -4,6 +4,8 @@ use bevy_replicon::prelude::*;
 use bevy_tnua::{builtins::TnuaBuiltinCrouch, control_helpers::TnuaCrouchEnforcer, prelude::*};
 use serde::{Deserialize, Serialize};
 
+use common::user::UserId;
+
 use crate::{game::OnInGame, network, GameAssetState, InputState};
 
 // TODO: if these moved to a resource
@@ -16,13 +18,9 @@ const HEIGHT: f32 = 2.0; // includes capsule hemispheres
 const MASS: f32 = 75.0;
 
 #[derive(Debug, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
-pub struct Player(ClientId);
-
-impl Player {
-    #[inline]
-    pub fn client_id(&self) -> ClientId {
-        self.0
-    }
+pub struct Player {
+    pub user_id: UserId,
+    pub client_id: ClientId,
 }
 
 #[derive(Debug, Component, Serialize, Deserialize)]
@@ -56,21 +54,22 @@ pub fn load_assets(
 
 pub fn spawn_player(
     commands: &mut Commands,
+    user_id: UserId,
     client_id: ClientId,
     position: Vec3,
     assets: &GameAssetState,
 ) -> Entity {
-    info!("spawning player {:?} at {} ...", client_id, position);
+    info!("spawning player {:?} at {} ...", user_id, position);
 
     let mut commands = commands.spawn((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
         Transform::from_xyz(position.x, position.y, position.z),
-        Name::new(format!("Player {:?}", client_id)),
+        Name::new(format!("Player {}: {:?}", user_id, client_id)),
         Replicated,
         PlayerPhysics::default(),
         LastInput::default(),
-        Player(client_id),
+        Player { user_id, client_id },
         OnInGame,
     ));
 
@@ -95,15 +94,15 @@ pub fn spawn_player(
         .id()
 }
 
-pub fn despawn_player(commands: &mut Commands, entity: Entity) {
-    info!("despawning player {} ...", entity);
+pub fn despawn_player(commands: &mut Commands, entity: Entity, user_id: UserId) {
+    info!("despawning player {} ...", user_id);
 
     commands.entity(entity).despawn_recursive();
 }
 
 pub fn finish_client_player(
     commands: &mut Commands,
-    client_id: ClientId,
+    local_client_id: ClientId,
     assets: &GameAssetState,
     entity: Entity,
     transform: &Transform,
@@ -111,10 +110,10 @@ pub fn finish_client_player(
 ) {
     info!(
         "finishing player {} ({:?}:{:?}) at {} ...",
-        entity, player.0, client_id, transform.translation
+        player.user_id, player.client_id, local_client_id, transform.translation
     );
 
-    let is_local = player.0 == client_id;
+    let is_local = player.client_id == local_client_id;
 
     let mut ec = commands.entity(entity);
     ec.insert((
@@ -126,8 +125,10 @@ pub fn finish_client_player(
         // (either way, we need it for the debug view)
         Collider::capsule(HEIGHT * 0.5, HEIGHT),
         Name::new(format!(
-            "Replicated Player ({})",
-            if is_local { " Local" } else { "Remote" }
+            "Replicated Player ({}) {}: {:?}",
+            player.user_id,
+            if is_local { " Local" } else { "Remote" },
+            player.client_id
         )),
         OnInGame,
     ));

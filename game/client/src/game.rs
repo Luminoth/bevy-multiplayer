@@ -4,7 +4,7 @@ use game_common::{
     network::PlayerClientId, player, spawn::SpawnPoint, GameAssetState, GameState, ServerSet,
 };
 
-use crate::{game_menu, recenter_cursor, show_cursor};
+use crate::{game_menu, options::Options, recenter_cursor, show_cursor};
 
 pub fn is_local_game(client_id: Res<PlayerClientId>) -> bool {
     client_id.is_local()
@@ -43,6 +43,7 @@ fn enter(mut window_query: Query<&mut Window, With<PrimaryWindow>>) {
 #[allow(clippy::type_complexity)]
 fn spawn_local_player(
     mut commands: Commands,
+    options: Res<Options>,
     client_id: Res<PlayerClientId>,
     assets: Res<GameAssetState>,
     spawnpoints: Query<&GlobalTransform, With<SpawnPoint>>,
@@ -52,6 +53,7 @@ fn spawn_local_player(
     let spawnpoint = spawnpoints.iter().next().unwrap();
     let entity = player::spawn_player(
         &mut commands,
+        options.user_id,
         client_id.get_client_id(),
         spawnpoint.translation(),
         &assets,

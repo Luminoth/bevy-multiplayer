@@ -1,5 +1,4 @@
 use bevy::{ecs::system::RunSystemOnce, prelude::*};
-use bevy_mod_reqwest::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
 
 use game_common::cleanup_state;
@@ -8,7 +7,7 @@ use crate::{
     is_not_headless,
     options::Options,
     orchestration::{start_watcher, Orchestration, StartWatcherEvent},
-    server::{heartbeat, GameServerInfo},
+    server::{GameServerInfo, HeartbeatEvent},
     tasks, AppState,
 };
 
@@ -55,22 +54,10 @@ fn enter(
         {
             |ctx, _output| {
                 ctx.world
-                    .run_system_once(
-                        |mut client: BevyReqwest,
-                         server_info: Res<GameServerInfo>,
-                         state: Res<State<AppState>>,
-                         orchestration: Res<Orchestration>| {
-                            // let the backend know we're available for placement
-                            heartbeat(
-                                &mut client,
-                                server_info.server_id,
-                                server_info.connection_info.clone(),
-                                (**state).into(),
-                                orchestration.as_api_type(),
-                                None,
-                            );
-                        },
-                    )
+                    .run_system_once(|mut evw_heartbeat: EventWriter<HeartbeatEvent>| {
+                        // let the backend know we're available for placement
+                        evw_heartbeat.send_default();
+                    })
                     .unwrap();
 
                 // have to do this with an event

@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::server::{ActivePlayer, PendingPlayer};
+
 use game_common::{GameState, OnInGame};
 
 use crate::{
@@ -23,6 +25,8 @@ fn enter_spectate(
     mut commands: Commands,
     server_info: Res<GameServerInfo>,
     session_info: Res<GameSessionInfo>,
+    pending_players: Query<&PendingPlayer>,
+    active_players: Query<&ActivePlayer>,
 ) {
     info!("entering server spectate game ...");
 
@@ -87,7 +91,7 @@ fn enter_spectate(
             ));
 
             // TODO: this list updates over time
-            for pending_player in session_info.pending_players.values() {
+            for pending_player in &pending_players {
                 parent.spawn((
                     Text::new(format!("  {}", pending_player.user_id)),
                     TextFont::from_font_size(24.0),
@@ -102,7 +106,7 @@ fn enter_spectate(
             ));
 
             // TODO: this list updates over time
-            for active_player in session_info.active_players.values() {
+            for active_player in &active_players {
                 parent.spawn((
                     Text::new(format!("  {}", active_player.user_id)),
                     TextFont::from_font_size(24.0),
