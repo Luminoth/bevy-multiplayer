@@ -6,7 +6,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 
 use common::gameserver::GameServerOrchestration;
 
-#[derive(Event)]
+#[derive(Debug, Event)]
 pub struct StartWatcherEvent;
 
 pub fn start_watcher(
@@ -50,6 +50,20 @@ impl Orchestration {
         }
     }
 
+    #[inline]
+    pub fn shutdown_empty(&self) -> bool {
+        match self {
+            Self::Local => false,
+
+            #[cfg(feature = "agones")]
+            Self::Agones(_) => true,
+
+            #[cfg(feature = "gamelift")]
+            Self::GameLift(_) => true,
+        }
+    }
+
+    #[inline]
     pub fn as_api_type(&self) -> GameServerOrchestration {
         match self {
             Self::Local => GameServerOrchestration::Local,

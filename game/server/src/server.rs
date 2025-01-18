@@ -30,6 +30,7 @@ use crate::{
 
 const HEARTBEAT_FREQUENCY: Duration = Duration::from_secs(5);
 const PENDING_PLAYER_TIMEOUT: Duration = Duration::from_secs(10);
+const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(60 * 10);
 
 #[derive(Debug, Clone, Default)]
 pub struct ConnectionInfo {
@@ -150,6 +151,8 @@ pub struct GameSessionInfo {
     active_player_count: usize,
 
     clients: HashMap<ClientId, UserId>,
+
+    shutdown_timer: Timer,
 }
 
 impl GameSessionInfo {
@@ -165,7 +168,9 @@ impl GameSessionInfo {
             pending_player_count: 0,
             active_player_count: 0,
             clients: HashMap::with_capacity(settings.max_players as usize),
+            shutdown_timer: Timer::new(SHUTDOWN_TIMEOUT, TimerMode::Once),
         };
+        this.shutdown_timer.pause();
 
         for pending_player_id in pending_player_ids.as_ref().iter() {
             this.reserve_player(commands, *pending_player_id);
@@ -192,6 +197,8 @@ impl GameSessionInfo {
 
         commands.spawn(PendingPlayer::new(pending_player_id));
         self.pending_player_count += 1;
+
+        self.shutdown_timer.pause();
     }
 
     fn pending_player_timeout(
@@ -204,6 +211,11 @@ impl GameSessionInfo {
 
         commands.entity(pending_player).despawn_recursive();
         self.pending_player_count -= 1;
+
+        if self.player_count() == 0 {
+            self.shutdown_timer.reset();
+            self.shutdown_timer.unpause();
+        }
     }
 
     fn client_connected<'a>(
@@ -229,6 +241,8 @@ impl GameSessionInfo {
             self.active_player_count += 1;
 
             self.clients.insert(client_id, user_id);
+
+            self.shutdown_timer.pause();
 
             true
         } else {
@@ -270,6 +284,11 @@ impl GameSessionInfo {
                 self.active_player_count -= 1;
             }
         }
+
+        if self.player_count() == 0 {
+            self.shutdown_timer.reset();
+            self.shutdown_timer.unpause();
+        }
     }
 }
 
@@ -295,7 +314,7 @@ impl Plugin for ServerPlugin {
                 Update,
                 (
                     handle_network_events.run_if(in_state(GameState::InGame)),
-                    timeout_pending_players.run_if(in_state(GameState::InGame)),
+                    handle_timeouts.run_if(in_state(GameState::InGame)),
                     heartbeat_monitor.run_if(on_timer(HEARTBEAT_FREQUENCY)),
                     handle_heartbeat_events,
                 ),
@@ -510,15 +529,25 @@ fn handle_network_events(
     }
 }
 
-fn timeout_pending_players(
+fn handle_timeouts(
     mut commands: Commands,
     time: Res<Time>,
+    orchestration: Res<Orchestration>,
     mut session_info: ResMut<GameSessionInfo>,
     mut pending_players: Query<(Entity, &mut PendingPlayer)>,
+    mut exit: EventWriter<AppExit>,
 ) {
     for (entity, mut pending_player) in &mut pending_players {
         if pending_player.is_timeout(time.delta()) {
             session_info.pending_player_timeout(&mut commands, entity, pending_player.user_id);
+        }
+    }
+
+    if orchestration.shutdown_empty() {
+        session_info.shutdown_timer.tick(time.delta());
+        if session_info.shutdown_timer.finished() {
+            info!("session timeout, exiting");
+            exit.send(AppExit::Success);
         }
     }
 }
