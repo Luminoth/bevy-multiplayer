@@ -23,7 +23,6 @@ impl Plugin for GamePlugin {
             // third-party plugins
             PhysicsPlugins::default(), // TODO: this doesn't work with tnua: .set(PhysicsInterpolationPlugin::interpolate_all()),
             bevy_tnua::controller::TnuaControllerPlugin::new(PhysicsSchedule),
-            bevy_tnua::control_helpers::TnuaCrouchEnforcerPlugin::new(PhysicsSchedule),
             bevy_tnua_avian3d::TnuaAvian3dPlugin::new(PhysicsSchedule),
             // game plugins
             player::PlayerPlugin,

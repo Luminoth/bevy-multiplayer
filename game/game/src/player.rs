@@ -1,12 +1,12 @@
 use avian3d::prelude::*;
 use bevy::{color::palettes::css, prelude::*};
 use bevy_replicon::prelude::*;
-use bevy_tnua::{builtins::TnuaBuiltinCrouch, control_helpers::TnuaCrouchEnforcer, prelude::*};
+use bevy_tnua::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use common::user::UserId;
 
-use crate::{game::OnInGame, network, GameAssetState, InputState};
+use crate::{game::OnInGame, network::PlayerClientId, GameAssetState, GameState, InputState};
 
 // TODO: if these moved to a resource
 // they'd be easier to fudge for testing
@@ -28,11 +28,6 @@ pub struct LocalPlayer;
 
 #[derive(Debug, Component)]
 pub struct PlayerCamera;
-
-#[derive(Debug, Default, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
-pub struct PlayerPhysics {
-    pub velocity: Vec3,
-}
 
 #[derive(Debug, Default, Component)]
 pub struct LastInput {
@@ -67,7 +62,6 @@ pub fn spawn_player(
         Transform::from_xyz(position.x, position.y, position.z),
         Name::new(format!("Player {}: {:?}", user_id, client_id)),
         Replicated,
-        PlayerPhysics::default(),
         LastInput::default(),
         Player { user_id, client_id },
         OnInGame,
@@ -85,11 +79,6 @@ pub fn spawn_player(
         .insert((
             TnuaController::default(),
             bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(0.5, 0.0)),
-            TnuaCrouchEnforcer::new(Vec3::Y * HEIGHT, |commands| {
-                commands.insert(bevy_tnua_avian3d::TnuaAvian3dSensorShape(
-                    Collider::cylinder(0.5, 0.0),
-                ));
-            }),
         ))
         .id()
 }
@@ -170,19 +159,28 @@ impl Plugin for PlayerPlugin {
                 .after(ClientSet::Receive)
                 .run_if(client_connected),
         )
-        .add_systems(Update, rotate_player)
-        .add_systems(FixedUpdate, update_player_physics);
+        .add_systems(
+            Update,
+            rotate_player
+                .run_if(server_or_singleplayer)
+                .run_if(in_state(GameState::InGame)),
+        )
+        .add_systems(
+            FixedUpdate,
+            update_player_physics
+                .run_if(server_or_singleplayer)
+                .run_if(in_state(GameState::InGame)),
+        );
 
-        app.register_type::<Player>()
-            .register_type::<PlayerPhysics>();
+        app.register_type::<Player>();
 
-        app.replicate_group::<(Transform, Player, PlayerPhysics)>();
+        app.replicate_group::<(Transform, Player)>();
     }
 }
 
 fn finish_client_players(
     mut commands: Commands,
-    client_id: Res<network::PlayerClientId>,
+    client_id: Res<PlayerClientId>,
     assets: Option<Res<GameAssetState>>,
     players: Query<(Entity, &Transform, &Player), Without<Mesh3d>>,
 ) {
@@ -218,25 +216,11 @@ fn rotate_player(
 
 #[allow(clippy::type_complexity)]
 fn update_player_physics(
-    mut player_query: Query<(
-        &mut LastInput,
-        &mut TnuaController,
-        &mut TnuaCrouchEnforcer,
-        &GlobalTransform,
-        &mut PlayerPhysics,
-    )>,
+    mut player_query: Query<(&mut LastInput, &mut TnuaController, &GlobalTransform)>,
 ) {
-    for (
-        mut last_input,
-        mut character_controller,
-        mut crouch_enforcer,
-        global_transform,
-        mut player_physics,
-    ) in &mut player_query
-    {
+    for (mut last_input, mut character_controller, global_transform) in &mut player_query {
         let global_transform = global_transform.compute_transform();
 
-        // handle move input
         let direction = global_transform.rotation
             * Vec3::new(
                 last_input.input_state.r#move.x,
@@ -245,17 +229,8 @@ fn update_player_physics(
             );
         last_input.input_state.r#move = Vec2::default();
 
-        let direction = direction.normalize_or_zero();
-        if direction.length_squared() > 0.0 {
-            player_physics.velocity.x = direction.x * MOVE_SPEED;
-            player_physics.velocity.z = direction.z * MOVE_SPEED;
-        } else {
-            player_physics.velocity.x = 0.0;
-            player_physics.velocity.z = 0.0;
-        }
-
         character_controller.basis(TnuaBuiltinWalk {
-            desired_velocity: player_physics.velocity,
+            desired_velocity: direction.normalize_or_zero() * MOVE_SPEED,
             // TODO: this doesn't seem right by the docs, but anything less doesn't work
             float_height: HEIGHT,
             // TODO: should we remove rotate_player() and set desired_forward here instead?
@@ -271,10 +246,7 @@ fn update_player_physics(
         }
 
         if last_input.input_state.crouch {
-            character_controller.action(crouch_enforcer.enforcing(TnuaBuiltinCrouch {
-                float_offset: HEIGHT * -0.5,
-                ..Default::default()
-            }));
+        } else {
         }
     }
 }
