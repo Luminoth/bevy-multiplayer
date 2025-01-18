@@ -1,5 +1,5 @@
 use avian3d::prelude::*;
-use bevy::{color::palettes::css, prelude::*};
+use bevy::{color::palettes::css, ecs::entity::MapEntities, prelude::*};
 use bevy_replicon::prelude::*;
 use bevy_tnua::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -21,9 +21,21 @@ const MASS: f32 = 75.0;
 pub struct Player {
     pub user_id: UserId,
     pub client_id: ClientId,
+
+    pub crouched: bool,
 }
 
-#[derive(Debug, Component, Serialize, Deserialize)]
+impl Player {
+    fn new(user_id: UserId, client_id: ClientId) -> Self {
+        Self {
+            user_id,
+            client_id,
+            crouched: false,
+        }
+    }
+}
+
+#[derive(Debug, Component)]
 pub struct LocalPlayer;
 
 #[derive(Debug, Component)]
@@ -33,6 +45,15 @@ pub struct PlayerCamera;
 pub struct LastInput {
     pub input_state: InputState,
     pub jump: bool,
+}
+
+#[derive(Debug, Event, Serialize, Deserialize)]
+pub struct PlayerCrouchEvent(pub Entity, pub bool);
+
+impl MapEntities for PlayerCrouchEvent {
+    fn map_entities<T: EntityMapper>(&mut self, entity_mapper: &mut T) {
+        self.0 = entity_mapper.map_entity(self.0);
+    }
 }
 
 pub fn load_assets(
@@ -63,7 +84,7 @@ pub fn spawn_player(
         Name::new(format!("Player {}: {:?}", user_id, client_id)),
         Replicated,
         LastInput::default(),
-        Player { user_id, client_id },
+        Player::new(user_id, client_id),
         OnInGame,
     ));
 
@@ -174,7 +195,8 @@ impl Plugin for PlayerPlugin {
 
         app.register_type::<Player>();
 
-        app.replicate_group::<(Transform, Player)>();
+        app.add_mapped_server_event::<PlayerCrouchEvent>(ChannelKind::Ordered)
+            .replicate_group::<(Transform, Player)>();
     }
 }
 
@@ -216,9 +238,18 @@ fn rotate_player(
 
 #[allow(clippy::type_complexity)]
 fn update_player_physics(
-    mut player_query: Query<(&mut LastInput, &mut TnuaController, &GlobalTransform)>,
+    mut player_query: Query<(
+        Entity,
+        &mut Player,
+        &mut LastInput,
+        &mut TnuaController,
+        &GlobalTransform,
+    )>,
+    mut evw_crouch: EventWriter<ToClients<PlayerCrouchEvent>>,
 ) {
-    for (mut last_input, mut character_controller, global_transform) in &mut player_query {
+    for (entity, mut player, mut last_input, mut character_controller, global_transform) in
+        &mut player_query
+    {
         let global_transform = global_transform.compute_transform();
 
         let direction = global_transform.rotation
@@ -245,8 +276,23 @@ fn update_player_physics(
             last_input.jump = false;
         }
 
+        // TODO: this is looking more like it should be an event
+        // (start crouch, end crouch)
+        // TODO: client needs a reader next, that should "crouch" the player
         if last_input.input_state.crouch {
-        } else {
+            if !player.crouched {
+                player.crouched = true;
+                evw_crouch.send(ToClients {
+                    mode: SendMode::Broadcast,
+                    event: PlayerCrouchEvent(entity, true),
+                });
+            }
+        } else if player.crouched {
+            player.crouched = false;
+            evw_crouch.send(ToClients {
+                mode: SendMode::Broadcast,
+                event: PlayerCrouchEvent(entity, false),
+            });
         }
     }
 }

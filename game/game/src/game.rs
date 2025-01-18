@@ -30,10 +30,6 @@ impl Plugin for GamePlugin {
         ))
         .init_state::<GameState>()
         .init_resource::<InputState>()
-        // TOOD: move to a network plugin
-        .add_client_event::<ConnectEvent>(ChannelKind::Unordered)
-        .add_client_event::<InputUpdateEvent>(ChannelKind::Ordered)
-        .add_client_event::<PlayerJumpEvent>(ChannelKind::Unordered)
         .add_systems(OnEnter(GameState::LoadAssets), load_assets)
         .add_systems(
             Update,
@@ -66,6 +62,11 @@ impl Plugin for GamePlugin {
         );
 
         app.register_type::<InputState>();
+
+        // TOOD: move to a network plugin
+        app.add_client_event::<ConnectEvent>(ChannelKind::Unordered)
+            .add_client_event::<InputUpdateEvent>(ChannelKind::Ordered)
+            .add_client_event::<PlayerJumpEvent>(ChannelKind::Unordered);
     }
 }
 
