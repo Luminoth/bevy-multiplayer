@@ -78,9 +78,6 @@ pub fn finish_client_dynamic(
     commands.entity(entity).insert((
         Mesh3d(assets.ball_mesh.clone()),
         MeshMaterial3d(assets.ball_material.clone()),
-        // TODO: we probably should replicate this?
-        // because we might want to make updates to it
-        // (either way, we need it for the debug view)
         Collider::sphere(BALL_RADIUS),
         Name::new(format!("Replicated {}", dynamic.get_name())),
         OnInGame,

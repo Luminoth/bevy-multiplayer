@@ -36,11 +36,18 @@ pub struct InputState {
     pub crouch: bool,
 }
 
+#[derive(Debug, Default)]
+pub struct AnimationAsset {
+    graph: Handle<AnimationGraph>,
+    animation_index: AnimationNodeIndex,
+}
+
 #[derive(Debug, Default, Resource)]
 pub struct GameAssetState {
     floor_mesh: Handle<Mesh>,
     floor_material: Handle<StandardMaterial>,
 
+    // use floor mesh
     wall_material: Handle<StandardMaterial>,
 
     ball_mesh: Handle<Mesh>,
@@ -48,6 +55,7 @@ pub struct GameAssetState {
 
     player_mesh: Handle<Mesh>,
     player_material: Handle<StandardMaterial>,
+    player_animation: AnimationAsset,
 }
 
 pub fn cleanup_state<T>(mut commands: Commands, query: Query<Entity, With<T>>)

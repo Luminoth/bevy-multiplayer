@@ -59,6 +59,8 @@ impl MapEntities for PlayerCrouchEvent {
 pub fn load_assets(
     meshes: &mut Assets<Mesh>,
     materials: &mut Option<ResMut<Assets<StandardMaterial>>>,
+    animations: &mut ResMut<Assets<AnimationClip>>,
+    graphs: &mut ResMut<Assets<AnimationGraph>>,
     game_assets: &mut GameAssetState,
 ) {
     game_assets.player_mesh = meshes.add(Capsule3d::new(HEIGHT * 0.5, HEIGHT));
@@ -66,6 +68,22 @@ pub fn load_assets(
         .as_mut()
         .map(|materials| materials.add(Color::from(css::LIGHT_YELLOW)))
         .unwrap_or_default();
+
+    create_animations(animations, graphs, game_assets);
+}
+
+fn create_animations(
+    animations: &mut ResMut<Assets<AnimationClip>>,
+    graphs: &mut ResMut<Assets<AnimationGraph>>,
+    game_assets: &mut GameAssetState,
+) {
+    let animation = AnimationClip::default();
+
+    // TODO: create the animations
+
+    let (graph, animation_index) = AnimationGraph::from_clip(animations.add(animation));
+    game_assets.player_animation.graph = graphs.add(graph);
+    game_assets.player_animation.animation_index = animation_index;
 }
 
 pub fn spawn_player(
@@ -80,6 +98,8 @@ pub fn spawn_player(
     let mut commands = commands.spawn((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
+        AnimationGraphHandle(assets.player_animation.graph.clone()),
+        AnimationPlayer::default(),
         Transform::from_xyz(position.x, position.y, position.z),
         Name::new(format!("Player {}: {:?}", user_id, client_id)),
         Replicated,
@@ -129,10 +149,8 @@ pub fn finish_client_player(
     ec.insert((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
-        // TODO: we probably should replicate this?
-        // because we might want to make updates to it
-        // (like when crouching)
-        // (either way, we need it for the debug view)
+        AnimationGraphHandle(assets.player_animation.graph.clone()),
+        AnimationPlayer::default(),
         Collider::capsule(HEIGHT * 0.5, HEIGHT),
         Name::new(format!(
             "Replicated Player ({}) {}: {:?}",
@@ -154,6 +172,7 @@ pub fn finish_local_player(commands: &mut Commands, entity: Entity) {
     let mut ec = commands.entity(entity);
     ec.insert(LocalPlayer);
 
+    // spawn the player camera
     ec.with_children(|parent| {
         parent.spawn((
             Transform::from_xyz(0.0, 1.9, -0.9),

@@ -74,6 +74,8 @@ fn load_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: Option<ResMut<Assets<StandardMaterial>>>,
+    mut animations: ResMut<Assets<AnimationClip>>,
+    mut graphs: ResMut<Assets<AnimationGraph>>,
 ) {
     info!("loading assets ...");
 
@@ -81,7 +83,13 @@ fn load_assets(
 
     world::load_assets(&mut meshes, &mut materials, &mut game_assets);
     dynamic::load_assets(&mut meshes, &mut materials, &mut game_assets);
-    player::load_assets(&mut meshes, &mut materials, &mut game_assets);
+    player::load_assets(
+        &mut meshes,
+        &mut materials,
+        &mut animations,
+        &mut graphs,
+        &mut game_assets,
+    );
 
     commands.insert_resource(game_assets);
 }
