@@ -1,7 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{color::palettes::css, ecs::entity::MapEntities, prelude::*};
 use bevy_replicon::prelude::*;
-use bevy_tnua::prelude::*;
+use bevy_tnua::{prelude::*, TnuaAnimatingState};
 use serde::{Deserialize, Serialize};
 
 use common::user::UserId;
@@ -16,6 +16,28 @@ const JUMP_HEIGHT: f32 = 8.0;
 //const TERMINAL_VELOCITY: f32 = 50.0;
 const HEIGHT: f32 = 2.0; // includes capsule hemispheres
 const MASS: f32 = 75.0;
+
+#[derive(Debug)]
+pub enum PlayerAnimationState {
+    Idle,
+    Walking,
+    Running(f32),
+    Jumping,
+    Falling,
+    Crouching,
+}
+
+#[derive(Debug, Default, Resource)]
+pub struct PlayerAnimationAssets {
+    graph: Handle<AnimationGraph>,
+
+    idle_animation_index: AnimationNodeIndex,
+    walk_animation_index: AnimationNodeIndex,
+    run_animation_index: AnimationNodeIndex,
+    jump_animation_index: AnimationNodeIndex,
+    fall_animation_index: AnimationNodeIndex,
+    crouch_animation_index: AnimationNodeIndex,
+}
 
 #[derive(Debug, Copy, Clone, Component, Reflect, Serialize, Deserialize)]
 pub struct Player {
@@ -77,13 +99,45 @@ fn create_animations(
     graphs: &mut ResMut<Assets<AnimationGraph>>,
     game_assets: &mut GameAssetState,
 ) {
-    let animation = AnimationClip::default();
+    let mut graph = AnimationGraph::new();
 
-    // TODO: create the animations
+    let idle_animation = AnimationClip::default();
+    // TODO: create the animation
 
-    let (graph, animation_index) = AnimationGraph::from_clip(animations.add(animation));
-    game_assets.player_animation.graph = graphs.add(graph);
-    game_assets.player_animation.animation_index = animation_index;
+    game_assets.player_animations.idle_animation_index =
+        graph.add_clip(animations.add(idle_animation), 1.0, graph.root);
+
+    let walk_animation = AnimationClip::default();
+    // TODO: create the animation
+
+    game_assets.player_animations.walk_animation_index =
+        graph.add_clip(animations.add(walk_animation), 1.0, graph.root);
+
+    let run_animation = AnimationClip::default();
+    // TODO: create the animation
+
+    game_assets.player_animations.run_animation_index =
+        graph.add_clip(animations.add(run_animation), 1.0, graph.root);
+
+    let jump_animation = AnimationClip::default();
+    // TODO: create the animation
+
+    game_assets.player_animations.jump_animation_index =
+        graph.add_clip(animations.add(jump_animation), 1.0, graph.root);
+
+    let fall_animation = AnimationClip::default();
+    // TODO: create the animation
+
+    game_assets.player_animations.fall_animation_index =
+        graph.add_clip(animations.add(fall_animation), 1.0, graph.root);
+
+    let crouch_animation = AnimationClip::default();
+    // TODO: create the animation
+
+    game_assets.player_animations.crouch_animation_index =
+        graph.add_clip(animations.add(crouch_animation), 1.0, graph.root);
+
+    game_assets.player_animations.graph = graphs.add(graph);
 }
 
 pub fn spawn_player(
@@ -98,7 +152,7 @@ pub fn spawn_player(
     let mut commands = commands.spawn((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
-        AnimationGraphHandle(assets.player_animation.graph.clone()),
+        AnimationGraphHandle(assets.player_animations.graph.clone()),
         AnimationPlayer::default(),
         Transform::from_xyz(position.x, position.y, position.z),
         Name::new(format!("Player {}: {:?}", user_id, client_id)),
@@ -119,6 +173,7 @@ pub fn spawn_player(
     commands
         .insert((
             TnuaController::default(),
+            TnuaAnimatingState::<PlayerAnimationState>::default(),
             bevy_tnua_avian3d::TnuaAvian3dSensorShape(Collider::cylinder(0.5, 0.0)),
         ))
         .id()
@@ -149,7 +204,7 @@ pub fn finish_client_player(
     ec.insert((
         Mesh3d(assets.player_mesh.clone()),
         MeshMaterial3d(assets.player_material.clone()),
-        AnimationGraphHandle(assets.player_animation.graph.clone()),
+        AnimationGraphHandle(assets.player_animations.graph.clone()),
         AnimationPlayer::default(),
         Collider::capsule(HEIGHT * 0.5, HEIGHT),
         Name::new(format!(
@@ -201,7 +256,7 @@ impl Plugin for PlayerPlugin {
         )
         .add_systems(
             Update,
-            rotate_player
+            (rotate_player, animate_player)
                 .run_if(server_or_singleplayer)
                 .run_if(in_state(GameState::InGame)),
         )
@@ -252,6 +307,19 @@ fn rotate_player(
         transform.rotate_y(delta_yaw);
 
         last_input.input_state.look = Vec2::default();
+    }
+}
+
+fn animate_player(
+    _game_assets: Res<GameAssetState>,
+    mut player_query: Query<(
+        &TnuaController,
+        &mut TnuaAnimatingState<PlayerAnimationState>,
+        &mut AnimationPlayer,
+    )>,
+) {
+    for (_controller, _state, _animation_player) in &mut player_query {
+        // TODO:
     }
 }
 
