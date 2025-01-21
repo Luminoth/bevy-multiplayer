@@ -1,7 +1,9 @@
 use avian3d::prelude::*;
 use bevy::{color::palettes::css, ecs::entity::MapEntities, prelude::*};
 use bevy_replicon::prelude::*;
-use bevy_tnua::{prelude::*, TnuaAnimatingState};
+use bevy_tnua::{
+    builtins::TnuaBuiltinJumpState, prelude::*, TnuaAnimatingState, TnuaAnimatingStateDirective,
+};
 use serde::{Deserialize, Serialize};
 
 use common::user::UserId;
@@ -17,13 +19,14 @@ const JUMP_HEIGHT: f32 = 8.0;
 const HEIGHT: f32 = 2.0; // includes capsule hemispheres
 const MASS: f32 = 75.0;
 
-#[derive(Debug)]
+#[derive(Debug, strum::Display)]
 pub enum PlayerAnimationState {
     Idle,
     Walking,
     Running(f32),
     Jumping,
     Falling,
+    // TODO: this should probably be split crouching / crouched / standing
     Crouching,
 }
 
@@ -311,15 +314,106 @@ fn rotate_player(
 }
 
 fn animate_player(
-    _game_assets: Res<GameAssetState>,
+    game_assets: Res<GameAssetState>,
     mut player_query: Query<(
         &TnuaController,
         &mut TnuaAnimatingState<PlayerAnimationState>,
         &mut AnimationPlayer,
     )>,
 ) {
-    for (_controller, _state, _animation_player) in &mut player_query {
-        // TODO:
+    for (controller, mut animating_state, mut animation_player) in &mut player_query {
+        // get the current action the player is performing
+        // TODO: handle crouching
+        let current_status_for_animating = match controller.action_name() {
+            Some(TnuaBuiltinJump::NAME) => {
+                let (_, jump_state) = controller.concrete_action::<TnuaBuiltinJump>().unwrap();
+                match jump_state {
+                    TnuaBuiltinJumpState::NoJump => PlayerAnimationState::Idle,
+                    TnuaBuiltinJumpState::FallSection => PlayerAnimationState::Falling,
+                    _ => PlayerAnimationState::Jumping,
+                }
+            }
+            Some(other) => {
+                error!("Unknown tnua action: {}", other);
+                PlayerAnimationState::Idle
+            }
+            None => {
+                if let Some((_, basis_state)) = controller.concrete_basis::<TnuaBuiltinWalk>() {
+                    if basis_state.standing_on_entity().is_none() {
+                        PlayerAnimationState::Falling
+                    } else {
+                        // TODO: walk / run based on speed
+                        let speed = basis_state.running_velocity.length();
+                        if 0.01 < speed {
+                            PlayerAnimationState::Running(0.1 * speed)
+                        } else {
+                            PlayerAnimationState::Idle
+                        }
+                    }
+                } else {
+                    PlayerAnimationState::Idle
+                }
+            }
+        };
+
+        // update the animation state
+        let animating_directive =
+            animating_state.update_by_discriminant(current_status_for_animating);
+        match animating_directive {
+            TnuaAnimatingStateDirective::Maintain { state } => {
+                if let PlayerAnimationState::Running(speed) = state {
+                    // TODO: walk / run based on speed
+                    if let Some(animation) = animation_player
+                        .animation_mut(game_assets.player_animations.run_animation_index)
+                    {
+                        animation.set_speed(*speed);
+                    }
+                }
+            }
+            TnuaAnimatingStateDirective::Alter {
+                old_state: _,
+                state,
+            } => {
+                // TODO: transition animations
+                animation_player.stop_all();
+
+                info!("animation update: {}", state);
+                match state {
+                    PlayerAnimationState::Idle => {
+                        animation_player
+                            .start(game_assets.player_animations.idle_animation_index)
+                            .set_speed(1.0)
+                            .repeat();
+                    }
+                    PlayerAnimationState::Walking => {
+                        animation_player
+                            .start(game_assets.player_animations.walk_animation_index)
+                            .repeat();
+                    }
+                    PlayerAnimationState::Running(speed) => {
+                        animation_player
+                            .start(game_assets.player_animations.run_animation_index)
+                            .set_speed(*speed)
+                            .repeat();
+                    }
+                    PlayerAnimationState::Jumping => {
+                        animation_player
+                            .start(game_assets.player_animations.jump_animation_index)
+                            .set_speed(2.0);
+                    }
+                    PlayerAnimationState::Falling => {
+                        animation_player
+                            .start(game_assets.player_animations.fall_animation_index)
+                            .set_speed(1.0);
+                    }
+                    PlayerAnimationState::Crouching => {
+                        animation_player
+                            .start(game_assets.player_animations.crouch_animation_index)
+                            .set_speed(1.0);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -349,9 +443,10 @@ fn update_player_physics(
 
         character_controller.basis(TnuaBuiltinWalk {
             desired_velocity: direction.normalize_or_zero() * MOVE_SPEED,
+            // TODO: this isn't right, but we should probably do this instead of rotate_player()
+            //desired_forward: Dir3::new(Vec3::new(last_input.input_state.look.x, 0.0, 0.0)).ok(),
             // TODO: this doesn't seem right by the docs, but anything less doesn't work
             float_height: HEIGHT,
-            // TODO: should we remove rotate_player() and set desired_forward here instead?
             ..Default::default()
         });
 
@@ -366,6 +461,7 @@ fn update_player_physics(
         // TODO: this is looking more like it should be an event
         // (start crouch, end crouch)
         // TODO: client needs a reader next, that should "crouch" the player
+        // TODO: try and figure out how to use the tnua crouch action?
         if last_input.input_state.crouch {
             if !player.crouched {
                 player.crouched = true;
