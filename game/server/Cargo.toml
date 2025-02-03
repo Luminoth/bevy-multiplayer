@@ -43,3 +43,6 @@ game_common = { package = "game", path = "../game" }
 default = ["agones", "gamelift"]
 agones = ["dep:agones_api"]
 gamelift = ["dep:aws-gamelift-server-sdk-rs"]
+
+[lints]
+workspace = true
