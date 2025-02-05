@@ -363,9 +363,9 @@ fn animate_player(
             TnuaAnimatingStateDirective::Maintain { state } => {
                 if let PlayerAnimationState::Running(speed) = state {
                     // TODO: walk / run based on speed
-                    if let Some(animation) = animation_player
-                        .animation_mut(game_assets.player_animations.run_animation_index)
-                    {
+                    let animation = animation_player
+                        .animation_mut(game_assets.player_animations.run_animation_index);
+                    if let Some(animation) = animation {
                         animation.set_speed(*speed);
                     }
                 }

@@ -225,13 +225,14 @@ impl GameSessionInfo {
         client_id: ClientId,
         mut pending_players: impl Iterator<Item = (Entity, &'a PendingPlayer)>,
     ) -> bool {
-        if let Some(pending_player) = pending_players.find_map(|v| {
+        let pending_player = pending_players.find_map(|v| {
             if v.1.user_id == user_id {
                 Some(v.0)
             } else {
                 None
             }
-        }) {
+        });
+        if let Some(pending_player) = pending_player {
             info!("activating player slot {} for {:?}", user_id, client_id);
 
             commands.entity(pending_player).despawn_recursive();
@@ -271,13 +272,14 @@ impl GameSessionInfo {
                 self.pending_player_count -= 1;
             }
 
-            if let Some(active_player) = active_players.find_map(|v| {
+            let active_player = active_players.find_map(|v| {
                 if v.1.user_id == user_id {
                     Some(v.0)
                 } else {
                     None
                 }
-            }) {
+            });
+            if let Some(active_player) = active_player {
                 info!("active player {} disconnected ?", user_id);
 
                 commands.entity(active_player).despawn_recursive();
