@@ -1,11 +1,9 @@
 use bevy::prelude::*;
 
+use game_common::server::GameSessionInfo;
 use internal::notifs;
 
-use crate::{
-    server::{GameSessionInfo, HeartbeatEvent},
-    AppState,
-};
+use crate::{server::HeartbeatEvent, AppState};
 
 pub fn handle_v1(
     commands: &mut Commands,

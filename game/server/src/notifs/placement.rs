@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 
+use common::GameSettings;
+use game_common::server::GameSessionInfo;
 use internal::notifs;
 
-use crate::{server::GameSessionInfo, AppState};
+use crate::AppState;
 
 pub fn handle_v1(
     commands: &mut Commands,
@@ -17,7 +19,7 @@ pub fn handle_v1(
 
     // TODO: should come from the placement request
     // (as matchtype or something we can look up settings for)
-    let game_settings = internal::GameSettings::default();
+    let game_settings = GameSettings::default();
 
     if request.player_ids.len() > game_settings.max_players as usize {
         warn!(

@@ -1,13 +1,11 @@
 use bevy::prelude::*;
 
-use crate::server::{ActivePlayer, PendingPlayer};
-
-use game_common::{GameState, OnInGame};
-
-use crate::{
-    is_not_headless,
-    server::{GameServerInfo, GameSessionInfo},
+use game_common::{
+    server::{ActivePlayer, GameServerInfo, GameSessionInfo, PendingPlayer},
+    GameState, OnInGame,
 };
+
+use crate::is_not_headless;
 
 // TODO: spectator UI would be much less expensive if it were EGUI
 

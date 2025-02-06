@@ -6,12 +6,10 @@ use bevy_mod_websocket::*;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use uuid::Uuid;
 
+use game_common::server::GameSessionInfo;
 use internal::notifs;
 
-use crate::{
-    server::{GameSessionInfo, HeartbeatEvent},
-    AppState,
-};
+use crate::{server::HeartbeatEvent, AppState};
 
 const HOST: &str = "ws://localhost:8001";
 const RETRY_INTERVAL: Duration = Duration::from_secs(10);

@@ -3421,6 +3421,7 @@ dependencies = [
  "network-interface",
  "serde",
  "strum 0.26.3",
+ "uuid",
 ]
 
 [[package]]

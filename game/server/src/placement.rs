@@ -1,13 +1,13 @@
 use bevy::{ecs::system::RunSystemOnce, prelude::*};
 use bevy_tokio_tasks::TokioTasksRuntime;
 
-use game_common::cleanup_state;
+use game_common::{cleanup_state, server::GameServerInfo};
 
 use crate::{
     is_not_headless,
     options::Options,
     orchestration::{start_watcher, Orchestration, StartWatcherEvent},
-    server::{GameServerInfo, HeartbeatEvent},
+    server::HeartbeatEvent,
     tasks, AppState,
 };
 

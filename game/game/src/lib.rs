@@ -2,6 +2,7 @@ pub mod dynamic;
 mod game;
 pub mod network;
 pub mod player;
+pub mod server;
 pub mod spawn;
 pub mod utils;
 mod world;

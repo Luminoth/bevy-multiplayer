@@ -1,9 +1,12 @@
 pub mod gameclient;
 pub mod gameserver;
+mod gamesettings;
 pub mod user;
 
 use bevy_mod_reqwest::*;
 use tracing::error;
+
+pub use gamesettings::*;
 
 pub fn check_reqwest_error(response: &ReqwestResponseEvent) -> bool {
     if response.status().is_success() {

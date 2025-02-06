@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::time::Duration;
 
@@ -12,12 +11,11 @@ use bevy_replicon_renet::{
     RenetChannelsExt,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
-use uuid::Uuid;
 
-use common::user::UserId;
 use game_common::{
-    network::{ConnectEvent, ConnectionInfo, InputUpdateEvent, PlayerJumpEvent},
+    network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
     player,
+    server::{ActivePlayer, GameServerInfo, GameSessionInfo, PendingPlayer},
     spawn::SpawnPoint,
     utils::current_timestamp,
     GameAssetState, GameState, PROTOCOL_ID,
@@ -28,206 +26,6 @@ use crate::{
 };
 
 const HEARTBEAT_FREQUENCY: Duration = Duration::from_secs(5);
-const PENDING_PLAYER_TIMEOUT: Duration = Duration::from_secs(10);
-const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(60 * 10);
-
-#[derive(Debug, Resource)]
-pub struct GameServerInfo {
-    pub server_id: Uuid,
-    pub connection_info: ConnectionInfo,
-}
-
-impl GameServerInfo {
-    pub fn new() -> Self {
-        Self {
-            server_id: Uuid::new_v4(),
-            connection_info: ConnectionInfo::default(),
-        }
-    }
-}
-
-#[derive(Debug, Component)]
-pub struct PendingPlayer {
-    pub user_id: UserId,
-    timer: Timer,
-}
-
-impl PendingPlayer {
-    pub fn new(user_id: UserId) -> Self {
-        Self {
-            user_id,
-            timer: Timer::new(PENDING_PLAYER_TIMEOUT, TimerMode::Once),
-        }
-    }
-
-    pub fn is_timeout(&mut self, delta: Duration) -> bool {
-        self.timer.tick(delta);
-        self.timer.finished()
-    }
-}
-
-#[derive(Debug, Component)]
-pub struct ActivePlayer {
-    pub user_id: UserId,
-}
-
-impl ActivePlayer {
-    fn new(user_id: UserId) -> Self {
-        Self { user_id }
-    }
-}
-
-#[derive(Debug, Resource)]
-pub struct GameSessionInfo {
-    pub session_id: Uuid,
-    pub max_players: u16,
-
-    pending_player_count: usize,
-    active_player_count: usize,
-
-    clients: HashMap<ClientId, UserId>,
-
-    shutdown_timer: Timer,
-}
-
-impl GameSessionInfo {
-    pub fn new(
-        commands: &mut Commands,
-        session_id: Uuid,
-        settings: &internal::GameSettings,
-        pending_player_ids: impl AsRef<[UserId]>,
-    ) -> Self {
-        let mut this = Self {
-            session_id,
-            max_players: settings.max_players,
-            pending_player_count: 0,
-            active_player_count: 0,
-            clients: HashMap::with_capacity(settings.max_players as usize),
-            shutdown_timer: Timer::new(SHUTDOWN_TIMEOUT, TimerMode::Once),
-        };
-        this.shutdown_timer.pause();
-
-        for pending_player_id in pending_player_ids.as_ref().iter() {
-            this.reserve_player(commands, *pending_player_id);
-        }
-
-        this
-    }
-
-    #[inline]
-    pub fn player_count(&self) -> usize {
-        self.pending_player_count + self.active_player_count
-    }
-
-    pub fn reserve_player(&mut self, commands: &mut Commands, pending_player_id: UserId) {
-        if self.player_count() + 1 > self.max_players as usize {
-            warn!(
-                "not reserving player slot for {}, max players {} exceeded!",
-                pending_player_id, self.max_players
-            );
-            return;
-        }
-
-        info!("reserving player slot {}", pending_player_id);
-
-        commands.spawn(PendingPlayer::new(pending_player_id));
-        self.pending_player_count += 1;
-
-        self.shutdown_timer.pause();
-    }
-
-    fn pending_player_timeout(
-        &mut self,
-        commands: &mut Commands,
-        pending_player: Entity,
-        pending_player_id: UserId,
-    ) {
-        info!("pending player {} timeout", pending_player_id);
-
-        commands.entity(pending_player).despawn_recursive();
-        self.pending_player_count -= 1;
-
-        if self.player_count() == 0 {
-            self.shutdown_timer.reset();
-            self.shutdown_timer.unpause();
-        }
-    }
-
-    fn client_connected<'a>(
-        &mut self,
-        commands: &mut Commands,
-        user_id: UserId,
-        client_id: ClientId,
-        mut pending_players: impl Iterator<Item = (Entity, &'a PendingPlayer)>,
-    ) -> bool {
-        let pending_player = pending_players.find_map(|v| {
-            if v.1.user_id == user_id {
-                Some(v.0)
-            } else {
-                None
-            }
-        });
-        if let Some(pending_player) = pending_player {
-            info!("activating player slot {} for {:?}", user_id, client_id);
-
-            commands.entity(pending_player).despawn_recursive();
-            self.pending_player_count -= 1;
-
-            commands.spawn(ActivePlayer::new(user_id));
-            self.active_player_count += 1;
-
-            self.clients.insert(client_id, user_id);
-
-            self.shutdown_timer.pause();
-
-            true
-        } else {
-            false
-        }
-    }
-
-    fn client_disconnected<'a>(
-        &mut self,
-        commands: &mut Commands,
-        client_id: &ClientId,
-        mut pending_players: impl Iterator<Item = (Entity, &'a PendingPlayer)>,
-        mut active_players: impl Iterator<Item = (Entity, &'a ActivePlayer)>,
-    ) {
-        if let Some(user_id) = self.clients.remove(client_id) {
-            if let Some(pending_player) = pending_players.find_map(|v| {
-                if v.1.user_id == user_id {
-                    Some(v.0)
-                } else {
-                    None
-                }
-            }) {
-                info!("pending player {} disconnected ?", user_id);
-
-                commands.entity(pending_player).despawn_recursive();
-                self.pending_player_count -= 1;
-            }
-
-            let active_player = active_players.find_map(|v| {
-                if v.1.user_id == user_id {
-                    Some(v.0)
-                } else {
-                    None
-                }
-            });
-            if let Some(active_player) = active_player {
-                info!("active player {} disconnected ?", user_id);
-
-                commands.entity(active_player).despawn_recursive();
-                self.active_player_count -= 1;
-            }
-        }
-
-        if self.player_count() == 0 {
-            self.shutdown_timer.reset();
-            self.shutdown_timer.unpause();
-        }
-    }
-}
 
 #[derive(Debug, Default, Event)]
 pub struct HeartbeatEvent;
@@ -481,8 +279,7 @@ fn handle_timeouts(
     }
 
     if orchestration.shutdown_empty() {
-        session_info.shutdown_timer.tick(time.delta());
-        if session_info.shutdown_timer.finished() {
+        if session_info.update_shutdown_timer(time.delta()) {
             info!("session timeout, exiting");
             exit.send(AppExit::Success);
         }
@@ -538,7 +335,7 @@ fn validate_input_update(
         event: _,
     } in evr_input_update.read()
     {
-        if !session_info.clients.contains_key(client_id) {
+        if !session_info.has_client(client_id) {
             warn!("client {:?} not in session", client_id);
             server.disconnect(client_id.get());
             continue;
@@ -558,7 +355,7 @@ fn validate_jump_event(
         event: _,
     } in evr_jump.read()
     {
-        if !session_info.clients.contains_key(client_id) {
+        if !session_info.has_client(client_id) {
             warn!("client {:?} not in session", client_id);
             server.disconnect(client_id.get());
             continue;
