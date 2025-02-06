@@ -3,8 +3,9 @@ use bevy_mod_reqwest::*;
 use uuid::Uuid;
 
 use common::{check_reqwest_error, gameserver};
+use game_common::network::ConnectionInfo;
 
-use crate::server::{ActivePlayer, ConnectionInfo, GameSessionInfo, PendingPlayer};
+use crate::server::{ActivePlayer, GameSessionInfo, PendingPlayer};
 
 const HOST: &str = "http://localhost:8000";
 

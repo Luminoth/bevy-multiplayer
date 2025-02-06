@@ -1,5 +1,5 @@
-use std::collections::{BTreeSet, HashMap};
-use std::net::{IpAddr, SocketAddr, UdpSocket};
+use std::collections::HashMap;
+use std::net::UdpSocket;
 use std::time::Duration;
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
@@ -12,12 +12,11 @@ use bevy_replicon_renet::{
     RenetChannelsExt,
 };
 use bevy_tokio_tasks::TokioTasksRuntime;
-use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use uuid::Uuid;
 
 use common::user::UserId;
 use game_common::{
-    network::{ConnectEvent, InputUpdateEvent, PlayerJumpEvent},
+    network::{ConnectEvent, ConnectionInfo, InputUpdateEvent, PlayerJumpEvent},
     player,
     spawn::SpawnPoint,
     utils::current_timestamp,
@@ -31,70 +30,6 @@ use crate::{
 const HEARTBEAT_FREQUENCY: Duration = Duration::from_secs(5);
 const PENDING_PLAYER_TIMEOUT: Duration = Duration::from_secs(10);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(60 * 10);
-
-#[derive(Debug, Clone, Default)]
-pub struct ConnectionInfo {
-    pub v4addrs: BTreeSet<String>,
-    pub v6addrs: BTreeSet<String>,
-    pub port: u16,
-}
-
-impl ConnectionInfo {
-    pub fn update(&mut self, addr: SocketAddr) {
-        let ip = addr.ip();
-        if ip.is_unspecified() {
-            self.v4addrs.clear();
-            self.v6addrs.clear();
-
-            let ifaces = NetworkInterface::show().unwrap();
-            for iface in ifaces {
-                // hack for now, I honestly don't know how to ignore this
-                if iface.name.contains("docker") {
-                    continue;
-                }
-
-                // also a hack, I don't know how to ignore bridge interfaces
-                if iface.name.starts_with("br-") {
-                    continue;
-                }
-
-                for ip in iface.addr {
-                    let ip = ip.ip();
-                    // TODO: copy paste
-                    match ip {
-                        IpAddr::V4(ip) => {
-                            if !ip.is_loopback() && !ip.is_link_local() {
-                                self.v4addrs.insert(ip.to_string());
-                            }
-                        }
-                        IpAddr::V6(ip) => {
-                            if !ip.is_loopback() {
-                                self.v6addrs.insert(ip.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // TODO: copy paste
-            match ip {
-                IpAddr::V4(ip) => {
-                    if !ip.is_loopback() && !ip.is_link_local() {
-                        self.v4addrs.insert(ip.to_string());
-                    }
-                }
-                IpAddr::V6(ip) => {
-                    if !ip.is_loopback() {
-                        self.v6addrs.insert(ip.to_string());
-                    }
-                }
-            }
-        }
-        self.port = addr.port();
-
-        info!("updated connection info: {:?}", self);
-    }
-}
 
 #[derive(Debug, Resource)]
 pub struct GameServerInfo {

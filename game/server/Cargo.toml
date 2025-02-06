@@ -29,7 +29,6 @@ bevy_replicon_renet = { version = "0.6", default-features = false, features = [
 bevy-tokio-tasks = "0.15"
 clap = { version = "4.5", features = ["derive"] }
 http = "1.1"
-network-interface = "2.0"
 serde_json = "1.0"
 tokio = { version = "1.41", features = ["rt", "rt-multi-thread", "sync"] }
 tokio-tungstenite = "0.24"
