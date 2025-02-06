@@ -278,11 +278,9 @@ fn handle_timeouts(
         }
     }
 
-    if orchestration.shutdown_empty() {
-        if session_info.update_shutdown_timer(time.delta()) {
-            info!("session timeout, exiting");
-            exit.send(AppExit::Success);
-        }
+    if orchestration.shutdown_empty() && session_info.update_shutdown_timer(time.delta()) {
+        info!("session timeout, exiting");
+        exit.send(AppExit::Success);
     }
 }
 

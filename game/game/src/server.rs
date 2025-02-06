@@ -19,6 +19,7 @@ pub struct GameServerInfo {
 }
 
 impl GameServerInfo {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             server_id: Uuid::new_v4(),
