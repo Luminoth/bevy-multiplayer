@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_mod_websocket::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::{netcode::NetcodeClientTransport, renet::RenetClient};
+use bevy_replicon_renet::{
+    netcode::{NetcodeClientTransport, NetcodeTransportError},
+    renet::RenetClient,
+};
 
 use common::user::UserId;
 use game_common::{
@@ -51,6 +54,7 @@ impl Plugin for ClientPlugin {
         .init_resource::<ClientState>()
         .add_systems(Startup, setup)
         .add_systems(OnEnter(AppState::InGame), enter)
+        .add_systems(Update, handle_network_error)
         .add_systems(
             PostUpdate,
             (send_input_update, send_jump_event)
@@ -81,6 +85,25 @@ fn exit(mut commands: Commands) {
     commands.remove_resource::<PlayerClientId>();
     commands.remove_resource::<RenetClient>();
     commands.remove_resource::<NetcodeClientTransport>();
+}
+
+fn handle_network_error(
+    mut commands: Commands,
+    mut evr_error: EventReader<NetcodeTransportError>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    if evr_error.is_empty() {
+        return;
+    }
+
+    for evt in evr_error.read() {
+        error!("network error: {}", evt);
+    }
+
+    commands.remove_resource::<RenetClient>();
+    commands.remove_resource::<NetcodeClientTransport>();
+
+    app_state.set(AppState::MainMenu);
 }
 
 pub fn on_connected_server(

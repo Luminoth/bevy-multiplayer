@@ -87,8 +87,9 @@ fn main() {
             bevy::state::app::StatesPlugin,
         ));
 
-        // physics makes use of Mesh assets
+        // rapier makes use of Mesh assets
         // and this is missing without rendering
+        // TODO: can we remove this with avian?
         app.init_asset::<Mesh>();
     } else {
         app.add_plugins(

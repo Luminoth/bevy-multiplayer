@@ -14,8 +14,11 @@ pub type NotifSender = SplitSink<WebSocket, Message>;
 
 async fn idle_notifs(mut receiver: SplitStream<WebSocket>) {
     // idle on the receiver until the connection is closed
-    while let Some(Ok(_)) = receiver.next().await {
-        // ignore whatever we received
+    loop {
+        let v = receiver.next().await;
+        if !v.map(|v| v.is_ok()).unwrap_or_default() {
+            break;
+        }
     }
 }
 

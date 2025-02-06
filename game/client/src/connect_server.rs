@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_mod_reqwest::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
-    netcode::{ClientAuthentication, NetcodeClientTransport, NetcodeTransportError},
+    netcode::{ClientAuthentication, NetcodeClientTransport},
     renet::{ConnectionConfig, RenetClient},
     RenetChannelsExt,
 };
@@ -31,13 +31,7 @@ pub struct ConnectServerPlugin;
 impl Plugin for ConnectServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::ConnectToServer), enter)
-            .add_systems(
-                Update,
-                (
-                    handle_network_error,
-                    connected.run_if(client_just_connected),
-                ),
-            )
+            .add_systems(Update, connected.run_if(client_just_connected))
             .add_systems(
                 OnExit(AppState::ConnectToServer),
                 (
@@ -47,25 +41,6 @@ impl Plugin for ConnectServerPlugin {
                 ),
             );
     }
-}
-
-fn handle_network_error(
-    mut commands: Commands,
-    mut evr_error: EventReader<NetcodeTransportError>,
-    mut app_state: ResMut<NextState<AppState>>,
-) {
-    if evr_error.is_empty() {
-        return;
-    }
-
-    for evt in evr_error.read() {
-        error!("network error: {}", evt);
-    }
-
-    commands.remove_resource::<RenetClient>();
-    commands.remove_resource::<NetcodeClientTransport>();
-
-    app_state.set(AppState::MainMenu);
 }
 
 fn on_cancel(trigger: Trigger<Pointer<Click>>, mut app_state: ResMut<NextState<AppState>>) {
