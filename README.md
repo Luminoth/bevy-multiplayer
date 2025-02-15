@@ -4,6 +4,8 @@ Playing around with a mix of Bevy, Agones, and hopefully OpenMatch
 
 # Notes
 
+* https://www.youtube.com/watch?v=N-jh8qc8tJs
+
 * Run game server on [Agones](https://agones.dev/site/docs/overview/)
   * [Example game server](https://github.com/googleforgames/agones/tree/release-1.44.0/examples/simple-game-server)
   * [State Diagram](https://agones.dev/site/docs/reference/gameserver/#gameserver-state-diagram)
