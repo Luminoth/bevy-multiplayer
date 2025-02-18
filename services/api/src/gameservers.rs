@@ -1,4 +1,4 @@
-use bb8_redis::redis::{AsyncCommands, Pipeline};
+use redis::{AsyncCommands, Pipeline};
 use tokio::time::{sleep, timeout, Duration};
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -10,7 +10,7 @@ use internal::{
         WAITING_GAMESERVERS_INDEX,
     },
     notifs::AsNotification,
-    redis::RedisPooledConnection,
+    redis::RedisConnection,
 };
 
 use crate::{gamesessions, models, notifs, state::AppState};
@@ -20,7 +20,7 @@ const RESERVATION_TIMEOUT: Duration = Duration::from_secs(5);
 const SERVER_INFO_TTL: u64 = 10;
 
 pub async fn read_gameserver_info(
-    conn: &mut RedisPooledConnection,
+    conn: &mut RedisConnection,
     server_id: Uuid,
 ) -> anyhow::Result<Option<models::gameserver::GameServerInfo>> {
     let game_server_info: Option<String> = conn.get(get_gameserver_key(server_id)).await?;
@@ -68,7 +68,7 @@ pub async fn update_gameserver(
 }
 
 async fn wait_for_reservation(
-    conn: &mut RedisPooledConnection,
+    conn: &mut RedisConnection,
     game_session_id: Uuid,
     user_id: UserId,
 ) -> anyhow::Result<()> {
@@ -90,11 +90,11 @@ async fn wait_for_reservation(
 }
 
 pub async fn reserve_backfill_slot(
-    conn: &mut RedisPooledConnection,
-    app_state: &AppState,
+    app_state: &mut AppState,
     user_id: UserId,
 ) -> anyhow::Result<Option<models::gameserver::GameServerInfo>> {
-    let backfill_sessions = gamesessions::get_backfill_game_sessions(conn).await?;
+    let backfill_sessions =
+        gamesessions::get_backfill_game_sessions(&mut app_state.redis_connection).await?;
     if backfill_sessions.is_empty() {
         warn!("no sessions available for backfill!");
         return Ok(None);
@@ -109,11 +109,15 @@ pub async fn reserve_backfill_slot(
         let game_session_id = Uuid::parse_str(&game_session_id)?;
         info!("checking backfill session {}", game_session_id);
 
-        let game_session_info = gamesessions::read_game_session_info(conn, game_session_id).await?;
+        let game_session_info =
+            gamesessions::read_game_session_info(&mut app_state.redis_connection, game_session_id)
+                .await?;
         if let Some(game_session_info) = game_session_info {
             info!("found backfill session {}", game_session_id);
 
-            let server_info = read_gameserver_info(conn, game_session_info.server_id).await?;
+            let server_info =
+                read_gameserver_info(&mut app_state.redis_connection, game_session_info.server_id)
+                    .await?;
             if let Some(server_info) = server_info {
                 notifs::notify_gameserver(
                     app_state,
@@ -132,7 +136,7 @@ pub async fn reserve_backfill_slot(
 
                 let res = timeout(
                     RESERVATION_TIMEOUT,
-                    wait_for_reservation(conn, game_session_id, user_id),
+                    wait_for_reservation(&mut app_state.redis_connection, game_session_id, user_id),
                 )
                 .await;
                 if res.is_err() {
@@ -149,7 +153,8 @@ pub async fn reserve_backfill_slot(
         } else {
             warn!("invalid backfill session {}", game_session_id);
 
-            let _: () = conn
+            let _: () = app_state
+                .redis_connection
                 .hdel(GAMESESSIONS_BACKFILL_SET, game_session_id.to_string())
                 .await?;
         }
@@ -159,7 +164,7 @@ pub async fn reserve_backfill_slot(
 }
 
 async fn wait_for_placement(
-    conn: &mut RedisPooledConnection,
+    conn: &mut RedisConnection,
     server_id: Uuid,
     game_session_id: Uuid,
 ) -> anyhow::Result<Option<models::gameserver::GameServerInfo>> {
@@ -190,12 +195,14 @@ async fn wait_for_placement(
 }
 
 pub async fn allocate_game_server(
-    conn: &mut RedisPooledConnection,
-    app_state: &AppState,
+    app_state: &mut AppState,
     user_id: UserId,
     game_session_id: Uuid,
 ) -> anyhow::Result<Option<models::gameserver::GameServerInfo>> {
-    let server_ids: Vec<(String, u64)> = conn.zpopmin(WAITING_GAMESERVERS_INDEX, 1).await?;
+    let server_ids: Vec<(String, u64)> = app_state
+        .redis_connection
+        .zpopmin(WAITING_GAMESERVERS_INDEX, 1)
+        .await?;
     if server_ids.len() != 1 {
         warn!("no game servers available for placement!");
         return Ok(None);
@@ -205,7 +212,7 @@ pub async fn allocate_game_server(
     let server_id = Uuid::parse_str(&server_ids[0].0)?;
     info!("found server for placement {}", server_id);
 
-    let server_info = read_gameserver_info(conn, server_id).await?;
+    let server_info = read_gameserver_info(&mut app_state.redis_connection, server_id).await?;
     if let Some(server_info) = server_info {
         if server_info.state != common::gameserver::GameServerState::WaitingForPlacement {
             // TODO: don't fail, try again until we can't find one
@@ -230,7 +237,7 @@ pub async fn allocate_game_server(
 
         let res = timeout(
             PLACEMENT_TIMEOUT,
-            wait_for_placement(conn, server_id, game_session_id),
+            wait_for_placement(&mut app_state.redis_connection, server_id, game_session_id),
         )
         .await;
         if res.is_err() {

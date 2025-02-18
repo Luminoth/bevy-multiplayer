@@ -1,6 +1,5 @@
 use axum::{debug_handler, extract::State, Json};
 use axum_extra::TypedHeader;
-use bb8_redis::redis::{self};
 use headers::authorization::{Authorization, Bearer};
 use uuid::Uuid;
 
@@ -12,7 +11,7 @@ use crate::{gameservers, gamesessions, models, state::AppState};
 #[debug_handler]
 pub async fn post_heartbeat_v1(
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
-    State(app_state): State<AppState>,
+    State(mut app_state): State<AppState>,
     Json(request): Json<PostHeartbeatRequestV1>,
 ) -> Result<Json<PostHeartbeatResponseV1>, AppError> {
     // TODO: validate the server token
@@ -28,7 +27,6 @@ pub async fn post_heartbeat_v1(
                 models::gamesession::GameSessionInfo::new(server_id, game_session_info)
             });
 
-    let mut conn = app_state.redis_connection_pool.get().await?;
     let mut pipeline = redis::pipe();
 
     gameservers::update_gameserver(&mut pipeline, &gameserver_info).await?;
@@ -36,7 +34,9 @@ pub async fn post_heartbeat_v1(
         gamesessions::update_game_session(&mut pipeline, &game_session_info).await?;
     }
 
-    let _: () = pipeline.query_async(&mut *conn).await?;
+    let _: () = pipeline
+        .query_async(&mut app_state.redis_connection)
+        .await?;
 
     Ok(Json(PostHeartbeatResponseV1 {}))
 }

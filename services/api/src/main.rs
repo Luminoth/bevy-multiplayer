@@ -67,9 +67,9 @@ async fn main() -> anyhow::Result<()> {
 
     init_logging()?;
 
-    let redis_connection_pool = redis::connect(options.redis_host.clone()).await?;
+    let redis_connection = redis::connect(options.redis_host.clone()).await?;
 
-    let app_state = AppState::new(options, redis_connection_pool);
+    let app_state = AppState::new(options, redis_connection);
 
     let addr = app_state
         .options

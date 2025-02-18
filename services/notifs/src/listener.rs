@@ -1,5 +1,4 @@
 use axum::extract::ws::Message;
-use bb8_redis::redis;
 use futures_util::{SinkExt, StreamExt};
 use tokio::task;
 use tracing::{debug, info};

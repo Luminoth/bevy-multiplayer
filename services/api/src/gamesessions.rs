@@ -1,9 +1,9 @@
-use bb8_redis::redis::{AsyncCommands, Pipeline};
+use redis::{AsyncCommands, Pipeline};
 use uuid::Uuid;
 
 use internal::{
     gameserver::{get_gamesession_key, GAMESESSIONS_BACKFILL_SET, GAMESESSIONS_INDEX},
-    redis::RedisPooledConnection,
+    redis::RedisConnection,
 };
 
 use crate::models;
@@ -11,7 +11,7 @@ use crate::models;
 const SESSION_INFO_TTL: u64 = 60;
 
 pub async fn read_game_session_info(
-    conn: &mut RedisPooledConnection,
+    conn: &mut RedisConnection,
     game_session_id: Uuid,
 ) -> anyhow::Result<Option<models::gamesession::GameSessionInfo>> {
     let game_session_info: Option<String> = conn.get(get_gamesession_key(game_session_id)).await?;
@@ -64,7 +64,7 @@ pub async fn update_game_session(
 }
 
 pub async fn get_backfill_game_sessions(
-    conn: &mut RedisPooledConnection,
+    conn: &mut RedisConnection,
 ) -> anyhow::Result<Vec<(String, u64)>> {
     Ok(conn.hgetall(GAMESESSIONS_BACKFILL_SET).await?)
 }
