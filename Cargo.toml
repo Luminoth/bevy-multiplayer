@@ -11,9 +11,6 @@ members = [
     "game/server",
 ]
 
-[workspace.lints.rust]
-rust_2024_compatibility = "warn"
-
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
 opt-level = 1

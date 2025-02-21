@@ -1,7 +1,7 @@
 [package]
 name = "client"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "bevy-multiplayer"
@@ -37,6 +37,3 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 
 common = { path = "../../shared/common" }
 game_common = { package = "game", path = "../game" }
-
-[lints]
-workspace = true

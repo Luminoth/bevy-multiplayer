@@ -1,7 +1,7 @@
 [package]
 name = "server"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "bevy-multiplayer-server"
@@ -42,6 +42,3 @@ game_common = { package = "game", path = "../game" }
 default = ["agones", "gamelift"]
 agones = ["dep:agones_api"]
 gamelift = ["dep:aws-gamelift-server-sdk-rs"]
-
-[lints]
-workspace = true

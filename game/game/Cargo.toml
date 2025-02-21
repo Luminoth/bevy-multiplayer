@@ -1,7 +1,7 @@
 [package]
 name = "game"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 avian3d = { version = "0.2", features = ["simd"] }
@@ -16,6 +16,3 @@ strum = { version = "0.26", features = ["derive"] }
 uuid = { version = "1.11", features = ["v4", "serde"] }
 
 common = { path = "../../shared/common" }
-
-[lints]
-workspace = true
