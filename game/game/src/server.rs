@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_replicon::prelude::*;
 use uuid::Uuid;
 
-use common::{user::UserId, GameSettings};
+use common::{GameSettings, user::UserId};
 
 use crate::network::ConnectionInfo;
 
@@ -122,14 +122,13 @@ impl GameSessionInfo {
         client_id: ClientId,
         mut pending_players: impl Iterator<Item = (Entity, &'a PendingPlayer)>,
     ) -> bool {
-        let pending_player = pending_players.find_map(|v| {
+        if let Some(pending_player) = pending_players.find_map(|v| {
             if v.1.user_id == user_id {
                 Some(v.0)
             } else {
                 None
             }
-        });
-        if let Some(pending_player) = pending_player {
+        }) {
             info!("activating player slot {} for {:?}", user_id, client_id);
 
             commands.entity(pending_player).despawn_recursive();

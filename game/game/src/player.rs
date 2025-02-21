@@ -2,13 +2,13 @@ use avian3d::prelude::*;
 use bevy::{color::palettes::css, ecs::entity::MapEntities, prelude::*};
 use bevy_replicon::prelude::*;
 use bevy_tnua::{
-    builtins::TnuaBuiltinJumpState, prelude::*, TnuaAnimatingState, TnuaAnimatingStateDirective,
+    TnuaAnimatingState, TnuaAnimatingStateDirective, builtins::TnuaBuiltinJumpState, prelude::*,
 };
 use serde::{Deserialize, Serialize};
 
 use common::user::UserId;
 
-use crate::{game::OnInGame, network::PlayerClientId, GameAssetState, GameState, InputState};
+use crate::{GameAssetState, GameState, InputState, game::OnInGame, network::PlayerClientId};
 
 // TODO: if these moved to a resource
 // they'd be easier to fudge for testing
@@ -363,9 +363,9 @@ fn animate_player(
             TnuaAnimatingStateDirective::Maintain { state } => {
                 if let PlayerAnimationState::Running(speed) = state {
                     // TODO: walk / run based on speed
-                    let animation = animation_player
-                        .animation_mut(game_assets.player_animations.run_animation_index);
-                    if let Some(animation) = animation {
+                    if let Some(animation) = animation_player
+                        .animation_mut(game_assets.player_animations.run_animation_index)
+                    {
                         animation.set_speed(*speed);
                     }
                 }

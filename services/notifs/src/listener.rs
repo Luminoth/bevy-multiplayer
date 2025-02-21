@@ -49,8 +49,7 @@ pub async fn start_gameclient_listener(
 
             {
                 let mut game_clients = game_clients.write().await;
-                let sender = game_clients.get_mut(&recipient);
-                if let Some(sender) = sender {
+                if let Some(sender) = game_clients.get_mut(&recipient) {
                     info!("notifying game client {}", recipient);
                     sender.send(Message::Text(payload)).await.unwrap();
                 } else {
@@ -89,8 +88,7 @@ pub async fn start_gameserver_listener(
 
             {
                 let mut game_servers = game_servers.write().await;
-                let sender = game_servers.get_mut(&recipient);
-                if let Some(sender) = sender {
+                if let Some(sender) = game_servers.get_mut(&recipient) {
                     info!("notifying game server {}", recipient);
                     sender.send(Message::Text(payload)).await.unwrap();
                 } else {

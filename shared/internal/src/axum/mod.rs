@@ -8,7 +8,7 @@ use axum::{
     body::Bytes, debug_handler, extract::ConnectInfo, http::StatusCode, http::Uri,
     response::IntoResponse,
 };
-use http::{header::AsHeaderName, Request};
+use http::{Request, header::AsHeaderName};
 use http_body_util::BodyExt;
 use tracing::{debug, info};
 
@@ -27,8 +27,7 @@ pub struct OptFmt<T>(pub Option<T>);
 
 impl<T: fmt::Display> fmt::Display for OptFmt<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let t = self.0.as_ref();
-        if let Some(t) = t {
+        if let Some(ref t) = self.0 {
             fmt::Display::fmt(t, f)
         } else {
             f.write_str("-")
