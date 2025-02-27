@@ -79,7 +79,6 @@ fn main() {
         )
         // third-party plugins
         .add_plugins((
-            bevy_egui::EguiPlugin,
             avian3d::debug_render::PhysicsDebugPlugin::default(),
             RepliconPlugins,
             RepliconRenetPlugins,

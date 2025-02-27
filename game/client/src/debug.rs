@@ -6,7 +6,7 @@ use bevy::{
     input::common_conditions::input_toggle_active,
     prelude::*,
 };
-use bevy_egui::{egui, EguiContexts};
+use bevy_inspector_egui::{bevy_egui::EguiContexts, egui};
 use bevy_replicon_renet::renet::RenetClient;
 
 use game_common::GameState;
