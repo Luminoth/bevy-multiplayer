@@ -24,7 +24,7 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn on_start_local(
+fn on_start_single_player(
     trigger: Trigger<Pointer<Click>>,
     mut commands: Commands,
     options: Res<Options>,
@@ -33,6 +33,29 @@ fn on_start_local(
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     if trigger.button == PointerButton::Primary {
+        let client_id = PlayerClientId::new(ClientId::SERVER);
+        commands.insert_resource(client_id);
+        client::on_connected_server(
+            &client,
+            client_id,
+            options.user_id,
+            &mut evw_connect,
+            &mut app_state,
+        );
+    }
+}
+
+fn on_start_listen_server(
+    trigger: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    options: Res<Options>,
+    client: Res<client::ClientState>,
+    mut evw_connect: EventWriter<ConnectEvent>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    if trigger.button == PointerButton::Primary {
+        // TODO: start listening
+
         let client_id = PlayerClientId::new(ClientId::SERVER);
         commands.insert_resource(client_id);
         client::on_connected_server(
@@ -65,7 +88,11 @@ fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((Camera2d, IsDefaultUiCamera, OnMainMenu));
 
     ui::spawn_canvas(&mut commands, "Main Menu").with_children(|parent| {
-        ui::spawn_button(parent, &asset_server, "Start Local").observe(on_start_local);
+        ui::spawn_button(parent, &asset_server, "Start Single Player")
+            .observe(on_start_single_player);
+
+        ui::spawn_button(parent, &asset_server, "Start Listen Server")
+            .observe(on_start_listen_server);
 
         // TODO: disable this if we aren't connected to the notifs server
         ui::spawn_button(parent, &asset_server, "Find Server").observe(on_find_server);
